@@ -1,0 +1,161 @@
+/* ============================================================
+   SportsCal Design System
+   Aesthetic: premium sports app — dark sidebar, clean cards,
+   kid color accents, DM Sans typography
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Core palette */
+  --navy:       #0f1629;
+  --navy-light: #1a2540;
+  --navy-mid:   #243050;
+  --slate:      #8896b0;
+  --slate-light:#b8c4d8;
+  --white:      #ffffff;
+  --off-white:  #f4f6fa;
+  --border:     #e8ecf4;
+
+  /* Accent — electric green (sporty, energetic) */
+  --accent:     #00d68f;
+  --accent-dim: #00b377;
+  --accent-bg:  #e6fdf5;
+
+  /* Status */
+  --red:        #ff4757;
+  --red-bg:     #fff0f1;
+  --amber:      #ffaa00;
+  --amber-bg:   #fff8e6;
+
+  /* Typography */
+  --font:       'DM Sans', sans-serif;
+  --mono:       'DM Mono', monospace;
+
+  /* Layout */
+  --sidebar-w:  240px;
+  --radius:     10px;
+  --radius-lg:  16px;
+  --shadow:     0 1px 3px rgba(15,22,41,0.08), 0 4px 16px rgba(15,22,41,0.06);
+  --shadow-lg:  0 8px 32px rgba(15,22,41,0.12);
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: var(--font);
+  background: var(--off-white);
+  color: var(--navy);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: var(--font); cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: var(--font); }
+
+/* ---- Utility classes ---- */
+.card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--navy);
+}
+.btn-primary:hover { background: var(--accent-dim); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--slate);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: var(--off-white); color: var(--navy); }
+
+.btn-danger {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid #ffd0d4;
+}
+.btn-danger:hover { background: #ffd0d4; }
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* ---- Form elements ---- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--slate);
+  letter-spacing: 0.02em;
+}
+
+.input {
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 15px;
+  color: var(--navy);
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input:focus { border-color: var(--accent); }
+.input::placeholder { color: var(--slate-light); }
+
+select.input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238896b0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+/* ---- Error / empty states ---- */
+.error-msg {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid #ffd0d4;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 14px;
+}
+
+/* ---- Spinner ---- */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ---- Fade in ---- */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.25s ease forwards; }
