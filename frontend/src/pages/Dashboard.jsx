@@ -262,7 +262,7 @@ function EmptyState() {
         Add your kids and connect your sports apps to get started.
       </p>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-        <Link to="/kids" className="btn btn-primary">Add a kid</Link>
+        <Link to="/kids" className="btn btn-primary">Add a member</Link>
         <Link to="/sources" className="btn btn-ghost">Add a source</Link>
       </div>
     </div>
