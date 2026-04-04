@@ -3,6 +3,7 @@ import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
+import { Resend } from 'resend';
 
 import {
   getUserByEmail,
@@ -11,6 +12,10 @@ import {
   rotateFeedToken,
 } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
+import { welcomeEmail } from '../emails/templates.js';
+
+const router = Router();
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const router = Router();
 
@@ -47,6 +52,18 @@ router.post('/signup',
 
     const passwordHash = await bcrypt.hash(password, 12);
     const user = await createUser({ email, passwordHash, name });
+
+    // Send welcome email (non-blocking — don't fail signup if email fails)
+    if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 're_xxxxxxxxxxxx') {
+      const { subject, html, text } = welcomeEmail(user);
+      resend.emails.send({
+        from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`,
+        to:   user.email,
+        subject,
+        html,
+        text,
+      }).catch(err => console.error('[auth] welcome email failed:', err.message));
+    }
 
     const token = signToken(user.id);
 
