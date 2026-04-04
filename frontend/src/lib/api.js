@@ -1,10 +1,6 @@
-// ============================================================
-// API client
-// Thin wrapper around fetch — handles auth headers, JSON
-// parsing, and error normalization in one place.
-// ============================================================
-
-const BASE = '/api';
+const BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api';
 
 function getToken() {
   return localStorage.getItem('sc_token');
@@ -31,12 +27,11 @@ async function request(method, path, body) {
   return data;
 }
 
-const get  = (path)        => request('GET',    path);
-const post = (path, body)  => request('POST',   path, body);
+const get   = (path)       => request('GET',    path);
+const post  = (path, body) => request('POST',   path, body);
 const patch = (path, body) => request('PATCH',  path, body);
-const del  = (path)        => request('DELETE', path);
+const del   = (path)       => request('DELETE', path);
 
-// --- Auth ---
 export const api = {
   auth: {
     signup: (data)  => post('/auth/signup', data),
@@ -46,18 +41,18 @@ export const api = {
     rotateFeedToken: () => post('/auth/rotate-feed-token'),
   },
   kids: {
-    list:   ()          => get('/kids'),
-    create: (data)      => post('/kids', data),
-    update: (id, data)  => patch(`/kids/${id}`, data),
-    delete: (id)        => del(`/kids/${id}`),
+    list:   ()         => get('/kids'),
+    create: (data)     => post('/kids', data),
+    update: (id, data) => patch(`/kids/${id}`, data),
+    delete: (id)       => del(`/kids/${id}`),
   },
   sources: {
-    list:    ()          => get('/sources'),
-    get:     (id)        => get(`/sources/${id}`),
-    create:  (data)      => post('/sources', data),
-    update:  (id, data)  => patch(`/sources/${id}`, data),
-    delete:  (id)        => del(`/sources/${id}`),
-    refresh: (id)        => post(`/sources/${id}/refresh`),
+    list:    ()         => get('/sources'),
+    get:     (id)       => get(`/sources/${id}`),
+    create:  (data)     => post('/sources', data),
+    update:  (id, data) => patch(`/sources/${id}`, data),
+    delete:  (id)       => del(`/sources/${id}`),
+    refresh: (id)       => post(`/sources/${id}/refresh`),
   },
   events: {
     list:  (params = {}) => get(`/events?${new URLSearchParams(params)}`),
@@ -65,9 +60,9 @@ export const api = {
     get:   (id)          => get(`/events/${id}`),
   },
   manual: {
-    list:   ()          => get('/manual'),
-    create: (data)      => post('/manual', data),
-    update: (id, data)  => patch(`/manual/${id}`, data),
-    delete: (id)        => del(`/manual/${id}`),
+    list:   ()         => get('/manual'),
+    create: (data)     => post('/manual', data),
+    update: (id, data) => patch(`/manual/${id}`, data),
+    delete: (id)       => del(`/manual/${id}`),
   },
 };
