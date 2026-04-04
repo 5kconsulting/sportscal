@@ -17,7 +17,6 @@ import { welcomeEmail } from '../emails/templates.js';
 const router = Router();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const router = Router();
 
 // Tight rate limit on auth endpoints to prevent brute force
 const authLimiter = rateLimit({
