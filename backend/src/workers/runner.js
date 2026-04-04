@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import './icalWorker.js';
 import './scrapeWorker.js';
 import './emailWorker.js';

@@ -87,14 +87,17 @@ app.use((err, _req, res, _next) => {
 // ============================================================
 async function start() {
   await runMigrations();
+
+  if (process.env.NODE_ENV === 'production') {
+    await import('./workers/runner.js');
+  }
+
   app.listen(PORT, () => {
     console.log(`[server] listening on port ${PORT}`);
   });
 }
-
 start().catch((err) => {
   console.error('[server] failed to start:', err);
   process.exit(1);
 });
-
 export default app;
