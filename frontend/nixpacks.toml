@@ -2,4 +2,4 @@
 cmds = ["npm install", "npm run build"]
 
 [start]
-cmd = "npx serve dist -p ${PORT:-8080} -s"
+cmd = "npx serve dist -p ${PORT:-8080} -s --no-clipboard"
