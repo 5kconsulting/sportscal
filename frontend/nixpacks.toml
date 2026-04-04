@@ -1,5 +1,8 @@
+[phases.install]
+cmds = ["npm install", "npm install express"]
+
 [phases.build]
-cmds = ["npm install", "npm run build"]
+cmds = ["npm run build"]
 
 [start]
-cmd = "npx serve dist -p ${PORT:-8080} -s --no-clipboard"
+cmd = "node server.cjs"
