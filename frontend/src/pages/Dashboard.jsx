@@ -40,10 +40,21 @@ export default function Dashboard() {
   const hasEvents = Object.keys(grouped).length > 0;
 
   return (
-    <div style={{ padding: '40px', maxWidth: 720 }}>
+    <div className="page-pad" style={{ padding: '40px', maxWidth: 720 }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .page-pad { padding: 20px 16px !important; }
+          .dash-header { flex-direction: column !important; gap: 12px; }
+          .dash-header h1 { font-size: 22px !important; }
+          .dash-add-btn { width: 100%; justify-content: center; }
+          .feed-card { flex-direction: column !important; }
+          .feed-card button { width: 100%; justify-content: center; }
+          .event-time { min-width: 48px !important; }
+        }
+      `}</style>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32 }}>
+      <div className="dash-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 4 }}>
             Good {greeting()}, {user?.name?.split(' ')[0]} 👋
@@ -52,7 +63,7 @@ export default function Dashboard() {
             Here's what's coming up for your family.
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAddEvent(true)}>
+        <button className="btn btn-primary dash-add-btn" onClick={() => setShowAddEvent(true)}>
           + Add event
         </button>
       </div>
@@ -113,7 +124,7 @@ function FeedUrlCard({ user }) {
   }
 
   return (
-    <div style={{
+    <div className="feed-card" style={{
       background: 'var(--navy)',
       borderRadius: 'var(--radius-lg)',
       padding: '20px 24px',
@@ -191,12 +202,12 @@ function EventCard({ event }) {
       borderBottomLeftRadius: 0,
     }}>
       {/* Time column */}
-      <div style={{ minWidth: 64, textAlign: 'right', flexShrink: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', fontFamily: 'var(--mono)' }}>
+      <div style={{ minWidth: 56, textAlign: 'right', flexShrink: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', fontFamily: 'var(--mono)' }}>
           {event.all_day ? 'All day' : formatTime(startsAt)}
         </div>
         {endsAt && !event.all_day && (
-          <div style={{ fontSize: 12, color: 'var(--slate)', fontFamily: 'var(--mono)' }}>
+          <div style={{ fontSize: 11, color: 'var(--slate)', fontFamily: 'var(--mono)' }}>
             {formatTime(endsAt)}
           </div>
         )}
@@ -310,10 +321,28 @@ function AddEventModal({ kids, onSave, onCancel }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(15,22,41,0.6)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 100, padding: 20,
+      display: 'flex', alignItems: 'flex-end',
+      zIndex: 100, padding: 0,
     }}>
-      <div className="card fade-up" style={{ width: '100%', maxWidth: 560, padding: '28px', maxHeight: '90vh', overflowY: 'auto' }}>
+      <style>{`
+        @media (min-width: 641px) {
+          .add-event-modal {
+            margin: auto !important;
+            border-radius: var(--border-radius-lg) !important;
+            max-width: 560px !important;
+          }
+          .add-event-overlay {
+            align-items: center !important;
+            padding: 20px !important;
+          }
+        }
+      `}</style>
+      <div className="add-event-overlay" style={{ display: 'contents' }}>
+        <div className="card add-event-modal fade-up" style={{
+          width: '100%', padding: '28px',
+          borderRadius: '16px 16px 0 0',
+          maxHeight: '92vh', overflowY: 'auto',
+        }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <h3 style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}>Add an event</h3>
           <button onClick={onCancel} style={{ fontSize: 20, color: 'var(--slate)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}>×</button>
@@ -381,6 +410,7 @@ function AddEventModal({ kids, onSave, onCancel }) {
             <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

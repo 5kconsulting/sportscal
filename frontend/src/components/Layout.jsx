@@ -19,51 +19,50 @@ export default function Layout() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .sidebar { display: none !important; }
+          .bottom-nav { display: flex !important; }
+          .main-content { padding-bottom: 70px !important; }
+          .page-pad { padding: 20px 16px !important; }
+          .hide-mobile { display: none !important; }
+        }
+        @media (min-width: 769px) {
+          .bottom-nav { display: none !important; }
+        }
+      `}</style>
 
-      {/* ---- Sidebar ---- */}
-      <aside style={{
+      {/* Sidebar (desktop) */}
+      <aside className="sidebar" style={{
         width: 'var(--sidebar-w)',
         background: 'var(--navy)',
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
-        padding: '0',
       }}>
-        {/* Logo */}
         <div style={{ padding: '28px 24px 24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              width: 32, height: 32,
-              background: 'var(--accent)',
-              borderRadius: 8,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 32, height: 32, background: 'var(--accent)',
+              borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <BallIcon />
             </div>
-            <span style={{
-              fontSize: 17,
-              fontWeight: 600,
-              color: 'var(--white)',
-              letterSpacing: '-0.02em',
-            }}>SportsCal</span>
+            <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--white)', letterSpacing: '-0.02em' }}>
+              SportsCal
+            </span>
           </div>
         </div>
 
-        {/* Nav */}
         <nav style={{ flex: 1, padding: '0 12px' }}>
           {NAV.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} end={to === '/'} style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 12px',
-              borderRadius: 8,
-              marginBottom: 2,
-              fontSize: 14,
-              fontWeight: 500,
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 12px', borderRadius: 8, marginBottom: 2,
+              fontSize: 14, fontWeight: 500,
               color: isActive ? 'var(--navy)' : 'var(--slate)',
               background: isActive ? 'var(--accent)' : 'transparent',
-              transition: 'all 0.15s',
+              transition: 'all 0.15s', textDecoration: 'none',
             })}>
               {({ isActive }) => (
                 <>
@@ -75,28 +74,21 @@ export default function Layout() {
           ))}
         </nav>
 
-        {/* User + logout */}
-        <div style={{
-          padding: '16px',
-          borderTop: '1px solid var(--navy-mid)',
-          margin: '0 0 0 0',
-        }}>
+        <div style={{ padding: '16px', borderTop: '1px solid var(--navy-mid)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <div style={{
-              width: 32, height: 32, borderRadius: '50%',
-              background: 'var(--navy-mid)',
+              width: 32, height: 32, borderRadius: '50%', background: 'var(--navy-mid)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 13, fontWeight: 600, color: 'var(--slate-light)',
             }}>
               {user?.name?.[0]?.toUpperCase()}
             </div>
             <div style={{ overflow: 'hidden' }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--white)', 
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--white)',
                             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.name}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--slate)', textTransform: 'uppercase',
-                            letterSpacing: '0.04em' }}>
+              <div style={{ fontSize: 11, color: 'var(--slate)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 {user?.plan}
               </div>
             </div>
@@ -108,15 +100,45 @@ export default function Layout() {
         </div>
       </aside>
 
-      {/* ---- Main content ---- */}
-      <main style={{ flex: 1, overflowY: 'auto', background: 'var(--off-white)' }}>
+      {/* Main content */}
+      <main className="main-content" style={{ flex: 1, overflowY: 'auto', background: 'var(--off-white)' }}>
         <Outlet />
       </main>
+
+      {/* Bottom nav (mobile) */}
+      <nav className="bottom-nav" style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        background: 'var(--navy)',
+        borderTop: '1px solid var(--navy-mid)',
+        display: 'none',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        padding: '8px 0 max(8px, env(safe-area-inset-bottom))',
+        zIndex: 50,
+      }}>
+        {NAV.map(({ to, label, icon: Icon }) => (
+          <NavLink key={to} to={to} end={to === '/'} style={({ isActive }) => ({
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: 3, padding: '4px 12px', borderRadius: 8,
+            color: isActive ? 'var(--accent)' : 'var(--slate)',
+            textDecoration: 'none', transition: 'color 0.15s',
+            minWidth: 56,
+          })}>
+            {({ isActive }) => (
+              <>
+                <Icon color={isActive ? 'var(--accent)' : 'var(--slate)'} />
+                <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.02em' }}>
+                  {label}
+                </span>
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
     </div>
   );
 }
 
-// ---- Inline SVG icons ----
 function GridIcon({ color = 'currentColor' }) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -142,7 +164,7 @@ function LinkIcon({ color = 'currentColor' }) {
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
       <path d="M6.5 9.5l3-3" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
       <path d="M5 7.5L3.5 9A3.182 3.182 0 007 12.5l1.5-1.5" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M8.5 5.5L10 4A3.182 3.182 0 006.5 .5L5 2" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M8.5 5.5L10 4A3.182 3.182 0 006.5.5L5 2" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
