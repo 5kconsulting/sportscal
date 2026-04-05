@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { LogoMark } from '../components/LogoMark.jsx';
 
 export default function Login() {
   const { login }     = useAuth();
@@ -39,18 +40,7 @@ export default function Login() {
         maxWidth: 480,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 48 }}>
-          <div style={{
-            width: 40, height: 40,
-            background: 'var(--accent)',
-            borderRadius: 10,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
-              <circle cx="8" cy="8" r="6.5" stroke="var(--navy)" strokeWidth="1.5"/>
-              <path d="M8 1.5C8 1.5 5 5 5 8s3 6.5 3 6.5" stroke="var(--navy)" strokeWidth="1.5"/>
-              <path d="M1.5 8h13" stroke="var(--navy)" strokeWidth="1.5"/>
-            </svg>
-          </div>
+          <LogoMark size={40} />
           <span style={{ fontSize: 20, fontWeight: 600, color: 'var(--white)', letterSpacing: '-0.02em' }}>
             SportsCal
           </span>

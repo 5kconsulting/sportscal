@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { LogoMark } from './LogoMark.jsx';
 
 const NAV = [
   { to: '/',        label: 'Dashboard', icon: GridIcon },
@@ -40,14 +41,9 @@ export default function Layout() {
         flexDirection: 'column',
         flexShrink: 0,
       }}>
-        <div style={{ padding: '28px 24px 24px' }}>
+        <div style={{ padding: '20px 24px 24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 32, height: 32, background: 'var(--accent)',
-              borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <BallIcon />
-            </div>
+            <LogoMark size={32} />
             <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--white)', letterSpacing: '-0.02em' }}>
               SportsCal
             </span>
