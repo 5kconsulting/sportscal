@@ -204,11 +204,10 @@ const STEPS = {
     { text: 'Your events will now appear in Apple Calendar and update automatically.' },
   ],
   google: [
-    { text: 'Click the button below to open Google Calendar.' },
-    { text: 'On the left sidebar, click the + next to "Other calendars" → "From URL".' },
-    { text: 'Paste your feed URL (copied above) and click "Add calendar".' },
-    { text: 'On iPhone: open Safari (not the app) → go to calendar.google.com → tap ☰ → Other calendars → + → From URL → paste and add.' },
-    { text: 'Events sync every few hours. Note: this cannot be done from the Google Calendar mobile app — use a browser.', note: true },
+    { text: 'Tap the button above — it will open Google Calendar and ask you to confirm adding the subscription.' },
+    { text: 'Click "Add calendar" in the confirmation dialog that appears.' },
+    { text: 'On iPhone: if the app opens instead of Safari, copy the feed URL and open Safari → go to calendar.google.com → tap ☰ → Other calendars → + → From URL → paste and add.' },
+    { text: 'Events sync every few hours. Note: this cannot be done from inside the Google Calendar mobile app — use a browser.', note: true },
   ],
   outlook: [
     { text: 'Click the button below to open Outlook Calendar.' },
@@ -223,7 +222,7 @@ function SubscribeGuide({ feedUrl, onClose }) {
   const [copied, setCopied] = useState(false);
 
   const webcalUrl = feedUrl.replace(/^https?:\/\//, 'webcal://');
-  const googleUrl = 'https://calendar.google.com/calendar/r/settings/addbyurl';
+  const googleUrl = 'https://www.google.com/calendar/render?cid=' + encodeURIComponent(feedUrl.replace(/^https?:\/\//, 'webcal://'));
   const outlookUrl = 'https://outlook.live.com/calendar/0/addfromweb?url=' + encodeURIComponent(feedUrl);
 
   function copy() {
@@ -234,7 +233,7 @@ function SubscribeGuide({ feedUrl, onClose }) {
 
   const actionButton = {
     apple: { label: '🍎 Open in Apple Calendar', href: webcalUrl },
-    google: { label: '📅 Open Google Calendar', href: googleUrl },
+    google: { label: '📅 Add to Google Calendar', href: googleUrl },
     outlook: { label: '📧 Open Outlook Calendar', href: outlookUrl },
   }[active];
 
