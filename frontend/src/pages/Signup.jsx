@@ -113,7 +113,7 @@ export default function Signup() {
                 </button>
               </form>
               <p style={{ fontSize: 12, color: 'var(--slate-light)', marginTop: 20, textAlign: 'center' }}>
-                Free plan includes 2 kids and 3 sources.
+                Free plan includes 2 family members and 2 sources.
               </p>
             </div>
           </div>
