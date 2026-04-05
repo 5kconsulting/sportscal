@@ -111,6 +111,11 @@ export default function Signup() {
                   disabled={loading}>
                   {loading ? <span className="spinner" style={{ width: 16, height: 16 }} /> : 'Create account'}
                 </button>
+                <p style={{ fontSize: 11, color: 'var(--slate-light)', marginTop: 16, textAlign: 'center' }}>
+  By signing up you agree to our{' '}
+  <a href="/terms" style={{ color: 'var(--accent-dim)' }}>Terms</a> and{' '}
+  <a href="/privacy" style={{ color: 'var(--accent-dim)' }}>Privacy Policy</a>.
+</p>
               </form>
               <p style={{ fontSize: 12, color: 'var(--slate-light)', marginTop: 20, textAlign: 'center' }}>
                 Free plan includes 2 family members and 2 sources.
