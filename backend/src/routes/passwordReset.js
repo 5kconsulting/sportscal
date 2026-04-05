@@ -144,7 +144,7 @@ function buildResetEmail(name, resetUrl) {
           </p>
           <p style="text-align:center;margin:0 0 28px;">
             <a href="${resetUrl}"
-               style="display:inline-block;background:#00d68f;color:#0f1629;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;text-decoration:none;">
+               style="display:inline-block;background:#00b377;color:#ffffff !important;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;text-decoration:none;border:2px solid #00b377;">
               Reset my password
             </a>
           </p>
