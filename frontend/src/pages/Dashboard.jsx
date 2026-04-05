@@ -21,11 +21,23 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, [days]);
 
+  const [editingEvent, setEditingEvent] = useState(null);
+
   function handleEventAdded(event) {
     setEvents(prev => [...prev, event].sort((a, b) =>
       new Date(a.starts_at) - new Date(b.starts_at)
     ));
     setShowAddEvent(false);
+  }
+
+  function handleEventUpdated(updated) {
+    setEvents(prev => prev.map(e => e.id === updated.id ? updated : e)
+      .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)));
+    setEditingEvent(null);
+  }
+
+  function handleEventDeleted(id) {
+    setEvents(prev => prev.filter(e => e.id !== id));
   }
 
   useEffect(() => {
@@ -76,6 +88,15 @@ export default function Dashboard() {
         />
       )}
 
+      {editingEvent && (
+        <AddEventModal
+          kids={kids}
+          event={editingEvent}
+          onSave={handleEventUpdated}
+          onCancel={() => setEditingEvent(null)}
+        />
+      )}
+
       {/* Feed URL card */}
       <FeedUrlCard user={user} />
 
@@ -105,7 +126,8 @@ export default function Dashboard() {
       ) : (
         <div className="fade-up">
           {Object.entries(grouped).map(([day, dayEvents]) => (
-            <DayGroup key={day} day={day} events={dayEvents} />
+            <DayGroup key={day} day={day} events={dayEvents}
+              onEdit={setEditingEvent} onDelete={handleEventDeleted} />
           ))}
         </div>
       )}
@@ -177,16 +199,30 @@ function DayGroup({ day, events }) {
         </span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {events.map(event => <EventCard key={event.id} event={event} />)}
+        {events.map(event => <EventCard key={event.id} event={event} onEdit={onEdit} onDelete={onDelete} />)}
       </div>
     </div>
   );
 }
 
-function EventCard({ event }) {
+function EventCard({ event, onEdit, onDelete }) {
   const kidColor = event.kids?.[0]?.color || '#6366f1';
   const startsAt = new Date(event.starts_at);
   const endsAt   = event.ends_at ? new Date(event.ends_at) : null;
+  const isManual = event.source_app === 'manual';
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!confirm('Delete this event?')) return;
+    setDeleting(true);
+    try {
+      await api.manual.delete(event.id);
+      onDelete(event.id);
+    } catch (err) {
+      alert(err.message);
+      setDeleting(false);
+    }
+  }
 
   return (
     <div className="card" style={{
@@ -241,23 +277,38 @@ function EventCard({ event }) {
         </div>
       </div>
 
-      {/* Kid avatars */}
-      {event.kids?.length > 0 && (
-        <div style={{ display: 'flex', flexShrink: 0 }}>
-          {event.kids.map((kid, i) => (
-            <div key={kid.id} style={{
-              width: 24, height: 24, borderRadius: '50%',
-              background: kid.color, border: '2px solid var(--white)',
-              marginLeft: i > 0 ? -6 : 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 10, fontWeight: 700, color: 'var(--white)',
-              zIndex: event.kids.length - i,
-            }}>
-              {kid.name[0]}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Kid avatars + manual actions */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+        {event.kids?.length > 0 && (
+          <div style={{ display: 'flex' }}>
+            {event.kids.map((kid, i) => (
+              <div key={kid.id} style={{
+                width: 24, height: 24, borderRadius: '50%',
+                background: kid.color, border: '2px solid var(--white)',
+                marginLeft: i > 0 ? -6 : 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 10, fontWeight: 700, color: 'var(--white)',
+                zIndex: event.kids.length - i,
+              }}>
+                {kid.name[0]}
+              </div>
+            ))}
+          </div>
+        )}
+        {isManual && (
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button onClick={() => onEdit(event)} className="btn btn-ghost btn-sm"
+              style={{ padding: '2px 8px', fontSize: 11 }}>
+              Edit
+            </button>
+            <button onClick={handleDelete} className="btn btn-ghost btn-sm"
+              disabled={deleting}
+              style={{ padding: '2px 8px', fontSize: 11, color: 'var(--red, #ef4444)' }}>
+              {deleting ? '…' : 'Delete'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -278,10 +329,24 @@ function EmptyState() {
   );
 }
 
-function AddEventModal({ kids, onSave, onCancel }) {
+function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) {
+  const isEditing = !!existingEvent;
+
+  function toLocalDatetime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
   const [form, setForm] = useState({
-    title: '', starts_at: '', ends_at: '', location: '',
-    description: '', all_day: false, kid_ids: [],
+    title:       existingEvent?.title || '',
+    starts_at:   toLocalDatetime(existingEvent?.starts_at) || '',
+    ends_at:     toLocalDatetime(existingEvent?.ends_at) || '',
+    location:    existingEvent?.location || '',
+    description: existingEvent?.description || '',
+    all_day:     existingEvent?.all_day || false,
+    kid_ids:     existingEvent?.kids?.map(k => k.id) || [],
   });
   const [saving, setSaving]  = useState(false);
   const [error, setError]    = useState('');
@@ -302,12 +367,15 @@ function AddEventModal({ kids, onSave, onCancel }) {
     setError('');
     setSaving(true);
     try {
-      const { event } = await api.manual.create({
+      const payload = {
         ...form,
         ends_at: form.ends_at || null,
         location: form.location || null,
         description: form.description || null,
-      });
+      };
+      const { event } = isEditing
+        ? await api.manual.update(existingEvent.id, payload)
+        : await api.manual.create(payload);
       onSave(event);
     } catch (err) {
       setError(err.message);
@@ -342,7 +410,7 @@ function AddEventModal({ kids, onSave, onCancel }) {
           maxHeight: '92vh', overflowY: 'auto',
         }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <h3 style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}>Add an event</h3>
+          <h3 style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}>{isEditing ? 'Edit event' : 'Add an event'}</h3>
           <button onClick={onCancel} style={{ fontSize: 20, color: 'var(--slate)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}>×</button>
         </div>
 
@@ -403,7 +471,9 @@ function AddEventModal({ kids, onSave, onCancel }) {
 
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? <span className="spinner" style={{ width: 14, height: 14 }} /> : 'Add to calendar'}
+              {saving
+                ? <span className="spinner" style={{ width: 14, height: 14 }} />
+                : isEditing ? 'Save changes' : 'Add to calendar'}
             </button>
             <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
           </div>
