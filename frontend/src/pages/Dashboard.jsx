@@ -178,7 +178,7 @@ function FeedUrlCard({ user }) {
   );
 }
 
-function DayGroup({ day, events }) {
+function DayGroup({ day, events, onEdit, onDelete }) {
   const isToday = day === formatDay(new Date());
 
   return (
