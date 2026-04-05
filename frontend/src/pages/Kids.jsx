@@ -1,5 +1,50 @@
 import { useState, useEffect } from 'react';
 import { api } from '../lib/api.js';
+import { useAuth } from '../hooks/useAuth.jsx';
+
+function UpgradeBanner() {
+  const [loading, setLoading] = useState(false);
+
+  async function handleUpgrade() {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('sc_token')}`,
+        },
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      background: 'linear-gradient(135deg, var(--navy) 0%, #1a3050 100%)',
+      borderRadius: 12, padding: '16px 20px', marginBottom: 28,
+      border: '1px solid rgba(0,214,143,0.2)',
+      flexWrap: 'wrap', gap: 12,
+    }}>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--white)', marginBottom: 2 }}>
+          ⚡ Upgrade to Premium
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--slate)' }}>
+          Get 8 family members and 24 sources for $5/month.
+        </div>
+      </div>
+      <button onClick={handleUpgrade} disabled={loading}
+        className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}>
+        {loading ? '…' : 'Upgrade — $5/mo'}
+      </button>
+    </div>
+  );
+}
 
 const COLORS = [
   '#ef4444','#f97316','#eab308','#22c55e',
@@ -8,6 +53,7 @@ const COLORS = [
 ];
 
 export default function Kids() {
+  const { user } = useAuth();
   const [kids, setKids]           = useState([]);
   const [loading, setLoading]     = useState(true);
   const [showForm, setShowForm]   = useState(false);
@@ -54,6 +100,8 @@ export default function Kids() {
       </div>
 
       {error && <div className="error-msg" style={{ marginBottom: 20 }}>{error}</div>}
+
+      {user?.plan === 'free' && <UpgradeBanner />}
 
       {showForm && (
         <KidForm
