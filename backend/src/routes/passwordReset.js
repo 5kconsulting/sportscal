@@ -156,7 +156,7 @@ function buildResetEmail(name, resetUrl) {
           </p>
         </td></tr>
         <tr><td style="padding:16px 32px;border-top:1px solid #f4f6fa;">
-          <p style="margin:0;font-size:12px;color:#b8c4d8;text-align:center;">SportsCal · hello@sportscalapp.com</p>
+          <p style="margin:0;font-size:12px;color:#b8c4d8;text-align:center;">SportsCal</p>
         </td></tr>
       </table>
     </td></tr>
