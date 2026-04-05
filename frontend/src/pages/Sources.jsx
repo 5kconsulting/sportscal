@@ -153,76 +153,66 @@ function SourceCard({ source, onRefresh, onDelete, onToggle, onEdit, refreshing 
 
   return (
     <div className="card" style={{
-      padding: '16px 20px',
+      padding: '16px',
       opacity: source.enabled ? 1 : 0.6,
       transition: 'opacity 0.2s',
     }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+      {/* Top row: badge + name */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <div style={{
-          padding: '4px 10px',
+          padding: '3px 8px',
           background: 'var(--navy)',
           color: 'var(--accent)',
           borderRadius: 6,
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: 600,
           textTransform: 'uppercase',
           letterSpacing: '0.05em',
           flexShrink: 0,
-          marginTop: 2,
         }}>
           {appInfo?.label || source.app}
         </div>
+        <div style={{ fontSize: 15, fontWeight: 500, flex: 1, minWidth: 0,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {source.name}
+        </div>
+      </div>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>{source.name}</div>
-
-          {source.kids?.length > 0 && (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
-              {source.kids.map(kid => (
-                <span key={kid.id} style={{
-                  fontSize: 12, padding: '2px 8px', borderRadius: 20,
-                  background: kid.color + '20', color: kid.color,
-                  border: `1px solid ${kid.color}40`, fontWeight: 500,
-                }}>
-                  {kid.name}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* iCal URL preview */}
-          {source.ical_url && (
-            <div style={{
-              fontSize: 11, color: 'var(--slate-light)', fontFamily: 'var(--mono)',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              maxWidth: 340, marginBottom: 4,
+      {/* Kids */}
+      {source.kids?.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+          {source.kids.map(kid => (
+            <span key={kid.id} style={{
+              fontSize: 12, padding: '2px 8px', borderRadius: 20,
+              background: kid.color + '20', color: kid.color,
+              border: `1px solid ${kid.color}40`, fontWeight: 500,
             }}>
-              {source.ical_url}
-            </div>
-          )}
-
-          <div style={{ fontSize: 12, color: hasError ? 'var(--red)' : 'var(--slate)' }}>
-            {hasError
-              ? `⚠ ${source.last_fetch_error || 'Last fetch failed'}`
-              : source.last_fetched_at
-                ? `✓ Last synced ${timeAgo(source.last_fetched_at)} · ${source.last_event_count || 0} events`
-                : 'Not yet synced'}
-          </div>
+              {kid.name}
+            </span>
+          ))}
         </div>
+      )}
 
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <button className="btn btn-ghost btn-sm" onClick={onRefresh}
-            disabled={refreshing} style={{ minWidth: 72 }}>
-            {refreshing ? <span className="spinner" style={{ width: 12, height: 12 }} /> : '↻ Sync'}
-          </button>
-          <button className="btn btn-ghost btn-sm" onClick={onEdit}>
-            Edit
-          </button>
-          <button className="btn btn-ghost btn-sm" onClick={onToggle}>
-            {source.enabled ? 'Pause' : 'Resume'}
-          </button>
-          <button className="btn btn-danger btn-sm" onClick={onDelete}>Remove</button>
-        </div>
+      {/* Status */}
+      <div style={{ fontSize: 12, color: hasError ? 'var(--red)' : 'var(--slate)', marginBottom: 12 }}>
+        {hasError
+          ? `⚠ ${source.last_fetch_error || 'Last fetch failed'}`
+          : source.last_fetched_at
+            ? `✓ Synced ${timeAgo(source.last_fetched_at)} · ${source.last_event_count || 0} events`
+            : 'Not yet synced'}
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <button className="btn btn-ghost btn-sm" onClick={onRefresh}
+          disabled={refreshing} style={{ minWidth: 64 }}>
+          {refreshing ? <span className="spinner" style={{ width: 12, height: 12 }} /> : '↻ Sync'}
+        </button>
+        <button className="btn btn-ghost btn-sm" onClick={onEdit}>Edit</button>
+        <button className="btn btn-ghost btn-sm" onClick={onToggle}>
+          {source.enabled ? 'Pause' : 'Resume'}
+        </button>
+        <button className="btn btn-danger btn-sm" onClick={onDelete}>Remove</button>
       </div>
     </div>
   );

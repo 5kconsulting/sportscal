@@ -124,33 +124,31 @@ function FeedUrlCard({ user }) {
   }
 
   return (
-    <div className="feed-card" style={{
+    <div style={{
       background: 'var(--navy)',
       borderRadius: 'var(--radius-lg)',
-      padding: '20px 24px',
+      padding: '16px 20px',
       display: 'flex',
-      alignItems: 'center',
-      gap: 16,
-      flexWrap: 'wrap',
+      flexDirection: 'column',
+      gap: 10,
     }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600,
-                      textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
-          Your calendar feed URL
-        </div>
-        <div style={{
-          fontSize: 13, color: 'var(--slate-light)',
-          fontFamily: 'var(--mono)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {feedUrl}
-        </div>
+      <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600,
+                    textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        Your calendar feed URL
+      </div>
+      <div style={{
+        fontSize: 12, color: 'var(--slate-light)',
+        fontFamily: 'var(--mono)',
+        wordBreak: 'break-all',
+        lineHeight: 1.5,
+      }}>
+        {feedUrl}
       </div>
       <button onClick={copy} className="btn btn-sm" style={{
         background: copied ? 'var(--accent)' : 'var(--navy-mid)',
         color: copied ? 'var(--navy)' : 'var(--slate-light)',
         border: 'none',
-        flexShrink: 0,
+        alignSelf: 'flex-start',
       }}>
         {copied ? '✓ Copied' : 'Copy URL'}
       </button>
