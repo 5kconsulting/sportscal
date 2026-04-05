@@ -136,7 +136,8 @@ export default function Dashboard() {
 }
 
 function FeedUrlCard({ user }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied]       = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const feedUrl = user ? `${window.location.origin}/feed/${user.feed_token}.ics` : '';
 
   function copy() {
@@ -146,34 +147,180 @@ function FeedUrlCard({ user }) {
   }
 
   return (
-    <div style={{
-      background: 'var(--navy)',
-      borderRadius: 'var(--radius-lg)',
-      padding: '16px 20px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 10,
-    }}>
-      <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600,
-                    textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-        Your calendar feed URL
-      </div>
+    <>
       <div style={{
-        fontSize: 12, color: 'var(--slate-light)',
-        fontFamily: 'var(--mono)',
-        wordBreak: 'break-all',
-        lineHeight: 1.5,
+        background: 'var(--navy)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '16px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
       }}>
-        {feedUrl}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600,
+                        textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Your calendar feed URL
+          </div>
+          <button onClick={() => setShowGuide(true)}
+            style={{ fontSize: 12, color: 'var(--accent-dim)', background: 'none',
+                     border: 'none', cursor: 'pointer', fontWeight: 500, padding: 0 }}>
+            How to subscribe →
+          </button>
+        </div>
+        <div style={{
+          fontSize: 12, color: 'var(--slate-light)',
+          fontFamily: 'var(--mono)',
+          wordBreak: 'break-all',
+          lineHeight: 1.5,
+        }}>
+          {feedUrl}
+        </div>
+        <button onClick={copy} className="btn btn-sm" style={{
+          background: copied ? 'var(--accent)' : 'var(--navy-mid)',
+          color: copied ? 'var(--navy)' : 'var(--slate-light)',
+          border: 'none',
+          alignSelf: 'flex-start',
+        }}>
+          {copied ? '✓ Copied' : 'Copy URL'}
+        </button>
       </div>
-      <button onClick={copy} className="btn btn-sm" style={{
-        background: copied ? 'var(--accent)' : 'var(--navy-mid)',
-        color: copied ? 'var(--navy)' : 'var(--slate-light)',
-        border: 'none',
-        alignSelf: 'flex-start',
-      }}>
-        {copied ? '✓ Copied' : 'Copy URL'}
-      </button>
+
+      {showGuide && <SubscribeGuide feedUrl={feedUrl} onClose={() => setShowGuide(false)} />}
+    </>
+  );
+}
+
+const APPS = [
+  { id: 'apple', label: 'Apple Calendar', emoji: '🍎' },
+  { id: 'google', label: 'Google Calendar', emoji: '📅' },
+  { id: 'outlook', label: 'Outlook', emoji: '📧' },
+];
+
+const STEPS = {
+  apple: [
+    'Copy your feed URL above.',
+    'Open the Calendar app on your iPhone, iPad, or Mac.',
+    'On iPhone/iPad: tap Calendars at the bottom → Add Calendar → Add Subscription Calendar.',
+    'On Mac: go to File → New Calendar Subscription.',
+    'Paste your feed URL and tap Subscribe.',
+    'Give it a name like "SportsCal" and tap Add Account.',
+    'Your events will now appear in Apple Calendar and update automatically.',
+  ],
+  google: [
+    'Copy your feed URL above.',
+    'Open Google Calendar on your computer at calendar.google.com.',
+    'On the left sidebar, click the + next to "Other calendars".',
+    'Select "From URL" from the menu.',
+    'Paste your feed URL and click "Add calendar".',
+    'Your events will appear within a few minutes and sync every few hours.',
+    'Note: Google Calendar does not support adding subscriptions from the mobile app — use a browser on desktop.',
+  ],
+  outlook: [
+    'Copy your feed URL above.',
+    'Open Outlook on your computer or go to outlook.com.',
+    'Click the Calendar icon in the sidebar.',
+    'Click "Add calendar" → "Subscribe from web".',
+    'Paste your feed URL, give it a name like "SportsCal", and click Import.',
+    'Your events will appear in Outlook and update automatically.',
+    'On iPhone/iPad with Outlook: go to Settings → Add Account → Other → Add Subscribed Calendar, then paste the URL.',
+  ],
+};
+
+function SubscribeGuide({ feedUrl, onClose }) {
+  const [active, setActive] = useState('apple');
+  const [copied, setCopied] = useState(false);
+
+  function copy() {
+    navigator.clipboard.writeText(feedUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(15,22,41,0.7)',
+      display: 'flex', alignItems: 'flex-end', zIndex: 200,
+    }}>
+      <style>{`
+        @media (min-width: 641px) {
+          .guide-modal { border-radius: 16px !important; margin: auto !important; max-width: 540px !important; }
+          .guide-wrap { align-items: center !important; padding: 20px !important; }
+        }
+      `}</style>
+      <div className="guide-wrap" style={{ width: '100%', display: 'flex', alignItems: 'flex-end' }}>
+        <div className="card guide-modal" style={{
+          width: '100%', padding: '28px',
+          borderRadius: '16px 16px 0 0',
+          maxHeight: '88vh', overflowY: 'auto',
+        }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}>
+              Add to your calendar
+            </h3>
+            <button onClick={onClose} style={{ fontSize: 22, color: 'var(--slate)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}>×</button>
+          </div>
+
+          {/* Feed URL */}
+          <div style={{
+            background: 'var(--off-white)', borderRadius: 8,
+            padding: '10px 14px', marginBottom: 20,
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <div style={{ flex: 1, fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--slate)',
+                          wordBreak: 'break-all', lineHeight: 1.5 }}>
+              {feedUrl}
+            </div>
+            <button onClick={copy} className="btn btn-sm" style={{
+              background: copied ? 'var(--accent)' : 'var(--navy)',
+              color: copied ? 'var(--navy)' : 'var(--white)',
+              border: 'none', flexShrink: 0, fontSize: 12,
+            }}>
+              {copied ? '✓' : 'Copy'}
+            </button>
+          </div>
+
+          {/* App tabs */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            {APPS.map(app => (
+              <button key={app.id} onClick={() => setActive(app.id)}
+                style={{
+                  flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none',
+                  cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                  background: active === app.id ? 'var(--navy)' : 'var(--off-white)',
+                  color: active === app.id ? 'var(--white)' : 'var(--slate)',
+                  transition: 'all 0.15s',
+                }}>
+                {app.emoji} {app.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Steps */}
+          <ol style={{ paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {STEPS[active].map((step, i) => (
+              <li key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{
+                  width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                  background: 'var(--accent)', color: 'var(--navy)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 700,
+                }}>
+                  {i + 1}
+                </div>
+                <div style={{ fontSize: 14, color: 'var(--navy)', lineHeight: 1.6, paddingTop: 3 }}>
+                  {step}
+                </div>
+              </li>
+            ))}
+          </ol>
+
+          <button onClick={onClose} className="btn btn-ghost"
+            style={{ width: '100%', justifyContent: 'center', marginTop: 24 }}>
+            Done
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
