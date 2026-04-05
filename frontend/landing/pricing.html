@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pricing — SportsCal</title>
+  <meta name="description" content="Simple pricing for busy sports families. Free to start, $5/month for everything." />
+  <link rel="icon" type="image/svg+xml" href="/landing/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0f1629; --navy-light: #1a2540; --navy-mid: #243050;
+      --slate: #8896b0; --slate-light: #b8c4d8;
+      --white: #ffffff; --off-white: #f4f6fa; --border: #e8ecf4;
+      --accent: #00d68f; --accent-dim: #00b377;
+      --font: 'DM Sans', sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font); background: var(--white); color: var(--navy); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+
+    nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      background: rgba(15,22,41,0.95); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      z-index: 100; padding: 0 24px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; }
+    .nav-logo img { width: 28px; height: 28px; }
+    .nav-logo-text { font-size: 16px; font-weight: 600; color: var(--white); letter-spacing: -0.02em; }
+    .nav-links { display: flex; align-items: center; gap: 8px; }
+    .btn-nav-login { padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--slate-light); background: transparent; border: none; cursor: pointer; font-family: var(--font); transition: color 0.15s; }
+    .btn-nav-login:hover { color: var(--white); }
+    .btn-nav-cta { padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--navy); background: var(--accent); border: none; cursor: pointer; font-family: var(--font); transition: background 0.15s; }
+    .btn-nav-cta:hover { background: var(--accent-dim); }
+
+    .hero {
+      background: var(--navy); padding: 120px 24px 80px;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -200px; left: 50%;
+      transform: translateX(-50%); width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,214,143,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 600; color: var(--white); letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; }
+    .hero h1 span { color: var(--accent); }
+    .hero p { font-size: 18px; color: var(--slate); font-weight: 300; }
+
+    .pricing-wrap { max-width: 780px; margin: 0 auto; padding: 80px 24px 100px; }
+
+    .toggle-wrap {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; margin-bottom: 48px;
+    }
+    .toggle-label { font-size: 14px; font-weight: 500; color: var(--slate); }
+    .badge-save {
+      background: var(--accent); color: var(--navy);
+      font-size: 11px; font-weight: 700; padding: 3px 8px;
+      border-radius: 20px; letter-spacing: 0.03em;
+    }
+
+    .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+    .pricing-card {
+      background: var(--white); border-radius: 20px;
+      padding: 36px; border: 1.5px solid var(--border);
+      position: relative;
+    }
+    .pricing-card.featured {
+      border-color: var(--accent); border-width: 2px;
+      background: var(--off-white);
+    }
+    .pricing-badge {
+      position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: var(--navy);
+      font-size: 11px; font-weight: 700; padding: 4px 16px;
+      border-radius: 100px; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+    }
+    .plan-name { font-size: 13px; font-weight: 600; color: var(--slate); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
+    .plan-price { font-size: 52px; font-weight: 600; letter-spacing: -0.03em; color: var(--navy); line-height: 1; margin-bottom: 4px; }
+    .plan-price span { font-size: 18px; font-weight: 400; color: var(--slate); }
+    .plan-desc { font-size: 14px; color: var(--slate); margin-bottom: 28px; line-height: 1.5; padding-top: 12px; border-top: 1px solid var(--border); margin-top: 16px; }
+    .plan-features { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+    .plan-features li { font-size: 15px; color: #3d4d63; display: flex; align-items: flex-start; gap: 10px; }
+    .plan-features li::before { content: '✓'; color: var(--accent-dim); font-weight: 700; flex-shrink: 0; }
+    .plan-features li.no::before { content: '–'; color: var(--slate-light); }
+    .plan-features li.no { color: var(--slate-light); }
+
+    .plan-cta { display: block; width: 100%; padding: 14px; border-radius: 10px; font-size: 15px; font-weight: 600; text-align: center; font-family: var(--font); cursor: pointer; transition: all 0.15s; text-decoration: none; }
+    .plan-cta-primary { background: var(--accent); color: var(--navy); border: none; }
+    .plan-cta-primary:hover { background: var(--accent-dim); }
+    .plan-cta-ghost { background: transparent; color: var(--navy); border: 1.5px solid var(--border); }
+    .plan-cta-ghost:hover { border-color: var(--navy); }
+
+    .compare { max-width: 680px; margin: 0 auto; padding: 0 24px 80px; }
+    .compare h2 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 24px; text-align: center; }
+    .compare-table { width: 100%; border-collapse: collapse; }
+    .compare-table th { font-size: 13px; font-weight: 600; color: var(--slate); text-transform: uppercase; letter-spacing: 0.06em; padding: 12px 16px; text-align: left; border-bottom: 2px solid var(--border); }
+    .compare-table th:not(:first-child) { text-align: center; }
+    .compare-table td { padding: 14px 16px; font-size: 14px; color: var(--navy); border-bottom: 1px solid var(--border); }
+    .compare-table td:not(:first-child) { text-align: center; }
+    .compare-table tr:last-child td { border-bottom: none; }
+    .compare-table .check { color: var(--accent-dim); font-size: 16px; font-weight: 700; }
+    .compare-table .dash { color: var(--slate-light); }
+    .compare-table .highlight { background: rgba(0,214,143,0.04); }
+
+    .faq { max-width: 640px; margin: 0 auto; padding: 0 24px 100px; }
+    .faq h2 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 32px; text-align: center; }
+    .faq-item { padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q { font-size: 16px; font-weight: 500; margin-bottom: 8px; }
+    .faq-a { font-size: 15px; color: var(--slate); line-height: 1.6; font-weight: 300; }
+
+    .final-cta { background: var(--navy); padding: 80px 24px; text-align: center; }
+    .final-cta h2 { font-size: clamp(24px, 4vw, 40px); font-weight: 600; color: var(--white); letter-spacing: -0.02em; margin-bottom: 12px; }
+    .final-cta p { font-size: 16px; color: var(--slate); margin-bottom: 32px; font-weight: 300; }
+    .btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 10px; font-size: 16px; font-weight: 600; color: var(--navy); background: var(--accent); border: none; cursor: pointer; font-family: var(--font); transition: all 0.15s; text-decoration: none; }
+    .btn-primary:hover { background: var(--accent-dim); transform: translateY(-1px); }
+
+    footer { background: var(--navy); border-top: 1px solid rgba(255,255,255,0.06); padding: 28px 24px; text-align: center; }
+    footer p { font-size: 13px; color: var(--slate); }
+    footer a { color: var(--slate); }
+
+    @media (max-width: 640px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+      .pricing-wrap { padding: 60px 20px 80px; }
+      nav { padding: 0 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a class="nav-logo" href="https://www.sportscalapp.com">
+      <img src="/landing/favicon.svg" alt="SportsCal" />
+      <span class="nav-logo-text">SportsCal</span>
+    </a>
+    <div class="nav-links">
+      <a href="https://www.sportscalapp.com/login" class="btn-nav-login">Sign in</a>
+      <a href="https://www.sportscalapp.com/signup" class="btn-nav-cta">Get started free</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <h1>Simple pricing for<br /><span>busy sports families.</span></h1>
+    <p>Free forever for one kid. $5/month for everything else.</p>
+  </div>
+
+  <div class="pricing-wrap">
+    <div class="pricing-grid">
+
+      <!-- Free -->
+      <div class="pricing-card">
+        <p class="plan-name">Free</p>
+        <p class="plan-price">$0</p>
+        <p class="plan-desc">One kid, one team. No credit card needed.</p>
+        <ul class="plan-features">
+          <li>2 family members</li>
+          <li>2 calendar sources</li>
+          <li>Live iCal feed</li>
+          <li>Manual event creation</li>
+          <li>Google Maps directions</li>
+          <li class="no">Weekly email digest</li>
+          <li class="no">Event reminders</li>
+        </ul>
+        <a href="https://www.sportscalapp.com/signup" class="plan-cta plan-cta-ghost">
+          Get started free
+        </a>
+      </div>
+
+      <!-- Premium -->
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Most popular</div>
+        <p class="plan-name">Premium</p>
+        <p class="plan-price">$5 <span>/ month</span></p>
+        <p class="plan-desc">Multiple kids, multiple teams. The whole family covered.</p>
+        <ul class="plan-features">
+          <li>8 family members</li>
+          <li>24 calendar sources</li>
+          <li>Live iCal feed</li>
+          <li>Manual event creation</li>
+          <li>Google Maps directions</li>
+          <li>Weekly email digest</li>
+          <li>Day-before reminders</li>
+        </ul>
+        <a href="https://www.sportscalapp.com/signup" class="plan-cta plan-cta-primary">
+          Start free — upgrade anytime
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Comparison table -->
+  <div class="compare">
+    <h2>Everything compared</h2>
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Free</th>
+          <th>Premium</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Family members</td><td>2</td><td class="highlight">8</td></tr>
+        <tr><td>Calendar sources</td><td>2</td><td class="highlight">24</td></tr>
+        <tr><td>TeamSnap, GameChanger, PlayMetrics</td><td class="check">✓</td><td class="check highlight">✓</td></tr>
+        <tr><td>TeamSideline, BYGA, custom iCal</td><td class="check">✓</td><td class="check highlight">✓</td></tr>
+        <tr><td>Live iCal feed (Apple, Google, Outlook)</td><td class="check">✓</td><td class="check highlight">✓</td></tr>
+        <tr><td>Manual event creation</td><td class="check">✓</td><td class="check highlight">✓</td></tr>
+        <tr><td>Google Maps directions</td><td class="check">✓</td><td class="check highlight">✓</td></tr>
+        <tr><td>Weekly email digest</td><td class="dash">–</td><td class="check highlight">✓</td></tr>
+        <tr><td>Day-before reminders</td><td class="dash">–</td><td class="check highlight">✓</td></tr>
+        <tr><td>Price</td><td>Free</td><td class="highlight">$5 / month</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FAQ -->
+  <div class="faq">
+    <h2>Common questions</h2>
+
+    <div class="faq-item">
+      <p class="faq-q">Do I need a credit card to start?</p>
+      <p class="faq-a">No. The free plan requires no payment information. You only need a card if you upgrade to Premium.</p>
+    </div>
+
+    <div class="faq-item">
+      <p class="faq-q">What sports apps does SportsCal work with?</p>
+      <p class="faq-a">TeamSnap, GameChanger, PlayMetrics, TeamSideline, BYGA, and any app that provides an iCal feed URL. If your app has an "export calendar" or "subscribe" option, SportsCal can pull from it.</p>
+    </div>
+
+    <div class="faq-item">
+      <p class="faq-q">Which calendar apps work with the feed?</p>
+      <p class="faq-a">Any app that supports iCal subscriptions — Apple Calendar, Google Calendar, Outlook, Fantastical, and more. Subscribe once and it updates automatically.</p>
+    </div>
+
+    <div class="faq-item">
+      <p class="faq-q">How often does the calendar update?</p>
+      <p class="faq-a">SportsCal checks your sources every 2 hours and updates your feed automatically. You can also trigger a manual sync anytime from the Sources page.</p>
+    </div>
+
+    <div class="faq-item">
+      <p class="faq-q">Can I cancel anytime?</p>
+      <p class="faq-a">Yes. Cancel anytime and you'll keep Premium access until the end of your billing period. No cancellation fees.</p>
+    </div>
+
+    <div class="faq-item">
+      <p class="faq-q">What if I have more than 8 kids or 24 sources?</p>
+      <p class="faq-a">Reach out at <a href="mailto:hello@sportscalapp.com" style="color: var(--accent-dim);">hello@sportscalapp.com</a> — we'll sort you out.</p>
+    </div>
+  </div>
+
+  <div class="final-cta">
+    <h2>Start free today.</h2>
+    <p>No credit card. Takes 5 minutes to set up.</p>
+    <a href="https://www.sportscalapp.com/signup" class="btn-primary">Get started free →</a>
+  </div>
+
+  <footer>
+    <p>© 2026 SportsCal · <a href="mailto:hello@sportscalapp.com">hello@sportscalapp.com</a> · <a href="https://www.sportscalapp.com">Home</a></p>
+  </footer>
+
+</body>
+</html>

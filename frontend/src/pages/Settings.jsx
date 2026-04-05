@@ -202,10 +202,8 @@ export default function Settings() {
               </div>
               <div style={{ fontSize: 13, color: 'var(--slate)', marginTop: 2 }}>
                 {user?.plan === 'free'
-                  ? '2 kids · 3 sources · no email digest'
-                  : user?.plan === 'pro'
-                    ? '5 kids · 10 sources · email digest + reminders'
-                    : '10 kids · 25 sources · everything'}
+                  ? '2 members · 2 sources · no email digest'
+                  : '8 members · 24 sources · digest + reminders'}
               </div>
             </div>
             {user?.plan === 'free' && (

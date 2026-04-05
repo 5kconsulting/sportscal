@@ -22,7 +22,7 @@ CREATE TABLE users (
 
   -- Billing
   plan          TEXT NOT NULL DEFAULT 'free'
-                  CHECK (plan IN ('free', 'pro', 'family')),
+                  CHECK (plan IN ('free', 'premium')),
   stripe_customer_id   TEXT,
   stripe_subscription_id TEXT,
   plan_expires_at      TIMESTAMPTZ,
@@ -162,7 +162,7 @@ CREATE TABLE events (
 CREATE INDEX events_user_id_idx ON events(user_id);
 CREATE INDEX events_source_id_idx ON events(source_id);
 CREATE INDEX events_starts_at_idx ON events(user_id, starts_at);
--- Feed generation: upcoming events for a user
+-- Feed generation: upcoming events for a user (no partial index — NOW() not allowed)
 CREATE INDEX events_upcoming_idx ON events(user_id, starts_at);
 
 -- ============================================================
@@ -230,8 +230,6 @@ CREATE TRIGGER events_updated_at
 -- ============================================================
 CREATE VIEW plan_limits AS
 SELECT
-  'free'   AS plan, 4  AS max_kids, 8  AS max_sources, false AS email_digest
+  'free'    AS plan, 2 AS max_kids, 2  AS max_sources, false AS email_digest
 UNION ALL SELECT
-  'pro',            8,              12,                 true
-UNION ALL SELECT
-  'family',         12,             16,                 true;
+  'premium',         8,             24,                 true;
