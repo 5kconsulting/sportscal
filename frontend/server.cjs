@@ -5,10 +5,10 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const API_URL = process.env.VITE_API_URL || 'https://sportscal-production.up.railway.app';
 
-// Proxy FIRST before any static serving
 const apiProxy = createProxyMiddleware({
   target: API_URL,
   changeOrigin: true,
+  pathRewrite: { '^/api': '/api' },
   on: {
     error: (err, req, res) => {
       console.error('[proxy error]', err.message);
@@ -20,18 +20,21 @@ const apiProxy = createProxyMiddleware({
   }
 });
 
-app.use('/api', apiProxy);
-app.use('/feed', apiProxy);
+const feedProxy = createProxyMiddleware({
+  target: API_URL,
+  changeOrigin: true,
+  pathRewrite: { '^/feed': '/feed' },
+});
 
-// Landing pages
+app.use('/api', apiProxy);
+app.use('/feed', feedProxy);
+
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'index.html')));
 app.get('/pricing', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'pricing.html')));
 
-// Static assets
 app.use(express.static(path.join(__dirname, 'dist')));
 app.use('/landing', express.static(path.join(__dirname, 'landing')));
 
-// SPA fallback
 app.use((_req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
