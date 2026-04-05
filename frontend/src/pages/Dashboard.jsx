@@ -209,7 +209,7 @@ function EventCard({ event, onEdit, onDelete }) {
   const kidColor = event.kids?.[0]?.color || '#6366f1';
   const startsAt = new Date(event.starts_at);
   const endsAt   = event.ends_at ? new Date(event.ends_at) : null;
-  const isManual = event.source_app === 'manual';
+  const isManual = event.source_app === 'custom' && event.source_name === '__manual__';
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
