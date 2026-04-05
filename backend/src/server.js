@@ -56,7 +56,7 @@ app.use(express.json({ limit: '64kb' }));
 // Routes
 // ============================================================
 app.use('/api/auth',     authRoutes);
-app.use('/api/auth',     passwordResetRoutes);
+app.use("/api/auth", passwordResetRoutes); console.log("[server] passwordReset routes registered");
 app.use('/api/kids',     kidsRoutes);
 app.use('/api/sources',  sourcesRoutes);
 app.use('/api/events',   eventsRoutes);
