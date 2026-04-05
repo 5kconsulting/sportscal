@@ -198,31 +198,23 @@ const APPS = [
 
 const STEPS = {
   apple: [
-    'Copy your feed URL above.',
-    'Open the Calendar app on your iPhone, iPad, or Mac.',
-    'On iPhone/iPad: tap Calendars at the bottom → Add Calendar → Add Subscription Calendar.',
-    'On Mac: go to File → New Calendar Subscription.',
-    'Paste your feed URL and tap Subscribe.',
-    'Give it a name like "SportsCal" and tap Add Account.',
-    'Your events will now appear in Apple Calendar and update automatically.',
+    { text: 'Tap the button below — iOS will immediately ask if you want to subscribe.', action: 'webcal' },
+    { text: 'Tap "Subscribe" in the prompt that appears.' },
+    { text: 'Give it a name like "SportsCal" and tap "Add Account".' },
+    { text: 'Your events will now appear in Apple Calendar and update automatically.' },
   ],
   google: [
-    'Copy your feed URL above.',
-    'Open Google Calendar on your computer at calendar.google.com.',
-    'On the left sidebar, click the + next to "Other calendars".',
-    'Select "From URL" from the menu.',
-    'Paste your feed URL and click "Add calendar".',
-    'Your events will appear within a few minutes and sync every few hours.',
-    'Note: Google Calendar does not support adding subscriptions from the mobile app — use a browser on desktop.',
+    { text: 'Click the button below to open Google Calendar.' },
+    { text: 'On the left sidebar, click the + next to "Other calendars" → "From URL".' },
+    { text: 'Paste your feed URL (copied above) and click "Add calendar".' },
+    { text: 'On iPhone: open Safari (not the app) → go to calendar.google.com → tap ☰ → Other calendars → + → From URL → paste and add.' },
+    { text: 'Events sync every few hours. Note: this cannot be done from the Google Calendar mobile app — use a browser.', note: true },
   ],
   outlook: [
-    'Copy your feed URL above.',
-    'Open Outlook on your computer or go to outlook.com.',
-    'Click the Calendar icon in the sidebar.',
-    'Click "Add calendar" → "Subscribe from web".',
-    'Paste your feed URL, give it a name like "SportsCal", and click Import.',
-    'Your events will appear in Outlook and update automatically.',
-    'On iPhone/iPad with Outlook: go to Settings → Add Account → Other → Add Subscribed Calendar, then paste the URL.',
+    { text: 'Click the button below to open Outlook Calendar.' },
+    { text: 'Click "Add calendar" → "Subscribe from web" → paste your feed URL → click Import.' },
+    { text: 'On iPhone/Android with the Outlook app: tap the menu → Settings → Add Account → Other → Add Subscribed Calendar → paste your URL.' },
+    { text: 'Your events will appear and update automatically.' },
   ],
 };
 
@@ -230,11 +222,21 @@ function SubscribeGuide({ feedUrl, onClose }) {
   const [active, setActive] = useState('apple');
   const [copied, setCopied] = useState(false);
 
+  const webcalUrl = feedUrl.replace(/^https?:\/\//, 'webcal://');
+  const googleUrl = 'https://calendar.google.com/calendar/r/settings/addbyurl';
+  const outlookUrl = 'https://outlook.live.com/calendar/0/addfromweb?url=' + encodeURIComponent(feedUrl);
+
   function copy() {
     navigator.clipboard.writeText(feedUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
+
+  const actionButton = {
+    apple: { label: '🍎 Open in Apple Calendar', href: webcalUrl },
+    google: { label: '📅 Open Google Calendar', href: googleUrl },
+    outlook: { label: '📧 Open Outlook Calendar', href: outlookUrl },
+  }[active];
 
   return (
     <div style={{
@@ -286,7 +288,7 @@ function SubscribeGuide({ feedUrl, onClose }) {
               <button key={app.id} onClick={() => setActive(app.id)}
                 style={{
                   flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none',
-                  cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                  cursor: 'pointer', fontSize: 12, fontWeight: 500,
                   background: active === app.id ? 'var(--navy)' : 'var(--off-white)',
                   color: active === app.id ? 'var(--white)' : 'var(--slate)',
                   transition: 'all 0.15s',
@@ -296,20 +298,41 @@ function SubscribeGuide({ feedUrl, onClose }) {
             ))}
           </div>
 
+          {/* Action button */}
+          <a href={actionButton.href}
+            target={active === 'apple' ? '_self' : '_blank'}
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '100%', padding: '12px',
+              background: 'var(--accent)', color: 'var(--navy)',
+              borderRadius: 10, fontWeight: 600, fontSize: 15,
+              textDecoration: 'none', marginBottom: 20,
+              transition: 'background 0.15s',
+            }}>
+            {actionButton.label}
+          </a>
+
           {/* Steps */}
           <ol style={{ paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {STEPS[active].map((step, i) => (
               <li key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <div style={{
                   width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                  background: 'var(--accent)', color: 'var(--navy)',
+                  background: step.note ? 'var(--off-white)' : 'var(--accent)',
+                  color: step.note ? 'var(--slate)' : 'var(--navy)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 700,
                 }}>
-                  {i + 1}
+                  {step.note ? 'ℹ' : i + 1}
                 </div>
-                <div style={{ fontSize: 14, color: 'var(--navy)', lineHeight: 1.6, paddingTop: 3 }}>
-                  {step}
+                <div style={{
+                  fontSize: 14, lineHeight: 1.6, paddingTop: 3,
+                  color: step.note ? 'var(--slate)' : 'var(--navy)',
+                }}>
+                  {step.action === 'webcal'
+                    ? <><strong>Tap the button above</strong> — iOS will immediately ask if you want to subscribe.</>
+                    : step.text}
                 </div>
               </li>
             ))}
