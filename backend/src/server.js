@@ -7,12 +7,13 @@ import rateLimit from 'express-rate-limit';
 import { runMigrations, healthCheck } from './db/index.js';
 import { getQueueStats } from './workers/queue.js';
 
-import authRoutes     from './routes/auth.js';
-import kidsRoutes     from './routes/kids.js';
-import sourcesRoutes  from './routes/sources.js';
-import eventsRoutes   from './routes/events.js';
-import calendarRoutes from './routes/calendar.js';
-import manualRoutes   from './routes/manual.js';
+import authRoutes          from './routes/auth.js';
+import kidsRoutes          from './routes/kids.js';
+import sourcesRoutes       from './routes/sources.js';
+import eventsRoutes        from './routes/events.js';
+import calendarRoutes      from './routes/calendar.js';
+import manualRoutes        from './routes/manual.js';
+import passwordResetRoutes from './routes/passwordReset.js';
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -52,6 +53,7 @@ app.use(express.json({ limit: '64kb' }));
 // Routes
 // ============================================================
 app.use('/api/auth',     authRoutes);
+app.use('/api/auth',     passwordResetRoutes);
 app.use('/api/kids',     kidsRoutes);
 app.use('/api/sources',  sourcesRoutes);
 app.use('/api/events',   eventsRoutes);
@@ -88,16 +90,20 @@ app.use((err, _req, res, _next) => {
 async function start() {
   await runMigrations();
 
+  // In production run workers in the same process to save resources.
+  // When you scale, move workers to a separate Railway service.
   if (process.env.NODE_ENV === 'production') {
-    await import('./workers/runner.js');
+    const { default: startWorkers } = await import('./workers/runner.js');
   }
 
   app.listen(PORT, () => {
     console.log(`[server] listening on port ${PORT}`);
   });
 }
+
 start().catch((err) => {
   console.error('[server] failed to start:', err);
   process.exit(1);
 });
+
 export default app;
