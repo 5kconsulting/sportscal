@@ -5,8 +5,8 @@ const PORT = process.env.PORT || 8080;
 
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// SPA fallback — serve index.html for all routes
-app.get('*', (_req, res) => {
+// SPA fallback — Express 5 compatible
+app.use((_req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
