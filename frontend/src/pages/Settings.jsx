@@ -59,7 +59,45 @@ export default function Settings() {
     }
   }
 
-  function copyFeed() {
+  const [billing, setBilling] = useState(false);
+
+  async function handleUpgrade() {
+    setBilling(true);
+    try {
+      const res = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('sc_token')}`,
+        },
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch (err) {
+      setError('Failed to open checkout. Please try again.');
+    } finally {
+      setBilling(false);
+    }
+  }
+
+  async function handlePortal() {
+    setBilling(true);
+    try {
+      const res = await fetch('/api/billing/portal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('sc_token')}`,
+        },
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch (err) {
+      setError('Failed to open billing portal. Please try again.');
+    } finally {
+      setBilling(false);
+    }
+  }
     navigator.clipboard.writeText(feedUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -206,9 +244,15 @@ export default function Settings() {
                   : '8 members · 24 sources · digest + reminders'}
               </div>
             </div>
-            {user?.plan === 'free' && (
-              <button type="button" className="btn btn-primary btn-sm">
-                Upgrade
+            {user?.plan === 'free' ? (
+              <button type="button" className="btn btn-primary btn-sm"
+                onClick={handleUpgrade} disabled={billing}>
+                {billing ? '…' : 'Upgrade — $5/mo'}
+              </button>
+            ) : (
+              <button type="button" className="btn btn-ghost btn-sm"
+                onClick={handlePortal} disabled={billing}>
+                {billing ? '…' : 'Manage billing'}
               </button>
             )}
           </div>

@@ -14,11 +14,12 @@ import eventsRoutes        from './routes/events.js';
 import calendarRoutes      from './routes/calendar.js';
 import manualRoutes        from './routes/manual.js';
 import passwordResetRoutes from './routes/passwordReset.js';
+import billingRoutes       from './routes/billing.js';
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
-// Trust Railway's proxy
+// Trust Railway's proxy (required for rate limiting and IP detection)
 app.set('trust proxy', 1);
 
 // ============================================================
@@ -50,17 +51,21 @@ app.use(rateLimit({
   legacyHeaders:   false,
 }));
 
+// Raw body for Stripe webhooks — must come before express.json()
+app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json({ limit: '64kb' }));
 
 // ============================================================
 // Routes
 // ============================================================
 app.use('/api/auth',     authRoutes);
-app.use("/api/auth", passwordResetRoutes); console.log("[server] passwordReset routes registered");
+app.use('/api/auth',     passwordResetRoutes);
 app.use('/api/kids',     kidsRoutes);
 app.use('/api/sources',  sourcesRoutes);
 app.use('/api/events',   eventsRoutes);
 app.use('/api/manual',   manualRoutes);
+app.use('/api/billing',  billingRoutes);
 app.use('/feed',         calendarRoutes); // public: /feed/:token.ics
 
 // ============================================================
