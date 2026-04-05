@@ -98,6 +98,8 @@ export default function Settings() {
       setBilling(false);
     }
   }
+
+  function copyFeed() {
     navigator.clipboard.writeText(feedUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
