@@ -6,8 +6,22 @@ const PORT = process.env.PORT || 8080;
 const API_URL = process.env.VITE_API_URL || 'https://sportscal-production.up.railway.app';
 
 // Proxy FIRST before any static serving
-app.use('/api', createProxyMiddleware({ target: API_URL, changeOrigin: true, on: { error: (err, req, res) => { console.error('[proxy error]', err.message); res.status(502).json({ error: 'Bad gateway' }); }}}));
-app.use('/feed', createProxyMiddleware({ target: API_URL, changeOrigin: true }));
+const apiProxy = createProxyMiddleware({
+  target: API_URL,
+  changeOrigin: true,
+  on: {
+    error: (err, req, res) => {
+      console.error('[proxy error]', err.message);
+      res.status(502).json({ error: 'Bad gateway' });
+    },
+    proxyReq: (proxyReq, req) => {
+      console.log('[proxy]', req.method, req.url, '->', API_URL + req.url);
+    }
+  }
+});
+
+app.use('/api', apiProxy);
+app.use('/feed', apiProxy);
 
 // Landing pages
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'index.html')));
