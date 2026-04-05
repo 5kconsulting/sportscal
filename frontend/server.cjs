@@ -5,8 +5,8 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const API_URL = process.env.VITE_API_URL || 'https://sportscal-production.up.railway.app';
 
-// Proxy API and feed requests to backend
-app.use('/api', createProxyMiddleware({ target: API_URL, changeOrigin: true }));
+// Proxy FIRST before any static serving
+app.use('/api', createProxyMiddleware({ target: API_URL, changeOrigin: true, on: { error: (err, req, res) => { console.error('[proxy error]', err.message); res.status(502).json({ error: 'Bad gateway' }); }}}));
 app.use('/feed', createProxyMiddleware({ target: API_URL, changeOrigin: true }));
 
 // Landing pages
