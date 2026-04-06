@@ -10,12 +10,13 @@ const TIMEZONES = [
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 export default function Settings() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const [saving, setSaving]   = useState(false);
   const [saved, setSaved]     = useState(false);
   const [error, setError]     = useState('');
   const [rotating, setRotating] = useState(false);
   const [copied, setCopied]   = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const feedUrl = user ? `${window.location.origin}/feed/${user.feed_token}.ics` : '';
 
@@ -273,6 +274,111 @@ export default function Settings() {
           )}
         </div>
       </form>
+
+      {/* Danger zone */}
+      <div style={{ marginTop: 48, paddingTop: 32, borderTop: '1px solid var(--border)' }}>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: '#ef4444',
+                     textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 16 }}>
+          Danger zone
+        </h2>
+        <div style={{
+          border: '1px solid #fecaca', borderRadius: 'var(--radius)',
+          padding: '20px', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
+        }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>Delete account</div>
+            <div style={{ fontSize: 13, color: 'var(--slate)', lineHeight: 1.5 }}>
+              Permanently delete your account, all family members, sources, and events.
+              {user?.plan === 'premium' && ' Your subscription will be cancelled.'}
+            </div>
+          </div>
+          <button type="button" onClick={() => setShowDeleteModal(true)}
+            style={{
+              padding: '8px 16px', borderRadius: 8, border: '1px solid #ef4444',
+              background: 'transparent', color: '#ef4444', fontWeight: 600,
+              fontSize: 14, cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font)',
+            }}>
+            Delete account
+          </button>
+        </div>
+      </div>
+
+      {showDeleteModal && (
+        <DeleteAccountModal
+          user={user}
+          onClose={() => setShowDeleteModal(false)}
+          onDeleted={() => { logout(); window.location.href = '/'; }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DeleteAccountModal({ user, onClose, onDeleted }) {
+  const [confirm, setConfirm] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
+
+  const CONFIRM_TEXT = 'delete my account';
+
+  async function handleDelete() {
+    if (confirm !== CONFIRM_TEXT) return;
+    setDeleting(true);
+    setError('');
+    try {
+      const res = await fetch('/api/auth/delete-account', {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('sc_token')}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete account');
+      onDeleted();
+    } catch (err) {
+      setError(err.message);
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(15,22,41,0.6)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 100, padding: 20,
+    }}>
+      <div className="card fade-up" style={{ width: '100%', maxWidth: 440, padding: '32px' }}>
+        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8, color: '#ef4444' }}>
+          Delete account
+        </h2>
+        <p style={{ fontSize: 14, color: 'var(--slate)', marginBottom: 20, lineHeight: 1.6 }}>
+          This will permanently delete your account, all family members, calendar sources, and events.
+          {user?.plan === 'premium' && ' Your Premium subscription will be cancelled immediately.'}
+          {' '}This cannot be undone.
+        </p>
+
+        {error && <div className="error-msg" style={{ marginBottom: 16 }}>{error}</div>}
+
+        <div className="field" style={{ marginBottom: 20 }}>
+          <label>Type <strong>{CONFIRM_TEXT}</strong> to confirm</label>
+          <input className="input" type="text"
+            placeholder={CONFIRM_TEXT}
+            value={confirm} onChange={e => setConfirm(e.target.value)} />
+        </div>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={handleDelete} disabled={confirm !== CONFIRM_TEXT || deleting}
+            style={{
+              flex: 1, padding: '12px', borderRadius: 8, border: 'none',
+              background: confirm === CONFIRM_TEXT ? '#ef4444' : '#fecaca',
+              color: 'white', fontWeight: 600, fontSize: 14,
+              cursor: confirm === CONFIRM_TEXT ? 'pointer' : 'not-allowed',
+              fontFamily: 'var(--font)', transition: 'background 0.15s',
+            }}>
+            {deleting ? 'Deleting…' : 'Delete my account'}
+          </button>
+          <button onClick={onClose} className="btn btn-ghost">Cancel</button>
+        </div>
+      </div>
     </div>
   );
 }

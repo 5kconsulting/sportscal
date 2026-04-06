@@ -10,6 +10,8 @@ import {
   createUser,
   updateUser,
   rotateFeedToken,
+  getUserById,
+  query,
 } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { welcomeEmail } from '../emails/templates.js';
@@ -18,6 +20,7 @@ import { sendVerificationEmail } from './emailVerification.js';
 const router = Router();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const router = Router();
 
 // Tight rate limit on auth endpoints to prevent brute force
 const authLimiter = rateLimit({
@@ -159,6 +162,40 @@ router.patch('/me',
 router.post('/rotate-feed-token', requireAuth, async (req, res) => {
   const result = await rotateFeedToken(req.user.id);
   res.json({ feed_token: result.feed_token });
+});
+
+// ============================================================
+// DELETE /api/auth/delete-account
+// Permanently deletes user account and all associated data.
+// Cancels Stripe subscription if applicable.
+// ============================================================
+router.delete('/delete-account', requireAuth, async (req, res) => {
+  try {
+    const user = await getUserById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Cancel Stripe subscription if premium
+    if (user.stripe_subscription_id) {
+      try {
+        const Stripe = (await import('stripe')).default;
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+        await stripe.subscriptions.cancel(user.stripe_subscription_id);
+        console.log(`[auth] cancelled Stripe subscription for ${user.email}`);
+      } catch (err) {
+        console.error('[auth] Stripe cancellation error:', err.message);
+        // Continue with deletion even if Stripe fails
+      }
+    }
+
+    // Delete user — cascades to kids, sources, events, tokens
+    await query(`DELETE FROM users WHERE id = $1`, [req.user.id]);
+    console.log(`[auth] deleted account: ${user.email}`);
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[auth] delete account error:', err.message);
+    res.status(500).json({ error: 'Failed to delete account. Please contact support.' });
+  }
 });
 
 // ============================================================
