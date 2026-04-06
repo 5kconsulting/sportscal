@@ -13,6 +13,7 @@ import Sources         from './pages/Sources.jsx';
 import Settings        from './pages/Settings.jsx';
 import ForgotPassword  from './pages/ForgotPassword.jsx';
 import ResetPassword   from './pages/ResetPassword.jsx';
+import Admin           from './pages/Admin.jsx';
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
@@ -39,6 +40,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/signup"          element={<RequireGuest><Signup /></RequireGuest>} />
           <Route path="/forgot-password" element={<RequireGuest><ForgotPassword /></RequireGuest>} />
           <Route path="/reset-password"  element={<ResetPassword />} />
+          <Route path="/admin"           element={<RequireAuth><Admin /></RequireAuth>} />
           <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
             <Route index          element={<Dashboard />} />
             <Route path="kids"    element={<Kids />} />

@@ -68,6 +68,24 @@ export default function Layout() {
               )}
             </NavLink>
           ))}
+          {user?.is_admin && (
+            <NavLink to="/admin" style={({ isActive }) => ({
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 12px', borderRadius: 8, marginTop: 8,
+              fontSize: 14, fontWeight: 500,
+              color: isActive ? 'var(--navy)' : 'var(--slate)',
+              background: isActive ? 'var(--accent)' : 'rgba(255,255,255,0.04)',
+              transition: 'all 0.15s', textDecoration: 'none',
+              border: '1px solid rgba(255,255,255,0.08)',
+            })}>
+              {({ isActive }) => (
+                <>
+                  <ShieldIcon color={isActive ? 'var(--navy)' : 'var(--slate)'} />
+                  Admin
+                </>
+              )}
+            </NavLink>
+          )}
         </nav>
 
         <div style={{ padding: '16px', borderTop: '1px solid var(--navy-mid)' }}>
@@ -130,8 +148,33 @@ export default function Layout() {
             )}
           </NavLink>
         ))}
+        {user?.is_admin && (
+          <NavLink to="/admin" style={({ isActive }) => ({
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: 3, padding: '4px 12px', borderRadius: 8,
+            color: isActive ? 'var(--accent)' : 'var(--slate)',
+            textDecoration: 'none', transition: 'color 0.15s',
+            minWidth: 56,
+          })}>
+            {({ isActive }) => (
+              <>
+                <ShieldIcon color={isActive ? 'var(--accent)' : 'var(--slate)'} />
+                <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.02em' }}>Admin</span>
+              </>
+            )}
+          </NavLink>
+        )}
       </nav>
     </div>
+  );
+}
+
+function ShieldIcon({ color = 'currentColor' }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M8 1.5L2 4v4c0 3 2.5 5.5 6 6 3.5-.5 6-3 6-6V4L8 1.5z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
+      <path d="M5.5 8l1.5 1.5 3-3" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
   );
 }
 

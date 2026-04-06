@@ -15,6 +15,7 @@ import calendarRoutes      from './routes/calendar.js';
 import manualRoutes        from './routes/manual.js';
 import passwordResetRoutes from './routes/passwordReset.js';
 import billingRoutes       from './routes/billing.js';
+import adminRoutes         from './routes/admin.js';
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -66,6 +67,7 @@ app.use('/api/sources',  sourcesRoutes);
 app.use('/api/events',   eventsRoutes);
 app.use('/api/manual',   manualRoutes);
 app.use('/api/billing',  billingRoutes);
+app.use('/api/admin',    adminRoutes);
 app.use('/feed',         calendarRoutes); // public: /feed/:token.ics
 
 // ============================================================
