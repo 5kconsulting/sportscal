@@ -350,10 +350,10 @@ const STEPS = {
     { text: 'Your events will now appear in Apple Calendar and update automatically.' },
   ],
   google: [
-    { text: 'Tap the button above — it will open Google Calendar and ask you to confirm adding the subscription.' },
-    { text: 'Click "Add calendar" in the confirmation dialog that appears.' },
-    { text: 'On iPhone: if the app opens instead of Safari, copy the feed URL and open Safari → go to calendar.google.com → tap ☰ → Other calendars → + → From URL → paste and add.' },
-    { text: 'Events sync every few hours. Note: this cannot be done from inside the Google Calendar mobile app — use a browser.', note: true },
+    { text: 'Tap the button above to open Google Calendar.' },
+    { text: 'Tap "Add calendar" in the confirmation dialog.' },
+    { text: 'On Android: if the app opens instead of a browser, copy the feed URL and open Chrome → go to calendar.google.com → tap ☰ → Other calendars → + → From URL → paste and add.' },
+    { text: 'Events sync every few hours. Adding subscriptions must be done in a browser — not the Google Calendar app.', note: true },
   ],
   outlook: [
     { text: 'Click the button below to open Outlook Calendar.' },
@@ -363,8 +363,15 @@ const STEPS = {
   ],
 };
 
+function detectDevice() {
+  const ua = navigator.userAgent;
+  if (/iPad|iPhone|iPod/.test(ua)) return 'apple';
+  if (/Android/.test(ua)) return 'google';
+  return 'apple'; // default for desktop (Mac users most common)
+}
+
 function SubscribeGuide({ feedUrl, onClose }) {
-  const [active, setActive] = useState('apple');
+  const [active, setActive] = useState(detectDevice);
   const [copied, setCopied] = useState(false);
 
   const webcalUrl = feedUrl.replace(/^https?:\/\//, 'webcal://');
