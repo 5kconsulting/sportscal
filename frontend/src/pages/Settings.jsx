@@ -275,6 +275,21 @@ export default function Settings() {
         </div>
       </form>
 
+      {/* Support */}
+      <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border)' }}>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--slate)',
+                     textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+          Support
+        </h2>
+        <p style={{ fontSize: 14, color: 'var(--slate)', marginBottom: 12, lineHeight: 1.6 }}>
+          Have a question or need help? We're here for you.
+        </p>
+        <a href="mailto:hello@sportscalapp.com" className="btn btn-ghost btn-sm"
+          style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          📧 hello@sportscalapp.com
+        </a>
+      </div>
+
       {/* Danger zone */}
       <div style={{ marginTop: 48, paddingTop: 32, borderTop: '1px solid var(--border)' }}>
         <h2 style={{ fontSize: 14, fontWeight: 600, color: '#ef4444',

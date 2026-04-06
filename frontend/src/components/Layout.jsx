@@ -108,6 +108,18 @@ export default function Layout() {
               </div>
             </div>
           </div>
+          <a href="mailto:hello@sportscalapp.com"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              width: '100%', padding: '8px 12px', borderRadius: 8, marginBottom: 6,
+              fontSize: 13, color: 'var(--slate)', textDecoration: 'none',
+              background: 'transparent', transition: 'color 0.15s',
+            }}
+            onMouseOver={e => e.currentTarget.style.color = 'var(--white)'}
+            onMouseOut={e => e.currentTarget.style.color = 'var(--slate)'}
+          >
+            <HelpIcon color="currentColor" /> Help & support
+          </a>
           <button onClick={handleLogout} className="btn btn-ghost btn-sm"
             style={{ width: '100%', justifyContent: 'center', color: 'var(--slate)' }}>
             Sign out
@@ -168,6 +180,16 @@ export default function Layout() {
         )}
       </nav>
     </div>
+  );
+}
+
+function HelpIcon({ color = 'currentColor' }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6.5" stroke={color} strokeWidth="1.5"/>
+      <path d="M6.5 6.5C6.5 5.7 7.1 5 8 5s1.5.6 1.5 1.4c0 .8-.5 1.2-1 1.6-.4.3-.5.6-.5 1" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="8" cy="11" r="0.75" fill={color}/>
+    </svg>
   );
 }
 
