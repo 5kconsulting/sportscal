@@ -394,6 +394,28 @@ function ReportsTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
+      {/* Umami Analytics embed */}
+      <div className="card" style={{ padding: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em' }}>Site analytics</h3>
+          <a href="https://cloud.umami.is/share/4nmQoTwos4Fb7vFS" target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 13, color: 'var(--accent-dim)', fontWeight: 500 }}>
+            Open in Umami →
+          </a>
+        </div>
+        <iframe
+          src="https://cloud.umami.is/share/4nmQoTwos4Fb7vFS"
+          style={{
+            width: '100%',
+            height: 600,
+            border: 'none',
+            borderRadius: 8,
+            background: 'var(--off-white)',
+          }}
+          title="Umami Analytics"
+        />
+      </div>
+
       {/* Plan breakdown */}
       <div className="card" style={{ padding: '24px' }}>
         <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 16, letterSpacing: '-0.01em' }}>Plan breakdown</h3>
@@ -582,7 +604,24 @@ function ToolsTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-      {/* Code snippets */}
+      {/* Quick links */}
+      <div className="card" style={{ padding: 24 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 16, letterSpacing: '-0.01em' }}>Quick links</h3>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {[
+            { label: '📊 Umami Analytics', href: 'https://cloud.umami.is' },
+            { label: '💳 Stripe Dashboard', href: 'https://dashboard.stripe.com' },
+            { label: '📧 Resend Dashboard', href: 'https://resend.com/emails' },
+            { label: '🚨 Sentry Issues', href: 'https://sentry.io' },
+            { label: '🚂 Railway', href: 'https://railway.app' },
+          ].map(link => (
+            <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer"
+              className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>
+              {link.label}
+            </a>
+          ))}
+        </div>
+      </div>
       <div className="card" style={{ padding: 24 }}>
         <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.01em' }}>Useful commands</h3>
         <p style={{ fontSize: 13, color: 'var(--slate)', marginBottom: 20 }}>Click to copy. Replace placeholders before running.</p>
