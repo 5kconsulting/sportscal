@@ -47,12 +47,16 @@ function UpgradeBanner() {
 }
 
 const APP_OPTIONS = [
-  { value: 'teamsnap',    label: 'TeamSnap',     fetchType: 'ical' },
-  { value: 'gamechanger', label: 'GameChanger',  fetchType: 'ical' },
-  { value: 'playmetrics', label: 'PlayMetrics',  fetchType: 'ical' },
-  { value: 'teamsideline',label: 'TeamSideline', fetchType: 'ical' },
-  { value: 'byga',        label: 'BYGA',         fetchType: 'ical' },
-  { value: 'custom',      label: 'Custom iCal',  fetchType: 'ical' },
+  { value: 'teamsnap',     label: 'TeamSnap',     fetchType: 'ical' },
+  { value: 'gamechanger',  label: 'GameChanger',  fetchType: 'ical' },
+  { value: 'playmetrics',  label: 'PlayMetrics',  fetchType: 'ical' },
+  { value: 'teamsideline', label: 'TeamSideline', fetchType: 'ical' },
+  { value: 'byga',         label: 'BYGA',         fetchType: 'ical' },
+  { value: 'sportsengine', label: 'SportsEngine', fetchType: 'ical' },
+  { value: 'teamreach',    label: 'TeamReach',    fetchType: 'ical' },
+  { value: 'leagueapps',   label: 'LeagueApps',   fetchType: 'ical' },
+  { value: 'demosphere',   label: 'Demosphere',   fetchType: 'ical' },
+  { value: 'custom',       label: 'Custom iCal',  fetchType: 'ical' },
 ];
 
 const APP_INSTRUCTIONS = {
@@ -134,6 +138,72 @@ const APP_INSTRUCTIONS = {
       'Paste it in the iCal URL field below.',
     ],
     note: 'Both https:// and webcal:// URLs work — SportsCal handles both formats automatically.',
+  },
+  sportsengine: {
+    label: 'SportsEngine',
+    steps: [
+      'Go to your organization\'s SportsEngine website (e.g. yourleague.org).',
+      'Navigate to your team\'s page or the main Calendar page.',
+      'Scroll down below the calendar or event list.',
+      'Look for the iCal Feed icon (calendar with a chain link) — tap "Subscribe to iCal Feed".',
+      'A popup will appear with the feed URL — copy it.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'The iCal icon may only appear if there are events visible. Try filtering to your team first if you don\'t see it.',
+    webSteps: [
+      'Log in to your SportsEngine account at ngin.com or your org\'s website.',
+      'Go to your team page → Schedule or Calendar tab.',
+      'Click the iCal Feed icon below the schedule.',
+      'Copy the URL from the popup that appears.',
+    ],
+  },
+  teamreach: {
+    label: 'TeamReach',
+    steps: [
+      'Open the TeamReach app on your phone.',
+      'Tap on your team.',
+      'Tap the Calendar tab at the bottom.',
+      'Scroll all the way to the bottom of the calendar.',
+      'Tap the "Subscribe" button.',
+      'Copy the iCal link that appears.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'The Subscribe button is at the very bottom of the calendar — you may need to scroll past all events to find it.',
+  },
+  leagueapps: {
+    label: 'LeagueApps',
+    steps: [
+      'Log in to your organization\'s LeagueApps site or open the LeagueApps Play app.',
+      'Go to My Schedule or your program\'s Schedule page.',
+      'Tap "Subscribe to Calendar" at the top of the schedule.',
+      'Select "Copy Link" from the options that appear.',
+      'Paste the copied URL in the iCal URL field below.',
+    ],
+    note: 'In the LeagueApps Play app: tap your profile icon → Members tab → tap your name → Subscribe to Calendar.',
+    webSteps: [
+      'Log in to your organization\'s LeagueApps website.',
+      'Go to your Dashboard → My Schedule from the sidebar.',
+      'Click "Subscribe to Calendar" at the top.',
+      'Click "Copy Link" to copy the iCal URL.',
+    ],
+  },
+  demosphere: {
+    label: 'Demosphere',
+    steps: [
+      'Open the Demosphere mobile app.',
+      'Tap on your team.',
+      'Tap the Calendar or Schedule section.',
+      'Look for a "Subscribe" or "Sync Calendar" option.',
+      'Tap it and copy the iCal link provided.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'For org-wide feeds: your league\'s Demosphere site URL + /events.ics (e.g. yourleague.demosphere.net/events.ics) gives the full site calendar.',
+    webSteps: [
+      'Go to your league\'s Demosphere website.',
+      'Navigate to the Calendar or Help/iCal page.',
+      'The full feed URL is typically: https://[yourorg].demosphere.net/events.ics',
+      'Copy that URL and paste it below.',
+    ],
   },
 };
 
@@ -445,7 +515,7 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
-    const appLabels = { teamsnap:'TeamSnap', gamechanger:'GameChanger', playmetrics:'PlayMetrics', teamsideline:'TeamSideline', byga:'BYGA', custom:'Custom' };
+    const appLabels = { teamsnap:'TeamSnap', gamechanger:'GameChanger', playmetrics:'PlayMetrics', teamsideline:'TeamSideline', byga:'BYGA', sportsengine:'SportsEngine', teamreach:'TeamReach', leagueapps:'LeagueApps', demosphere:'Demosphere', custom:'Custom' };
     await onSave({
       name:       name || appLabels[app] || app,
       app,
