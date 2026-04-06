@@ -62,6 +62,7 @@ app.use(rateLimit({
   max:      500,
   standardHeaders: true,
   legacyHeaders:   false,
+  keyGenerator: (req) => req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip,
 }));
 
 // Raw body for Stripe webhooks — must come before express.json()
