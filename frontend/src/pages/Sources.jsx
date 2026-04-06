@@ -326,7 +326,7 @@ export default function Sources() {
         <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
           <div className="spinner" style={{ width: 28, height: 28 }} />
         </div>
-      ) : sources.length === 0 && !showForm ? (
+      ) : sources.filter(s => s.name !== '__manual__').length === 0 && !showForm ? (
         <div className="card" style={{ padding: '60px 40px', textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>🔗</div>
           <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No sources yet</h3>
@@ -337,7 +337,7 @@ export default function Sources() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {sources.map(source => (
+          {sources.filter(s => s.name !== '__manual__').map(source => (
             <SourceCard key={source.id}
               source={source}
               onRefresh={() => handleRefresh(source.id)}
