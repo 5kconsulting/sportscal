@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import ical from 'ical-generator';
 import rateLimit from 'express-rate-limit';
 import {
   getUserByFeedToken,
@@ -76,47 +75,73 @@ router.get('/:token.ics', feedLimiter, async (req, res) => {
 // iCal builder
 // ============================================================
 function buildIcal(user, events) {
-  const cal = ical({
-    name:        'SportsCal',
-    description: `${user.name}'s family sports schedule`,
-    prodId:      '//SportsCal//Family Schedule//EN',
-    refreshInterval: { hours: 2 },
-  });
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    `PRODID:-//SportsCal//Family Schedule//EN`,
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    `X-WR-CALNAME:SportsCal`,
+    `X-WR-CALDESC:${user.name}'s family sports schedule`,
+    'X-PUBLISHED-TTL:PT2H',
+  ];
 
   for (const event of events) {
-    // Ensure dates are proper UTC Date objects
     const startsAt = new Date(event.starts_at);
-    const endsAt   = event.ends_at
-      ? new Date(event.ends_at)
-      : addHour(startsAt);
+    const endsAt   = event.ends_at ? new Date(event.ends_at) : addHour(startsAt);
+    const now      = new Date();
 
-    const icalEvent = cal.createEvent({
-      id:       event.id,
-      summary:  event.display_title,
-      start:    startsAt,
-      end:      endsAt,
-      allDay:   event.all_day,
-      timezone: 'UTC', // Force UTC output — DTSTART:20260407T010000Z
-    });
+    lines.push('BEGIN:VEVENT');
+    lines.push(`UID:${event.id}`);
+    lines.push(`SEQUENCE:0`);
+    lines.push(`DTSTAMP:${toICalDate(now)}Z`);
+
+    if (event.all_day) {
+      lines.push(`DTSTART;VALUE=DATE:${toICalDateOnly(startsAt)}`);
+      lines.push(`DTEND;VALUE=DATE:${toICalDateOnly(endsAt)}`);
+    } else {
+      lines.push(`DTSTART:${toICalDate(startsAt)}Z`);
+      lines.push(`DTEND:${toICalDate(endsAt)}Z`);
+    }
+
+    lines.push(`SUMMARY:${escapeIcal(event.display_title)}`);
 
     if (event.location) {
-      icalEvent.location(event.location);
+      lines.push(`LOCATION:${escapeIcal(event.location)}`);
     }
-
     if (event.description) {
-      icalEvent.description(event.description);
+      lines.push(`DESCRIPTION:${escapeIcal(event.description)}`);
+    }
+    if (event.kids?.[0]?.color) {
+      lines.push(`X-APPLE-CALENDAR-COLOR:${event.kids[0].color.toUpperCase()}`);
     }
 
-    // Color hint for supporting clients (Apple Calendar respects this)
-    if (event.kids?.[0]?.color) {
-      icalEvent.x([{
-        key:   'X-APPLE-CALENDAR-COLOR',
-        value: event.kids[0].color.toUpperCase(),
-      }]);
-    }
+    lines.push('END:VEVENT');
   }
 
-  return cal.toString();
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+// Format Date to iCal UTC string: 20260407T010000
+function toICalDate(date) {
+  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, '');
+}
+
+// Format Date to iCal date-only string: 20260407
+function toICalDateOnly(date) {
+  return date.toISOString().slice(0, 10).replace(/-/g, '');
+}
+
+// Escape special iCal characters
+function escapeIcal(str) {
+  if (!str) return '';
+  return str
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '');
 }
 
 function addHour(date) {
