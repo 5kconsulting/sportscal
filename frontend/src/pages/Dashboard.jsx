@@ -511,11 +511,6 @@ function SubscribeGuide({ feedUrl, onClose }) {
             ))}
           </ol>
 
-          <button onClick={onClose} className="btn btn-ghost"
-            style={{ width: '100%', justifyContent: 'center', marginTop: 24 }}>
-            Done
-          </button>
-
           {/* Download option */}
           <div style={{
             marginTop: 20, paddingTop: 20,
@@ -539,6 +534,11 @@ function SubscribeGuide({ feedUrl, onClose }) {
               One-time import — events won't update automatically if schedules change.
             </p>
           </div>
+
+          <button onClick={onClose} className="btn btn-ghost"
+            style={{ width: '100%', justifyContent: 'center', marginTop: 20 }}>
+            Done
+          </button>
         </div>
       </div>
     </div>
