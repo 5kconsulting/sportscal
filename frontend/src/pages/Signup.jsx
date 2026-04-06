@@ -7,11 +7,13 @@ export default function Signup() {
   const { signup }    = useAuth();
   const navigate      = useNavigate();
   const [form, setForm]   = useState({ name: '', email: '', password: '' });
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!agreed) { setError('Please accept the Terms of Service and Privacy Policy to continue.'); return; }
     setError('');
     setLoading(true);
     try {
@@ -106,16 +108,25 @@ export default function Signup() {
                     value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                     required minLength={8} />
                 </div>
+                <label style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 10,
+                  cursor: 'pointer', marginTop: 4,
+                }}>
+                  <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
+                    style={{ marginTop: 3, flexShrink: 0, accentColor: 'var(--accent)', width: 15, height: 15 }} />
+                  <span style={{ fontSize: 13, color: 'var(--slate-light)', lineHeight: 1.5 }}>
+                    I agree to the{' '}
+                    <a href="/terms" target="_blank" style={{ color: 'var(--accent-dim)' }}>Terms of Service</a>
+                    {' '}and{' '}
+                    <a href="/privacy" target="_blank" style={{ color: 'var(--accent-dim)' }}>Privacy Policy</a>
+                  </span>
+                </label>
+
                 <button type="submit" className="btn btn-primary"
-                  style={{ marginTop: 8, justifyContent: 'center', padding: '12px' }}
-                  disabled={loading}>
+                  style={{ marginTop: 4, justifyContent: 'center', padding: '12px', opacity: agreed ? 1 : 0.6 }}
+                  disabled={loading || !agreed}>
                   {loading ? <span className="spinner" style={{ width: 16, height: 16 }} /> : 'Create account'}
                 </button>
-                <p style={{ fontSize: 11, color: 'var(--slate-light)', marginTop: 16, textAlign: 'center' }}>
-  By signing up you agree to our{' '}
-  <a href="/terms" style={{ color: 'var(--accent-dim)' }}>Terms</a> and{' '}
-  <a href="/privacy" style={{ color: 'var(--accent-dim)' }}>Privacy Policy</a>.
-</p>
               </form>
               <p style={{ fontSize: 12, color: 'var(--slate-light)', marginTop: 20, textAlign: 'center' }}>
                 Free plan includes 2 family members and 2 sources.
