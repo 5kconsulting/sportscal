@@ -9,6 +9,7 @@
     "start": "node server.cjs"
   },
   "dependencies": {
+    "@sentry/react": "^10.47.0",
     "express": "^5.2.1",
     "http-proxy-middleware": "^3.0.5",
     "react": "^18.3.1",

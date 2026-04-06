@@ -1,8 +1,19 @@
 import 'dotenv/config';
+import * as Sentry from '@sentry/node';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+
+// Initialize Sentry before anything else
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 0.2,
+  });
+  console.log('[sentry] initialized');
+}
 
 import { runMigrations, healthCheck } from './db/index.js';
 import { getQueueStats } from './workers/queue.js';
@@ -90,6 +101,7 @@ app.use((_req, res) => {
 });
 
 app.use((err, _req, res, _next) => {
+  if (process.env.SENTRY_DSN) Sentry.captureException(err);
   console.error('[server] unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });

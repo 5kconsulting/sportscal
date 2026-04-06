@@ -2,7 +2,16 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth.jsx';
+import * as Sentry from '@sentry/react';
 import './index.css';
+
+// Initialize Sentry
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  environment: import.meta.env.MODE,
+  tracesSampleRate: 0.2,
+  enabled: !!import.meta.env.VITE_SENTRY_DSN,
+});
 
 import Layout          from './components/Layout.jsx';
 import Login           from './pages/Login.jsx';
