@@ -16,6 +16,10 @@ const worker = new Worker('ical-fetch', async (job) => {
   try {
     const source = await getSourceById(sourceId, userId);
     if (!source) throw new Error(`Source ${sourceId} not found`);
+    if (source.name === '__manual__') {
+      await finishRefreshJob(dbJob.id, { status: 'ok', added: 0, updated: 0, removed: 0, error: null });
+      return;
+    }
     if (!source.ical_url) throw new Error(`Source ${sourceId} has no iCal URL`);
 
     const kids = await getKidsForSource(sourceId);
@@ -44,9 +48,20 @@ const worker = new Worker('ical-fetch', async (job) => {
     console.error(`[ical-worker] source ${sourceId} failed:`, err.message);
     await markSourceFetched(sourceId, { status: 'error', error: err.message });
     await finishRefreshJob(dbJob.id, { status: 'error', added: 0, updated: 0, removed: 0, error: err.message });
+
+    try {
+      const source = await getSourceById(sourceId, userId);
+      if (source?.fetch_type === 'ical_with_scrape_fallback' && source?.scrape_url) {
+        await enqueueScrapeFetch(source, { priority: 1 });
+      }
+    } catch { /* ignore */ }
+
     throw err;
   }
-}, { connection, concurrency: 5 });
+}, {
+  connection,
+  concurrency: 5,
+});
 
 async function fetchWithTimeout(url, timeoutMs) {
   const controller = new AbortController();

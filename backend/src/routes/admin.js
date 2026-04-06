@@ -179,6 +179,7 @@ router.get('/sources', async (_req, res) => {
       JOIN users u ON u.id = s.user_id
       LEFT JOIN events e ON e.source_id = s.id
       WHERE s.last_fetch_status = 'error'
+        AND s.name != '__manual__'
       GROUP BY s.id, u.email, u.name
       ORDER BY s.last_fetched_at DESC
       LIMIT 100
