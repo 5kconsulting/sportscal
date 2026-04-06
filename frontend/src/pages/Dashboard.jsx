@@ -10,13 +10,22 @@ export default function Dashboard() {
   const [days, setDays]       = useState(14);
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [kids, setKids]       = useState([]);
+  const [sources, setSources] = useState([]);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(
+    () => localStorage.getItem('sc_onboarding_done') === '1'
+  );
 
   useEffect(() => {
     Promise.all([
       api.events.list({ days }),
       api.kids.list(),
+      api.sources.list(),
     ])
-      .then(([{ events }, { kids }]) => { setEvents(events); setKids(kids); })
+      .then(([{ events }, { kids }, { sources }]) => {
+        setEvents(events);
+        setKids(kids);
+        setSources(sources);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [days]);
@@ -97,6 +106,18 @@ export default function Dashboard() {
         />
       )}
 
+      {/* Onboarding wizard */}
+      {!onboardingDismissed && !loading && (
+        <OnboardingBanner
+          hasKids={kids.length > 0}
+          hasSources={sources.filter(s => s.name !== '__manual__').length > 0}
+          onDismiss={() => {
+            localStorage.setItem('sc_onboarding_done', '1');
+            setOnboardingDismissed(true);
+          }}
+        />
+      )}
+
       {/* Feed URL card */}
       <FeedUrlCard user={user} />
 
@@ -129,6 +150,129 @@ export default function Dashboard() {
             <DayGroup key={day} day={day} events={dayEvents}
               onEdit={setEditingEvent} onDelete={handleEventDeleted} />
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OnboardingBanner({ hasKids, hasSources, onDismiss }) {
+  const allDone = hasKids && hasSources;
+
+  const steps = [
+    {
+      num: 1,
+      title: 'Add a family member',
+      desc: 'Create a profile for each kid — their name appears on every event.',
+      done: hasKids,
+      action: <Link to="/kids" className="btn btn-sm btn-primary" style={{ textDecoration: 'none' }}>Add member →</Link>,
+    },
+    {
+      num: 2,
+      title: 'Connect a sports app',
+      desc: 'Paste an iCal link from TeamSnap, GameChanger, PlayMetrics, or any other app.',
+      done: hasSources,
+      action: <Link to="/sources" className="btn btn-sm btn-primary" style={{ textDecoration: 'none' }}>Add source →</Link>,
+    },
+    {
+      num: 3,
+      title: 'Subscribe to your calendar',
+      desc: 'Copy your feed URL and subscribe in Apple Calendar, Google Calendar, or Outlook.',
+      done: false,
+      action: null,
+    },
+  ];
+
+  const completedCount = [hasKids, hasSources].filter(Boolean).length;
+
+  return (
+    <div style={{
+      background: 'var(--navy)',
+      borderRadius: 'var(--radius-lg)',
+      padding: '20px 24px',
+      marginBottom: 24,
+      border: '1px solid rgba(0,214,143,0.15)',
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Getting started
+          </div>
+          <div style={{
+            fontSize: 11, padding: '2px 8px', borderRadius: 20,
+            background: 'rgba(0,214,143,0.15)', color: 'var(--accent)',
+            fontWeight: 600,
+          }}>
+            {completedCount}/2 done
+          </div>
+        </div>
+        <button onClick={onDismiss} style={{
+          fontSize: 12, color: 'var(--slate)', background: 'none',
+          border: 'none', cursor: 'pointer', padding: 0,
+        }}>
+          Dismiss
+        </button>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ height: 4, background: 'var(--navy-mid)', borderRadius: 2, marginBottom: 20, overflow: 'hidden' }}>
+        <div style={{
+          height: '100%',
+          width: `${(completedCount / 2) * 100}%`,
+          background: 'var(--accent)',
+          borderRadius: 2,
+          transition: 'width 0.5s ease',
+        }} />
+      </div>
+
+      {/* Steps */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {steps.map((step) => (
+          <div key={step.num} style={{
+            display: 'flex', alignItems: 'flex-start', gap: 12,
+            opacity: step.done ? 0.5 : 1,
+            transition: 'opacity 0.3s',
+          }}>
+            {/* Step indicator */}
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+              background: step.done ? 'var(--accent)' : 'var(--navy-mid)',
+              border: step.done ? 'none' : '1px solid rgba(255,255,255,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 700,
+              color: step.done ? 'var(--navy)' : 'var(--slate)',
+              marginTop: 1,
+            }}>
+              {step.done ? '✓' : step.num}
+            </div>
+
+            {/* Content */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: step.done ? 'var(--slate)' : 'var(--white)' }}>
+                  {step.title}
+                </div>
+                {!step.done && step.action && step.action}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--slate)', marginTop: 2, lineHeight: 1.5 }}>
+                {step.desc}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {allDone && (
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 14, color: 'var(--accent)', fontWeight: 500 }}>
+            ✓ You're all set! Subscribe to your calendar feed above.
+          </div>
+          <button onClick={onDismiss} className="btn btn-sm" style={{
+            background: 'var(--accent)', color: 'var(--navy)', border: 'none',
+          }}>
+            Got it
+          </button>
         </div>
       )}
     </div>
