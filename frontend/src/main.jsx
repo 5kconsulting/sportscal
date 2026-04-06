@@ -26,12 +26,15 @@ import Admin           from './pages/Admin.jsx';
 
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
+  // If we have a user (from cache or fresh), show app immediately
+  if (user) return children;
+  // Only show spinner if we're still loading and have no cached user
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh' }}>
       <div className="spinner" />
     </div>
   );
-  return user ? children : <Navigate to="/login" replace />;
+  return <Navigate to="/login" replace />;
 }
 
 function RequireGuest({ children }) {

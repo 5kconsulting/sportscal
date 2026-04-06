@@ -4,7 +4,13 @@ import { api } from '../lib/api.js';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null);
+  const [user, setUser] = useState(() => {
+    // Restore user from cache immediately to prevent flash to login page
+    try {
+      const cached = localStorage.getItem('sc_user');
+      return cached ? JSON.parse(cached) : null;
+    } catch { return null; }
+  });
   const [loading, setLoading] = useState(true);
 
   // Restore session on mount
@@ -13,13 +19,18 @@ export function AuthProvider({ children }) {
     if (!token) { setLoading(false); return; }
 
     api.auth.me()
-      .then(({ user }) => setUser(user))
+      .then(({ user }) => {
+        setUser(user);
+        localStorage.setItem('sc_user', JSON.stringify(user));
+      })
       .catch(err => {
         // Only clear token on 401 (expired/invalid) not network errors
         if (err.message === 'Unauthorized' || err.message?.includes('401')) {
           localStorage.removeItem('sc_token');
+          localStorage.removeItem('sc_user');
+          setUser(null);
         }
-        // Otherwise keep the token and let them stay logged in
+        // Otherwise keep cached user and let them stay logged in
       })
       .finally(() => setLoading(false));
   }, []);
@@ -27,22 +38,29 @@ export function AuthProvider({ children }) {
   async function login(email, password) {
     const { token, user } = await api.auth.login({ email, password });
     localStorage.setItem('sc_token', token);
+    localStorage.setItem('sc_user', JSON.stringify(user));
     setUser(user);
   }
 
   async function signup(name, email, password) {
     const { token, user } = await api.auth.signup({ name, email, password });
     localStorage.setItem('sc_token', token);
+    localStorage.setItem('sc_user', JSON.stringify(user));
     setUser(user);
   }
 
   function logout() {
     localStorage.removeItem('sc_token');
+    localStorage.removeItem('sc_user');
     setUser(null);
   }
 
   function updateUser(data) {
-    setUser(prev => ({ ...prev, ...data }));
+    setUser(prev => {
+      const updated = { ...prev, ...data };
+      localStorage.setItem('sc_user', JSON.stringify(updated));
+      return updated;
+    });
   }
 
   return (
