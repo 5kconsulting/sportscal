@@ -14,7 +14,13 @@ export function AuthProvider({ children }) {
 
     api.auth.me()
       .then(({ user }) => setUser(user))
-      .catch(() => localStorage.removeItem('sc_token'))
+      .catch(err => {
+        // Only clear token on 401 (expired/invalid) not network errors
+        if (err.message === 'Unauthorized' || err.message?.includes('401')) {
+          localStorage.removeItem('sc_token');
+        }
+        // Otherwise keep the token and let them stay logged in
+      })
       .finally(() => setLoading(false));
   }, []);
 
