@@ -69,7 +69,7 @@ router.get('/users', async (req, res) => {
       where += ` AND u.plan = $${params.length}`;
     }
 
-    const { rows } = await query(`
+    const rows = await query(`
       SELECT
         u.id, u.name, u.email, u.plan, u.is_admin,
         u.created_at, u.stripe_customer_id,
@@ -109,7 +109,7 @@ router.get('/users/:id', async (req, res) => {
 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const { rows: sources } = await query(`
+    const sources = await query(`
       SELECT s.*, COUNT(e.id) AS event_count
       FROM sources s
       LEFT JOIN events e ON e.source_id = s.id
@@ -118,7 +118,7 @@ router.get('/users/:id', async (req, res) => {
       ORDER BY s.created_at DESC
     `, [req.params.id]);
 
-    const { rows: kids } = await query(
+    const kids = await query(
       `SELECT * FROM kids WHERE user_id = $1 ORDER BY created_at`,
       [req.params.id]
     );
@@ -172,7 +172,7 @@ router.patch('/users/:id', async (req, res) => {
 // ============================================================
 router.get('/sources', async (_req, res) => {
   try {
-    const { rows } = await query(`
+    const rows = await query(`
       SELECT s.*, u.email AS user_email, u.name AS user_name,
              COUNT(e.id) AS event_count
       FROM sources s
