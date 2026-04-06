@@ -515,6 +515,30 @@ function SubscribeGuide({ feedUrl, onClose }) {
             style={{ width: '100%', justifyContent: 'center', marginTop: 24 }}>
             Done
           </button>
+
+          {/* Download option */}
+          <div style={{
+            marginTop: 20, paddingTop: 20,
+            borderTop: '1px solid var(--border)',
+          }}>
+            <p style={{ fontSize: 12, color: 'var(--slate)', marginBottom: 10, textAlign: 'center' }}>
+              Prefer to add events to an existing calendar?
+            </p>
+            <a href={feedUrl}
+              download="sportscal.ics"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                width: '100%', padding: '10px',
+                background: 'var(--off-white)', color: 'var(--slate)',
+                borderRadius: 8, fontWeight: 500, fontSize: 13,
+                textDecoration: 'none', border: '1px solid var(--border)',
+              }}>
+              ⬇ Download .ics file
+            </a>
+            <p style={{ fontSize: 11, color: 'var(--slate-light)', marginTop: 8, textAlign: 'center', lineHeight: 1.5 }}>
+              One-time import — events won't update automatically if schedules change.
+            </p>
+          </div>
         </div>
       </div>
     </div>
