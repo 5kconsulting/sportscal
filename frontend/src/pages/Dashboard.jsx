@@ -177,9 +177,11 @@ function OnboardingBanner({ hasKids, hasSources, onDismiss }) {
     {
       num: 3,
       title: 'Subscribe to your calendar',
-      desc: 'Copy your feed URL and subscribe in Apple Calendar, Google Calendar, or Outlook.',
+      desc: 'Copy your feed URL and add it to Apple Calendar, Google Calendar, or Outlook.',
       done: false,
-      action: null,
+      action: hasKids && hasSources
+        ? <span style={{ fontSize: 12, color: 'var(--accent-dim)', fontWeight: 500 }}>↓ Use the feed URL card below</span>
+        : null,
     },
   ];
 
@@ -204,7 +206,7 @@ function OnboardingBanner({ hasKids, hasSources, onDismiss }) {
             background: 'rgba(0,214,143,0.15)', color: 'var(--accent)',
             fontWeight: 600,
           }}>
-            {completedCount}/2 done
+            {completedCount}/3 done
           </div>
         </div>
         <button onClick={onDismiss} style={{
@@ -219,7 +221,7 @@ function OnboardingBanner({ hasKids, hasSources, onDismiss }) {
       <div style={{ height: 4, background: 'var(--navy-mid)', borderRadius: 2, marginBottom: 20, overflow: 'hidden' }}>
         <div style={{
           height: '100%',
-          width: `${(completedCount / 2) * 100}%`,
+          width: `${(completedCount / 3) * 100}%`,
           background: 'var(--accent)',
           borderRadius: 2,
           transition: 'width 0.5s ease',
