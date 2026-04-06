@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { LogoMark } from './LogoMark.jsx';
+import { VerificationBanner } from './VerificationBanner.jsx';
 
 const NAV = [
   { to: '/',        label: 'Dashboard', icon: GridIcon },
@@ -116,6 +117,7 @@ export default function Layout() {
 
       {/* Main content */}
       <main className="main-content" style={{ flex: 1, overflowY: 'auto', background: 'var(--off-white)' }}>
+        <VerificationBanner user={user} />
         <Outlet />
       </main>
 

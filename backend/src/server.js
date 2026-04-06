@@ -18,15 +18,16 @@ if (process.env.SENTRY_DSN) {
 import { runMigrations, healthCheck } from './db/index.js';
 import { getQueueStats } from './workers/queue.js';
 
-import authRoutes          from './routes/auth.js';
-import kidsRoutes          from './routes/kids.js';
-import sourcesRoutes       from './routes/sources.js';
-import eventsRoutes        from './routes/events.js';
-import calendarRoutes      from './routes/calendar.js';
-import manualRoutes        from './routes/manual.js';
-import passwordResetRoutes from './routes/passwordReset.js';
-import billingRoutes       from './routes/billing.js';
-import adminRoutes         from './routes/admin.js';
+import authRoutes             from './routes/auth.js';
+import kidsRoutes             from './routes/kids.js';
+import sourcesRoutes          from './routes/sources.js';
+import eventsRoutes           from './routes/events.js';
+import calendarRoutes         from './routes/calendar.js';
+import manualRoutes           from './routes/manual.js';
+import passwordResetRoutes    from './routes/passwordReset.js';
+import billingRoutes          from './routes/billing.js';
+import adminRoutes            from './routes/admin.js';
+import emailVerificationRoutes from './routes/emailVerification.js';
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -73,6 +74,7 @@ app.use(express.json({ limit: '64kb' }));
 // ============================================================
 app.use('/api/auth',     authRoutes);
 app.use('/api/auth',     passwordResetRoutes);
+app.use('/api/auth',     emailVerificationRoutes);
 app.use('/api/kids',     kidsRoutes);
 app.use('/api/sources',  sourcesRoutes);
 app.use('/api/events',   eventsRoutes);

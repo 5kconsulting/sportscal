@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.jsx';
 
 export default function Dashboard() {
-  const { user }              = useAuth();
+  const { user, updateUser }  = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [events, setEvents]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [days, setDays]       = useState(14);
@@ -14,6 +15,15 @@ export default function Dashboard() {
   const [onboardingDismissed, setOnboardingDismissed] = useState(
     () => localStorage.getItem('sc_onboarding_done') === '1'
   );
+  const [verifiedFlash, setVerifiedFlash] = useState(searchParams.get('verified') === '1');
+
+  useEffect(() => {
+    if (verifiedFlash) {
+      updateUser({ email_verified: true });
+      setSearchParams({});
+      setTimeout(() => setVerifiedFlash(false), 4000);
+    }
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -104,6 +114,17 @@ export default function Dashboard() {
           onSave={handleEventUpdated}
           onCancel={() => setEditingEvent(null)}
         />
+      )}
+
+      {/* Verified flash */}
+      {verifiedFlash && (
+        <div style={{
+          background: '#d1fae5', border: '1px solid #6ee7b7',
+          borderRadius: 8, padding: '12px 16px', marginBottom: 20,
+          fontSize: 14, color: '#065f46', fontWeight: 500,
+        }}>
+          ✅ Your email has been verified. Thanks!
+        </div>
       )}
 
       {/* Onboarding wizard */}

@@ -13,10 +13,12 @@ import {
 } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { welcomeEmail } from '../emails/templates.js';
+import { sendVerificationEmail } from './emailVerification.js';
 
 const router = Router();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const router = Router();
 
 // Tight rate limit on auth endpoints to prevent brute force
 const authLimiter = rateLimit({
@@ -52,7 +54,7 @@ router.post('/signup',
     const passwordHash = await bcrypt.hash(password, 12);
     const user = await createUser({ email, passwordHash, name });
 
-    // Send welcome email (non-blocking — don't fail signup if email fails)
+    // Send welcome + verification emails (non-blocking)
     if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 're_xxxxxxxxxxxx') {
       const { subject, html, text } = welcomeEmail(user);
       resend.emails.send({
@@ -62,6 +64,9 @@ router.post('/signup',
         html,
         text,
       }).catch(err => console.error('[auth] welcome email failed:', err.message));
+
+      sendVerificationEmail(user)
+        .catch(err => console.error('[auth] verification email failed:', err.message));
     }
 
     const token = signToken(user.id);
