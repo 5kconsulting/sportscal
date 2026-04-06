@@ -26,6 +26,8 @@ const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   message: { error: 'Too many attempts — try again in 15 minutes' },
+  keyGenerator: (req) => req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip,
+  skip: (req) => process.env.NODE_ENV === 'development',
 });
 
 // ============================================================
