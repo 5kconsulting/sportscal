@@ -193,3 +193,65 @@ router.get('/sources', async (_req, res) => {
 });
 
 export default router;
+
+// ============================================================
+// GET /api/admin/reports
+// Growth and revenue data over time
+// ============================================================
+router.get('/reports', async (_req, res) => {
+  try {
+    // Signups per day for last 30 days
+    const signups = await query(`
+      SELECT
+        DATE_TRUNC('day', created_at) AS date,
+        COUNT(*) AS count,
+        COUNT(*) FILTER (WHERE plan = 'premium') AS premium_count
+      FROM users
+      WHERE created_at > NOW() - INTERVAL '30 days'
+      GROUP BY 1
+      ORDER BY 1
+    `);
+
+    // Cumulative users over last 30 days
+    const cumulative = await query(`
+      SELECT
+        DATE_TRUNC('day', created_at) AS date,
+        COUNT(*) OVER (ORDER BY DATE_TRUNC('day', created_at)) AS total_users
+      FROM users
+      ORDER BY 1
+    `);
+
+    // Plan breakdown
+    const plans = await query(`
+      SELECT plan, COUNT(*) AS count
+      FROM users
+      GROUP BY plan
+      ORDER BY count DESC
+    `);
+
+    // MRR over time (premium users per day)
+    const mrr = await query(`
+      SELECT
+        DATE_TRUNC('day', created_at) AS date,
+        COUNT(*) FILTER (WHERE plan = 'premium') * 5 AS mrr
+      FROM users
+      WHERE created_at > NOW() - INTERVAL '30 days'
+      GROUP BY 1
+      ORDER BY 1
+    `);
+
+    // Source breakdown by app
+    const sourceApps = await query(`
+      SELECT app, COUNT(*) AS count
+      FROM sources
+      WHERE name != '__manual__'
+      GROUP BY app
+      ORDER BY count DESC
+    `);
+
+    res.json({ signups, cumulative, plans, mrr, sourceApps });
+  } catch (err) {
+    console.error('[admin] reports error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});

@@ -30,6 +30,7 @@ export default function Admin() {
         {[
           { id: 'overview', label: 'Overview' },
           { id: 'users', label: 'Users' },
+          { id: 'reports', label: 'Reports' },
           { id: 'errors', label: 'Source Errors' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
@@ -47,6 +48,7 @@ export default function Admin() {
       {tab === 'overview' && <OverviewTab />}
       {tab === 'users' && <UsersTab />}
       {tab === 'errors' && <ErrorsTab />}
+      {tab === 'reports' && <ReportsTab />}
     </div>
   );
 }
@@ -370,6 +372,134 @@ function ErrorsTab() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ---- Reports ----
+function ReportsTab() {
+  const { data, loading } = useAdminFetch('/api/admin/reports');
+
+  if (loading) return <Spinner />;
+
+  const signups   = data?.signups || [];
+  const plans     = data?.plans || [];
+  const sourceApps = data?.sourceApps || [];
+
+  const maxSignups = Math.max(...signups.map(d => Number(d.count)), 1);
+  const totalUsers = plans.reduce((s, p) => s + Number(p.count), 0);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+      {/* Plan breakdown */}
+      <div className="card" style={{ padding: '24px' }}>
+        <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 16, letterSpacing: '-0.01em' }}>Plan breakdown</h3>
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 20 }}>
+          {plans.map(p => (
+            <div key={p.plan} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: '-0.02em',
+                            color: p.plan === 'premium' ? 'var(--accent-dim)' : 'var(--navy)' }}>
+                {p.count}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--slate)', textTransform: 'capitalize' }}>{p.plan}</div>
+            </div>
+          ))}
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--navy)' }}>
+              ${plans.find(p => p.plan === 'premium')?.count * 5 || 0}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--slate)' }}>MRR</div>
+          </div>
+        </div>
+
+        {/* Stacked bar */}
+        <div style={{ height: 12, borderRadius: 6, background: 'var(--off-white)', overflow: 'hidden', display: 'flex' }}>
+          {plans.map(p => (
+            <div key={p.plan} style={{
+              width: `${(Number(p.count) / totalUsers) * 100}%`,
+              background: p.plan === 'premium' ? 'var(--accent)' : 'var(--slate-light)',
+              transition: 'width 0.5s',
+            }} />
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+          {plans.map(p => (
+            <div key={p.plan} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%',
+                            background: p.plan === 'premium' ? 'var(--accent)' : 'var(--slate-light)' }} />
+              <span style={{ fontSize: 12, color: 'var(--slate)', textTransform: 'capitalize' }}>
+                {p.plan} ({Math.round((Number(p.count) / totalUsers) * 100)}%)
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Signups last 30 days */}
+      <div className="card" style={{ padding: '24px' }}>
+        <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.01em' }}>Signups — last 30 days</h3>
+        <p style={{ fontSize: 13, color: 'var(--slate)', marginBottom: 20 }}>
+          Total: {signups.reduce((s, d) => s + Number(d.count), 0)} new users
+        </p>
+        {signups.length === 0 ? (
+          <p style={{ color: 'var(--slate)', fontSize: 14 }}>No signups in the last 30 days.</p>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 120 }}>
+            {signups.map((d, i) => (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <div style={{ width: '100%', position: 'relative', height: 100, display: 'flex', alignItems: 'flex-end' }}>
+                  <div style={{
+                    width: '100%',
+                    height: `${(Number(d.count) / maxSignups) * 100}%`,
+                    minHeight: Number(d.count) > 0 ? 4 : 0,
+                    background: 'var(--accent)',
+                    borderRadius: '3px 3px 0 0',
+                    opacity: 0.85,
+                  }} title={`${new Date(d.date).toLocaleDateString()}: ${d.count} signups`} />
+                </div>
+                {i % 7 === 0 && (
+                  <div style={{ fontSize: 9, color: 'var(--slate)', whiteSpace: 'nowrap' }}>
+                    {new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Source apps breakdown */}
+      <div className="card" style={{ padding: '24px' }}>
+        <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 16, letterSpacing: '-0.01em' }}>Sources by app</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {sourceApps.map(s => {
+            const maxCount = Math.max(...sourceApps.map(x => Number(x.count)), 1);
+            return (
+              <div key={s.app} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 100, fontSize: 13, fontWeight: 500, flexShrink: 0, textTransform: 'capitalize' }}>
+                  {s.app}
+                </div>
+                <div style={{ flex: 1, height: 8, background: 'var(--off-white)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${(Number(s.count) / maxCount) * 100}%`,
+                    height: '100%',
+                    background: 'var(--accent)',
+                    borderRadius: 4,
+                  }} />
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--slate)', minWidth: 24, textAlign: 'right' }}>
+                  {s.count}
+                </div>
+              </div>
+            );
+          })}
+          {sourceApps.length === 0 && (
+            <p style={{ color: 'var(--slate)', fontSize: 14 }}>No sources yet.</p>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 }
