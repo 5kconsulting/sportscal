@@ -32,6 +32,7 @@ export default function Admin() {
           { id: 'users', label: 'Users' },
           { id: 'reports', label: 'Reports' },
           { id: 'errors', label: 'Source Errors' },
+          { id: 'tools', label: 'Tools & FAQ' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             padding: '8px 16px', border: 'none', cursor: 'pointer',
@@ -49,6 +50,7 @@ export default function Admin() {
       {tab === 'users' && <UsersTab />}
       {tab === 'errors' && <ErrorsTab />}
       {tab === 'reports' && <ReportsTab />}
+      {tab === 'tools' && <ToolsTab />}
     </div>
   );
 }
@@ -497,6 +499,140 @@ function ReportsTab() {
           {sourceApps.length === 0 && (
             <p style={{ color: 'var(--slate)', fontSize: 14 }}>No sources yet.</p>
           )}
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+// ---- Tools & FAQ ----
+function ToolsTab() {
+  const [copied, setCopied] = useState('');
+
+  function copy(text, key) {
+    navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(''), 2000);
+  }
+
+  const DB_URL = 'postgresql://postgres:dmQMBJCxCwIEqoUJmkJvHlnSlVtaUGmz@junction.proxy.rlwy.net:12512/railway';
+
+  const snippets = [
+    {
+      key: 'onboarding',
+      label: 'Simulate new user onboarding (browser console)',
+      code: "localStorage.removeItem('sc_onboarding_done'); location.reload();",
+    },
+    {
+      key: 'upgrade',
+      label: 'Manually upgrade a user to premium (terminal)',
+      code: `psql "${DB_URL}" -c "UPDATE users SET plan = 'premium' WHERE email = 'USER@EMAIL.COM';"`,
+    },
+    {
+      key: 'downgrade',
+      label: 'Manually downgrade a user to free (terminal)',
+      code: `psql "${DB_URL}" -c "UPDATE users SET plan = 'free' WHERE email = 'USER@EMAIL.COM';"`,
+    },
+    {
+      key: 'admin',
+      label: 'Grant admin access to a user (terminal)',
+      code: `psql "${DB_URL}" -c "UPDATE users SET is_admin = true WHERE email = 'USER@EMAIL.COM';"`,
+    },
+    {
+      key: 'allusers',
+      label: 'List all users (terminal)',
+      code: `psql "${DB_URL}" -c "SELECT email, plan, is_admin, created_at FROM users ORDER BY created_at DESC;"`,
+    },
+    {
+      key: 'errors',
+      label: 'List all source errors (terminal)',
+      code: `psql "${DB_URL}" -c "SELECT s.name, s.app, s.last_fetch_error, u.email FROM sources s JOIN users u ON u.id = s.user_id WHERE s.last_fetch_status = 'error' AND s.name != '__manual__';"`,
+    },
+    {
+      key: 'clearerror',
+      label: 'Clear error status for a source (terminal)',
+      code: `psql "${DB_URL}" -c "UPDATE sources SET last_fetch_status = null, last_fetch_error = null WHERE id = 'SOURCE_ID';"`,
+    },
+  ];
+
+  const faqs = [
+    {
+      q: 'A user says their calendar is not updating.',
+      a: "Check their sources in the Users tab → View. Look for red error indicators. Common causes: the iCal URL expired (they need to get a new one from their sports app), or the source was paused.",
+    },
+    {
+      q: 'A user can\'t log in.',
+      a: "Check if they signed up with a different email. If they forgot their password, they can use Forgot Password on the login page. If the account is locked or corrupted, you can reset their password hash via psql.",
+    },
+    {
+      q: 'How do I give someone a free month?',
+      a: "Currently you'd need to manually set their plan to premium via psql and note the date. Once Stripe billing is fully live, you can issue credits in the Stripe dashboard.",
+    },
+    {
+      q: 'A user was charged but their plan didn\'t update.',
+      a: "Check the Railway backend logs for '[billing]' messages around the time of payment. Also check the Stripe dashboard → Webhooks → check for failed webhook deliveries and replay them.",
+    },
+    {
+      q: 'How do I delete a user account?',
+      a: "Run: DELETE FROM users WHERE email = 'USER@EMAIL.COM'; — this cascades to all their kids, sources, and events due to ON DELETE CASCADE. Make sure to also cancel their Stripe subscription first.",
+    },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+      {/* Code snippets */}
+      <div className="card" style={{ padding: 24 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.01em' }}>Useful commands</h3>
+        <p style={{ fontSize: 13, color: 'var(--slate)', marginBottom: 20 }}>Click to copy. Replace placeholders before running.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {snippets.map(s => (
+            <div key={s.key}>
+              <div style={{ fontSize: 12, color: 'var(--slate)', fontWeight: 500, marginBottom: 4 }}>{s.label}</div>
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', gap: 8,
+                background: 'var(--navy)', borderRadius: 8, padding: '10px 14px',
+              }}>
+                <code style={{
+                  flex: 1, fontSize: 11, color: 'var(--slate-light)',
+                  fontFamily: 'var(--mono)', wordBreak: 'break-all', lineHeight: 1.6,
+                  whiteSpace: 'pre-wrap',
+                }}>
+                  {s.code}
+                </code>
+                <button onClick={() => copy(s.code, s.key)}
+                  style={{
+                    flexShrink: 0, fontSize: 11, padding: '4px 10px',
+                    background: copied === s.key ? 'var(--accent)' : 'var(--navy-mid)',
+                    color: copied === s.key ? 'var(--navy)' : 'var(--slate-light)',
+                    border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 500,
+                  }}>
+                  {copied === s.key ? '✓' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div className="card" style={{ padding: 24 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 20, letterSpacing: '-0.01em' }}>Support FAQ</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {faqs.map((faq, i) => (
+            <div key={i} style={{
+              padding: '16px 0',
+              borderBottom: i < faqs.length - 1 ? '1px solid var(--border)' : 'none',
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--navy)', marginBottom: 6 }}>
+                {faq.q}
+              </div>
+              <div style={{ fontSize: 14, color: 'var(--slate)', lineHeight: 1.6 }}>
+                {faq.a}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
