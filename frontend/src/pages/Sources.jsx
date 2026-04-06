@@ -55,14 +55,172 @@ const APP_OPTIONS = [
   { value: 'custom',      label: 'Custom iCal',  fetchType: 'ical' },
 ];
 
-const APP_HELP = {
-  teamsnap:    'In TeamSnap: More → Export Calendar → Copy the iCal link',
-  gamechanger: 'In GameChanger: Schedule → Share → Copy iCal link',
-  playmetrics: 'In PlayMetrics: Calendar → Subscribe → Copy link',
-  teamsideline:'In TeamSideline: Schedule → Subscribe to Calendar → Copy link',
-  byga:        'In BYGA: Find the iCal subscription link in your team calendar',
-  custom:      'Paste any iCal (.ics) feed URL',
+const APP_INSTRUCTIONS = {
+  teamsnap: {
+    label: 'TeamSnap',
+    steps: [
+      'Open the TeamSnap app on your phone or go to teamsnap.com.',
+      'Tap the team you want to add.',
+      'Tap the Calendar icon at the bottom of the screen.',
+      'Tap the share/export icon (top right) → "Export Calendar".',
+      'Tap "Copy Link" — this is your iCal URL.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'You need to do this separately for each team. Each team has its own iCal URL.',
+    webSteps: [
+      'Go to teamsnap.com and sign in.',
+      'Click on your team → Schedule tab.',
+      'Click "Export" in the top right → "Export to iCal".',
+      'Copy the URL from the dialog that appears.',
+    ],
+  },
+  gamechanger: {
+    label: 'GameChanger',
+    steps: [
+      'Open the GameChanger app on your phone.',
+      'Tap on your team.',
+      'Tap "Schedule" at the bottom.',
+      'Tap the share icon (top right) → "Subscribe to Calendar".',
+      'Tap "Copy Link" — this is your iCal URL.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'If you manage multiple teams, repeat this for each team.',
+    webSteps: [
+      'Go to gc.com and sign in.',
+      'Select your team → Schedule.',
+      'Click the calendar icon → "Subscribe to Calendar" → copy the link.',
+    ],
+  },
+  playmetrics: {
+    label: 'PlayMetrics',
+    steps: [
+      'Open PlayMetrics and go to your team.',
+      'Tap "Calendar" in the navigation.',
+      'Tap the settings/gear icon.',
+      'Select "Subscribe" or "Export Calendar".',
+      'Copy the iCal link provided.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'PlayMetrics iCal links include all events for that team.',
+  },
+  teamsideline: {
+    label: 'TeamSideline',
+    steps: [
+      'Go to your TeamSideline team page in a browser.',
+      'Click on "Schedule" in the navigation.',
+      'Look for a calendar icon or "Subscribe to Calendar" link — usually at the top or bottom of the schedule.',
+      'Right-click the calendar icon → "Copy Link Address".',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'TeamSideline URLs sometimes contain special characters — paste them exactly as copied.',
+  },
+  byga: {
+    label: 'BYGA',
+    steps: [
+      'Go to your BYGA league or club website.',
+      'Navigate to the team schedule page.',
+      'Look for a calendar subscribe link or iCal export option — often shown as a calendar icon.',
+      'Copy the iCal (.ics) link.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'BYGA iCal links look like: http://yourclub.byga.net/cal/XXXXX.ics',
+  },
+  custom: {
+    label: 'Custom iCal',
+    steps: [
+      'Any app that supports iCal export will have a "Subscribe to Calendar", "Export to iCal", or "iCal Feed" option.',
+      'Find that option in your app\'s schedule or calendar section.',
+      'Copy the URL — it usually starts with https:// or webcal://',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'Both https:// and webcal:// URLs work — SportsCal handles both formats automatically.',
+  },
 };
+
+function SourceHelpModal({ app, onClose }) {
+  const info = APP_INSTRUCTIONS[app] || APP_INSTRUCTIONS.custom;
+  const [view, setView] = useState('mobile');
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(15,22,41,0.65)',
+      display: 'flex', alignItems: 'flex-end', zIndex: 200,
+    }}>
+      <style>{`
+        @media (min-width: 641px) {
+          .help-modal { border-radius: 16px !important; margin: auto !important; max-width: 520px !important; }
+          .help-wrap { align-items: center !important; padding: 20px !important; }
+        }
+      `}</style>
+      <div className="help-wrap" style={{ width: '100%', display: 'flex', alignItems: 'flex-end' }}>
+        <div className="card help-modal" style={{
+          width: '100%', padding: '28px',
+          borderRadius: '16px 16px 0 0',
+          maxHeight: '88vh', overflowY: 'auto',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}>
+              How to find your {info.label} iCal URL
+            </h3>
+            <button onClick={onClose} style={{ fontSize: 22, color: 'var(--slate)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}>×</button>
+          </div>
+
+          {/* Mobile/Web toggle if webSteps exist */}
+          {info.webSteps && (
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              {['mobile', 'web'].map(v => (
+                <button key={v} onClick={() => setView(v)} style={{
+                  flex: 1, padding: '8px', borderRadius: 8, border: 'none',
+                  cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                  background: view === v ? 'var(--navy)' : 'var(--off-white)',
+                  color: view === v ? 'var(--white)' : 'var(--slate)',
+                }}>
+                  {v === 'mobile' ? '📱 Mobile app' : '💻 Website'}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Steps */}
+          <ol style={{ paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+            {(view === 'web' && info.webSteps ? info.webSteps : info.steps).map((step, i) => (
+              <li key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{
+                  width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                  background: 'var(--accent)', color: 'var(--navy)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 700, marginTop: 1,
+                }}>
+                  {i + 1}
+                </div>
+                <div style={{ fontSize: 14, color: 'var(--navy)', lineHeight: 1.6, paddingTop: 3 }}>
+                  {step}
+                </div>
+              </li>
+            ))}
+          </ol>
+
+          {/* Note */}
+          {info.note && (
+            <div style={{
+              background: 'var(--off-white)', borderRadius: 8,
+              padding: '12px 14px', marginBottom: 20,
+              fontSize: 13, color: 'var(--slate)', lineHeight: 1.6,
+              borderLeft: '3px solid var(--accent)',
+            }}>
+              💡 {info.note}
+            </div>
+          )}
+
+          <button onClick={onClose} className="btn btn-primary"
+            style={{ width: '100%', justifyContent: 'center' }}>
+            Got it — let me paste the URL
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Sources() {
   const { user } = useAuth();
@@ -276,6 +434,7 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
   const [icalUrl, setIcalUrl] = useState(initial?.ical_url || '');
   const [kidIds, setKidIds]   = useState(initial?.kids?.map(k => k.id) || []);
   const [saving, setSaving]   = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const currentAppInfo = APP_OPTIONS.find(a => a.value === app);
 
@@ -306,21 +465,23 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
 
         {!isEditing && (
           <div className="field">
-            <label>App</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ marginBottom: 0 }}>App</label>
+              <button type="button" onClick={() => setShowHelp(true)}
+                style={{ fontSize: 13, color: 'var(--accent-dim)', background: 'none',
+                         border: 'none', cursor: 'pointer', fontWeight: 500, padding: 0 }}>
+                Need help finding the URL? →
+              </button>
+            </div>
             <select className="input" value={app} onChange={e => setApp(e.target.value)}>
               {APP_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
-            {APP_HELP[app] && (
-              <div style={{ fontSize: 13, color: 'var(--slate)', padding: '8px 12px',
-                            background: 'var(--off-white)', borderRadius: 'var(--radius)',
-                            border: '1px solid var(--border)', lineHeight: 1.5 }}>
-                💡 {APP_HELP[app]}
-              </div>
-            )}
           </div>
         )}
+
+        {showHelp && <SourceHelpModal app={app} onClose={() => setShowHelp(false)} />}
 
         <div className="field">
           <label>Label <span style={{ color: 'var(--slate-light)' }}>(optional)</span></label>
