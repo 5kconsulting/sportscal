@@ -79,24 +79,24 @@ function buildIcal(user, events) {
   const cal = ical({
     name:        'SportsCal',
     description: `${user.name}'s family sports schedule`,
-    timezone:    user.timezone || 'America/Los_Angeles',
     prodId:      '//SportsCal//Family Schedule//EN',
-    // Tells calendar apps to refresh every 2 hours
     refreshInterval: { hours: 2 },
   });
 
   for (const event of events) {
+    // Ensure dates are proper UTC Date objects
     const startsAt = new Date(event.starts_at);
     const endsAt   = event.ends_at
       ? new Date(event.ends_at)
-      : addHour(startsAt); // default 1h duration if no end time
+      : addHour(startsAt);
 
     const icalEvent = cal.createEvent({
-      id:      event.id,               // stable UID — calendar apps use this for updates
-      summary: event.display_title,    // "Bob - Soccer Practice at Community Park"
-      start:   startsAt,
-      end:     endsAt,
-      allDay:  event.all_day,
+      id:       event.id,
+      summary:  event.display_title,
+      start:    startsAt,
+      end:      endsAt,
+      allDay:   event.all_day,
+      timezone: 'UTC', // Force UTC output — DTSTART:20260407T010000Z
     });
 
     if (event.location) {
