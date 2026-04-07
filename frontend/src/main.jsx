@@ -64,7 +64,9 @@ createRoot(document.getElementById('root')).render(
           <Route path="/signup"         element={<RequireGuest><Signup /></RequireGuest>} />
           <Route path="/forgot-password" element={<RequireGuest><ForgotPassword /></RequireGuest>} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/admin"          element={<RequireAuth><Admin /></RequireAuth>} />
+          <Route path="/admin"          element={<RequireAuth><Layout /></RequireAuth>}>
+            <Route index                element={<Admin />} />
+          </Route>
           <Route path="/dashboard"      element={<RequireAuth><Layout /></RequireAuth>}>
             <Route index                element={<Dashboard />} />
           </Route>
