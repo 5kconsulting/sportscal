@@ -24,11 +24,15 @@ import ForgotPassword  from './pages/ForgotPassword.jsx';
 import ResetPassword   from './pages/ResetPassword.jsx';
 import Admin           from './pages/Admin.jsx';
 
+function RequireGuest({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return user ? <Navigate to="/dashboard" replace /> : children;
+}
+
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
-  // If we have a user (from cache or fresh), show app immediately
   if (user) return children;
-  // Only show spinner if we're still loading and have no cached user
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh' }}>
       <div className="spinner" />
@@ -37,10 +41,17 @@ function RequireAuth({ children }) {
   return <Navigate to="/login" replace />;
 }
 
-function RequireGuest({ children }) {
+function LandingRedirect() {
   const { user, loading } = useAuth();
-  if (loading) return null;
-  return user ? <Navigate to="/" replace /> : children;
+  if (loading) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh' }}>
+      <div className="spinner" />
+    </div>
+  );
+  if (user) return <Navigate to="/dashboard" replace />;
+  // Not logged in — show landing page via iframe trick or redirect
+  window.location.href = '/landing/index.html';
+  return null;
 }
 
 createRoot(document.getElementById('root')).render(
@@ -48,16 +59,19 @@ createRoot(document.getElementById('root')).render(
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login"           element={<RequireGuest><Login /></RequireGuest>} />
-          <Route path="/signup"          element={<RequireGuest><Signup /></RequireGuest>} />
+          <Route path="/"               element={<LandingRedirect />} />
+          <Route path="/login"          element={<RequireGuest><Login /></RequireGuest>} />
+          <Route path="/signup"         element={<RequireGuest><Signup /></RequireGuest>} />
           <Route path="/forgot-password" element={<RequireGuest><ForgotPassword /></RequireGuest>} />
-          <Route path="/reset-password"  element={<ResetPassword />} />
-          <Route path="/admin"           element={<RequireAuth><Admin /></RequireAuth>} />
-          <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
-            <Route index          element={<Dashboard />} />
-            <Route path="kids"    element={<Kids />} />
-            <Route path="sources" element={<Sources />} />
-            <Route path="settings" element={<Settings />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/admin"          element={<RequireAuth><Admin /></RequireAuth>} />
+          <Route path="/dashboard"      element={<RequireAuth><Layout /></RequireAuth>}>
+            <Route index                element={<Dashboard />} />
+          </Route>
+          <Route path="/"              element={<RequireAuth><Layout /></RequireAuth>}>
+            <Route path="kids"         element={<Kids />} />
+            <Route path="sources"      element={<Sources />} />
+            <Route path="settings"     element={<Settings />} />
           </Route>
         </Routes>
       </BrowserRouter>

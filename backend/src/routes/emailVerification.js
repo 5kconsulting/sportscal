@@ -34,7 +34,7 @@ router.get('/verify-email', async (req, res) => {
     [user.id]
   );
 
-  return res.redirect(`${APP_URL}/?verified=1`);
+  return res.redirect(`${APP_URL}/dashboard?verified=1`);
 });
 
 // ============================================================

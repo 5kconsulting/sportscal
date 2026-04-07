@@ -4,10 +4,10 @@ import { LogoMark } from './LogoMark.jsx';
 import { VerificationBanner } from './VerificationBanner.jsx';
 
 const NAV = [
-  { to: '/',        label: 'Dashboard', icon: GridIcon },
-  { to: '/kids',    label: 'Family',    icon: UsersIcon },
-  { to: '/sources', label: 'Sources',   icon: LinkIcon },
-  { to: '/settings',label: 'Settings',  icon: GearIcon },
+  { to: '/dashboard', label: 'Dashboard', icon: GridIcon },
+  { to: '/kids',      label: 'Family',    icon: UsersIcon },
+  { to: '/sources',   label: 'Sources',   icon: LinkIcon },
+  { to: '/settings',  label: 'Settings',  icon: GearIcon },
 ];
 
 export default function Layout() {
