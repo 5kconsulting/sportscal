@@ -108,6 +108,30 @@ export default function Layout() {
               </div>
             </div>
           </div>
+          <a href="mailto:hello@sportscalapp.com?subject=Feature Request&body=I'd love to see..."
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              width: '100%', padding: '8px 12px', borderRadius: 8, marginBottom: 2,
+              fontSize: 13, color: 'var(--slate)', textDecoration: 'none',
+              background: 'transparent', transition: 'color 0.15s',
+            }}
+            onMouseOver={e => e.currentTarget.style.color = 'var(--white)'}
+            onMouseOut={e => e.currentTarget.style.color = 'var(--slate)'}
+          >
+            💡 Feature request
+          </a>
+          <a href="mailto:hello@sportscalapp.com?subject=Bug Report&body=Here's what happened..."
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              width: '100%', padding: '8px 12px', borderRadius: 8, marginBottom: 6,
+              fontSize: 13, color: 'var(--slate)', textDecoration: 'none',
+              background: 'transparent', transition: 'color 0.15s',
+            }}
+            onMouseOver={e => e.currentTarget.style.color = 'var(--white)'}
+            onMouseOut={e => e.currentTarget.style.color = 'var(--slate)'}
+          >
+            🐛 Report a bug
+          </a>
           <a href="mailto:hello@sportscalapp.com"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,

@@ -281,13 +281,25 @@ export default function Settings() {
                      textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
           Support
         </h2>
-        <p style={{ fontSize: 14, color: 'var(--slate)', marginBottom: 12, lineHeight: 1.6 }}>
-          Have a question or need help? We're here for you.
+        <p style={{ fontSize: 14, color: 'var(--slate)', marginBottom: 16, lineHeight: 1.6 }}>
+          Have a question, idea, or found a bug? We'd love to hear from you.
         </p>
-        <a href="mailto:hello@sportscalapp.com" className="btn btn-ghost btn-sm"
-          style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          📧 hello@sportscalapp.com
-        </a>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <a href="mailto:hello@sportscalapp.com" className="btn btn-ghost btn-sm"
+            style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            📧 Get help — hello@sportscalapp.com
+          </a>
+          <a href="mailto:hello@sportscalapp.com?subject=Feature Request&body=I'd love to see..."
+            className="btn btn-ghost btn-sm"
+            style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            💡 Request a feature
+          </a>
+          <a href="mailto:hello@sportscalapp.com?subject=Bug Report&body=Here's what happened..."
+            className="btn btn-ghost btn-sm"
+            style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            🐛 Report a bug
+          </a>
+        </div>
       </div>
 
       {/* Danger zone */}
