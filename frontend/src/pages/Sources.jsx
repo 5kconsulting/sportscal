@@ -47,16 +47,19 @@ function UpgradeBanner() {
 }
 
 const APP_OPTIONS = [
-  { value: 'teamsnap',     label: 'TeamSnap',     fetchType: 'ical' },
-  { value: 'gamechanger',  label: 'GameChanger',  fetchType: 'ical' },
-  { value: 'playmetrics',  label: 'PlayMetrics',  fetchType: 'ical' },
-  { value: 'teamsideline', label: 'TeamSideline', fetchType: 'ical' },
-  { value: 'byga',         label: 'BYGA',         fetchType: 'ical' },
-  { value: 'sportsengine', label: 'SportsEngine', fetchType: 'ical' },
-  { value: 'teamreach',    label: 'TeamReach',    fetchType: 'ical' },
-  { value: 'leagueapps',   label: 'LeagueApps',   fetchType: 'ical' },
-  { value: 'demosphere',   label: 'Demosphere',   fetchType: 'ical' },
-  { value: 'custom',       label: 'Custom iCal',  fetchType: 'ical' },
+  { value: 'teamsnap',      label: 'TeamSnap',      fetchType: 'ical' },
+  { value: 'teamsnapone',   label: 'TeamSnap ONE',  fetchType: 'ical' },
+  { value: 'gamechanger',   label: 'GameChanger',   fetchType: 'ical' },
+  { value: 'playmetrics',   label: 'PlayMetrics',   fetchType: 'ical' },
+  { value: 'teamsideline',  label: 'TeamSideline',  fetchType: 'ical' },
+  { value: 'byga',          label: 'BYGA',          fetchType: 'ical' },
+  { value: 'sportsengine',  label: 'SportsEngine',  fetchType: 'ical' },
+  { value: 'teamreach',     label: 'TeamReach',     fetchType: 'ical' },
+  { value: 'leagueapps',    label: 'LeagueApps',    fetchType: 'ical' },
+  { value: 'demosphere',    label: 'Demosphere',    fetchType: 'ical' },
+  { value: '360player',     label: '360Player',     fetchType: 'ical' },
+  { value: 'sportsyou',     label: 'SportsYou',     fetchType: 'ical' },
+  { value: 'custom',        label: 'Custom iCal',   fetchType: 'ical' },
 ];
 
 const APP_INSTRUCTIONS = {
@@ -128,6 +131,53 @@ const APP_INSTRUCTIONS = {
       'Paste it in the iCal URL field below.',
     ],
     note: 'BYGA iCal links look like: http://yourclub.byga.net/cal/XXXXX.ics',
+  },
+  '360player': {
+    label: '360Player',
+    steps: [
+      'Open the 360Player app on your phone.',
+      'Tap the Calendar section at the bottom.',
+      'Tap the three lines (menu icon) in the top right corner.',
+      'Scroll down to find the calendar you want to share.',
+      'Tap the subscribe link for that calendar — this is your iCal URL.',
+      'Copy it and paste it in the iCal URL field below.',
+    ],
+    note: '360Player is popular for soccer, basketball, volleyball, and other club sports across Europe and the US.',
+  },
+  teamsnapone: {
+    label: 'TeamSnap ONE',
+    steps: [
+      'Log in to your TeamSnap ONE account at go.teamsnap.com or in the app.',
+      'Click on your team or organization.',
+      'Go to the Schedule tab.',
+      'Click Settings → Sync Calendar / Export.',
+      'Copy the calendar link provided.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'TeamSnap ONE is TeamSnap\'s club and league platform — the iCal export works the same way as standard TeamSnap.',
+    webSteps: [
+      'Go to go.teamsnap.com and sign in.',
+      'Select your team → Schedule tab.',
+      'Click Settings → Sync Calendar / Export.',
+      'Copy the calendar link and paste it below.',
+    ],
+  },
+  sportsyou: {
+    label: 'SportsYou',
+    steps: [
+      'Open the SportsYou app on your phone.',
+      'Tap Calendar in the bottom tray.',
+      'Tap the subscribe icon in the top right corner.',
+      'Tap the green "Copy Link" button.',
+      'Paste the copied URL in the iCal URL field below.',
+    ],
+    note: 'SportsYou is a free team communication platform popular with school and rec league coaches.',
+    webSteps: [
+      'Log in to your SportsYou account on the web.',
+      'In the left column, click the Calendar link.',
+      'Click the arrow next to the calendar you want → Subscribe to Team Calendar.',
+      'Copy the URL provided and paste it below.',
+    ],
   },
   custom: {
     label: 'Custom iCal',
@@ -204,6 +254,47 @@ const APP_INSTRUCTIONS = {
       'The full feed URL is typically: https://[yourorg].demosphere.net/events.ics',
       'Copy that URL and paste it below.',
     ],
+  },
+  teamsnapone: {
+    label: 'TeamSnap One',
+    steps: [
+      'Open the TeamSnap One app or go to go.teamsnap.com.',
+      'Tap on your team.',
+      'Tap the Schedule tab.',
+      'Tap Settings → Sync Calendar / Export.',
+      'Copy the calendar link provided.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'TeamSnap One uses the same iCal export flow as TeamSnap. Each team has its own feed URL.',
+    webSteps: [
+      'Log in at go.teamsnap.com.',
+      'Select your team → Schedule tab.',
+      'Click Settings → Sync Calendar / Export.',
+      'Copy the calendar link and paste it below.',
+    ],
+  },
+  '360player': {
+    label: '360Player',
+    steps: [
+      'Open the 360Player app on your phone.',
+      'Go to the Calendar section.',
+      'Tap the three lines (menu icon) in the top right corner.',
+      'Scroll down to find the calendar you want to share.',
+      'Copy the subscribe link provided for that calendar.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: '360Player is popular for soccer academies and clubs. Each team calendar has its own subscribe link.',
+  },
+  sportsyou: {
+    label: 'sportsYou',
+    steps: [
+      'Open the sportsYou app on your phone.',
+      'Tap Calendar in the bottom navigation.',
+      'Tap the subscribe icon in the top right corner.',
+      'Tap the green Copy Link button.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'sportsYou auto-syncs — any schedule changes in the app will update your SportsCal feed automatically.',
   },
 };
 
@@ -515,7 +606,7 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
-    const appLabels = { teamsnap:'TeamSnap', gamechanger:'GameChanger', playmetrics:'PlayMetrics', teamsideline:'TeamSideline', byga:'BYGA', sportsengine:'SportsEngine', teamreach:'TeamReach', leagueapps:'LeagueApps', demosphere:'Demosphere', custom:'Custom' };
+    const appLabels = { teamsnap:'TeamSnap', teamsnapone:'TeamSnap ONE', gamechanger:'GameChanger', playmetrics:'PlayMetrics', teamsideline:'TeamSideline', byga:'BYGA', sportsengine:'SportsEngine', teamreach:'TeamReach', leagueapps:'LeagueApps', demosphere:'Demosphere', '360player':'360Player', sportsyou:'SportsYou', custom:'Custom' };
     await onSave({
       name:       name || appLabels[app] || app,
       app,
