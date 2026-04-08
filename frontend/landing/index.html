@@ -557,6 +557,233 @@
     footer a:hover { color: var(--slate-light); }
 
     /* ---- MOBILE ---- */
+
+    /* ---- CHAOS → ORDER ANIMATION ---- */
+    .chaos-section {
+      background: var(--navy);
+      padding: 80px 24px;
+      overflow: hidden;
+    }
+
+    .chaos-section .section-eyebrow { color: var(--accent); }
+    .chaos-section .section-title { color: var(--white); }
+    .chaos-section .section-sub { color: var(--slate); }
+
+    .chaos-container {
+      max-width: 900px;
+      margin: 48px auto 0;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    /* Left: chaotic events pile */
+    .chaos-pile {
+      flex: 1;
+      position: relative;
+      height: 320px;
+      min-width: 0;
+    }
+
+    .chaos-card {
+      position: absolute;
+      background: var(--navy-light);
+      border: 1px solid var(--navy-mid);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--slate-light);
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .chaos-card .card-app {
+      font-size: 10px;
+      color: var(--slate);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 3px;
+    }
+
+    .chaos-card .card-title { font-weight: 500; color: var(--white); font-size: 12px; }
+    .chaos-card .card-time { font-size: 10px; color: var(--slate); margin-top: 2px; }
+    .chaos-card .card-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    /* Arrow */
+    .chaos-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .chaos-arrow-line {
+      width: 48px;
+      height: 2px;
+      background: var(--accent);
+      position: relative;
+    }
+
+    .chaos-arrow-line::after {
+      content: '';
+      position: absolute;
+      right: -1px; top: -4px;
+      border: 5px solid transparent;
+      border-left-color: var(--accent);
+    }
+
+    .chaos-arrow-label {
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      writing-mode: horizontal-tb;
+    }
+
+    /* Right: clean calendar */
+    .order-calendar {
+      flex: 1;
+      background: var(--navy-light);
+      border: 1px solid var(--navy-mid);
+      border-radius: 16px;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .order-cal-header {
+      background: var(--accent);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .order-cal-header-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--navy);
+      letter-spacing: -0.01em;
+    }
+
+    .order-cal-header-sub {
+      font-size: 11px;
+      color: var(--navy);
+      opacity: 0.7;
+    }
+
+    .order-cal-body { padding: 12px; }
+
+    .order-cal-day {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 8px 4px 4px;
+    }
+
+    .order-cal-event {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      background: rgba(255,255,255,0.03);
+      opacity: 0;
+      transform: translateX(20px);
+      transition: all 0.5s ease;
+    }
+
+    .order-cal-event.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .order-event-bar {
+      width: 3px;
+      height: 36px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .order-event-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--white);
+      line-height: 1.4;
+    }
+
+    .order-event-meta {
+      font-size: 10px;
+      color: var(--slate);
+      margin-top: 2px;
+    }
+
+    .order-event-time {
+      font-size: 10px;
+      color: var(--slate);
+      flex-shrink: 0;
+      padding-top: 3px;
+      min-width: 36px;
+    }
+
+    /* Scrolling app strip */
+    .apps-strip {
+      background: var(--off-white);
+      padding: 20px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .apps-strip-label {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+    }
+
+    .apps-scroll-track {
+      display: flex;
+      gap: 10px;
+      animation: scroll-apps 30s linear infinite;
+      width: max-content;
+    }
+
+    .apps-scroll-track:hover { animation-play-state: paused; }
+
+    @keyframes scroll-apps {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .apps-scroll-outer {
+      overflow: hidden;
+      mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+    }
+
+    @media (max-width: 640px) {
+      .chaos-container { flex-direction: column; height: auto; gap: 16px; }
+      .chaos-pile { height: 240px; width: 100%; }
+      .chaos-arrow { flex-direction: row; writing-mode: horizontal-tb; }
+      .chaos-arrow-line { width: 32px; }
+    }
     @media (max-width: 640px) {
       nav { padding: 0 16px; }
       .btn-nav-login { display: none; }
@@ -572,7 +799,6 @@
       .events-preview { padding: 24px 16px; }
     }
   </style>
-  <script defer src="https://cloud.umami.is/script.js" data-website-id="5f4e8402-2a26-445d-b8bd-e1583a488185"></script>
   <script defer src="https://cloud.umami.is/script.js" data-website-id="5f4e8402-2a26-445d-b8bd-e1583a488185"></script>
 </head>
 <body>
@@ -608,18 +834,148 @@
     </div>
   </div>
 
-  <!-- APPS STRIP -->
+  <!-- APPS STRIP (scrolling) -->
   <div class="apps-strip">
     <p class="apps-strip-label">Works with your apps</p>
-    <div class="apps-list">
-      <span class="app-badge">TeamSnap</span>
-      <span class="app-badge">GameChanger</span>
-      <span class="app-badge">PlayMetrics</span>
-      <span class="app-badge">TeamSideline</span>
-      <span class="app-badge">BYGA</span>
-      <span class="app-badge">Any iCal feed</span>
+    <div class="apps-scroll-outer">
+      <div class="apps-scroll-track" id="appsTrack">
+        <span class="app-badge">TeamSnap</span>
+        <span class="app-badge">TeamSnap ONE</span>
+        <span class="app-badge">GameChanger</span>
+        <span class="app-badge">PlayMetrics</span>
+        <span class="app-badge">TeamSideline</span>
+        <span class="app-badge">SportsEngine</span>
+        <span class="app-badge">TeamReach</span>
+        <span class="app-badge">LeagueApps</span>
+        <span class="app-badge">Demosphere</span>
+        <span class="app-badge">360Player</span>
+        <span class="app-badge">SportsYou</span>
+        <span class="app-badge">BYGA</span>
+        <span class="app-badge">Any iCal feed</span>
+        <!-- Duplicate for seamless loop -->
+        <span class="app-badge">TeamSnap</span>
+        <span class="app-badge">TeamSnap ONE</span>
+        <span class="app-badge">GameChanger</span>
+        <span class="app-badge">PlayMetrics</span>
+        <span class="app-badge">TeamSideline</span>
+        <span class="app-badge">SportsEngine</span>
+        <span class="app-badge">TeamReach</span>
+        <span class="app-badge">LeagueApps</span>
+        <span class="app-badge">Demosphere</span>
+        <span class="app-badge">360Player</span>
+        <span class="app-badge">SportsYou</span>
+        <span class="app-badge">BYGA</span>
+        <span class="app-badge">Any iCal feed</span>
+      </div>
     </div>
   </div>
+
+  <!-- CHAOS → ORDER ANIMATION -->
+  <section class="chaos-section">
+    <p class="section-eyebrow" style="text-align:center;">The problem</p>
+    <h2 class="section-title" style="text-align:center;">Your kids' schedule is scattered<br/>across a dozen apps.</h2>
+    <p class="section-sub" style="text-align:center;max-width:520px;margin:12px auto 0;">SportsCal pulls all of it into one clean, auto-updating calendar feed.</p>
+
+    <div class="chaos-container">
+      <!-- Left: chaos pile -->
+      <div class="chaos-pile" id="chaosPile">
+        <div class="chaos-card" style="top:10px;left:5%;transform:rotate(-4deg);">
+          <div class="card-app">TeamSnap</div>
+          <div class="card-title"><span class="card-dot" style="background:#3b82f6;"></span>Emma — Soccer Practice</div>
+          <div class="card-time">Mon 5:30 PM · Riverside Fields</div>
+        </div>
+        <div class="chaos-card" style="top:30px;left:30%;transform:rotate(3deg);">
+          <div class="card-app">GameChanger</div>
+          <div class="card-title"><span class="card-dot" style="background:#f97316;"></span>Jake — vs. Lightning</div>
+          <div class="card-time">Mon 6:00 PM · Westside Complex</div>
+        </div>
+        <div class="chaos-card" style="top:100px;left:0%;transform:rotate(-2deg);">
+          <div class="card-app">TeamSideline</div>
+          <div class="card-title"><span class="card-dot" style="background:#a855f7;"></span>Mia — Track Meet</div>
+          <div class="card-time">Tue 4:00 PM · Lakewood High</div>
+        </div>
+        <div class="chaos-card" style="top:80px;left:35%;transform:rotate(5deg);">
+          <div class="card-app">PlayMetrics</div>
+          <div class="card-title"><span class="card-dot" style="background:#22c55e;"></span>Emma — Swim Practice</div>
+          <div class="card-time">Tue 6:30 PM · Aquatic Center</div>
+        </div>
+        <div class="chaos-card" style="top:180px;left:10%;transform:rotate(-3deg);">
+          <div class="card-app">SportsEngine</div>
+          <div class="card-title"><span class="card-dot" style="background:#ec4899;"></span>Jake — Lacrosse Game</div>
+          <div class="card-time">Wed 5:00 PM · North Fields</div>
+        </div>
+        <div class="chaos-card" style="top:200px;left:40%;transform:rotate(2deg);">
+          <div class="card-app">LeagueApps</div>
+          <div class="card-title"><span class="card-dot" style="background:#f59e0b;"></span>Mia — Basketball</div>
+          <div class="card-time">Thu 7:00 PM · Rec Center</div>
+        </div>
+        <div class="chaos-card" style="top:260px;left:15%;transform:rotate(-5deg);">
+          <div class="card-app">360Player</div>
+          <div class="card-title"><span class="card-dot" style="background:#06b6d4;"></span>Emma — Team Meeting</div>
+          <div class="card-time">Fri 4:30 PM · Club HQ</div>
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="chaos-arrow">
+        <div class="chaos-arrow-line"></div>
+        <div class="chaos-arrow-label">SportsCal</div>
+      </div>
+
+      <!-- Right: clean calendar -->
+      <div class="order-calendar">
+        <div class="order-cal-header">
+          <div>
+            <div class="order-cal-header-title">SportsCal Feed</div>
+            <div class="order-cal-header-sub">All kids · All apps · One place</div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+            <rect x="1" y="3" width="14" height="12" rx="3" fill="rgba(15,22,41,0.2)" stroke="rgba(15,22,41,0.4)" stroke-width="1.2"/>
+            <rect x="1" y="3" width="14" height="5" rx="3" fill="rgba(15,22,41,0.3)"/>
+            <rect x="1" y="6" width="14" height="2" fill="rgba(15,22,41,0.3)"/>
+            <rect x="4.5" y="1" width="2" height="4" rx="1" fill="rgba(15,22,41,0.5)"/>
+            <rect x="9.5" y="1" width="2" height="4" rx="1" fill="rgba(15,22,41,0.5)"/>
+          </svg>
+        </div>
+        <div class="order-cal-body">
+          <div class="order-cal-day">Monday, Apr 7</div>
+          <div class="order-cal-event" id="ce1">
+            <div class="order-event-time">5:30 PM</div>
+            <div class="order-event-bar" style="background:#3b82f6;"></div>
+            <div>
+              <div class="order-event-title">Emma — Soccer Practice</div>
+              <div class="order-event-meta">📍 Riverside Fields</div>
+            </div>
+          </div>
+          <div class="order-cal-event" id="ce2">
+            <div class="order-event-time">6:00 PM</div>
+            <div class="order-event-bar" style="background:#f97316;"></div>
+            <div>
+              <div class="order-event-title">Jake — vs. Lightning</div>
+              <div class="order-event-meta">📍 Westside Complex</div>
+            </div>
+          </div>
+          <div class="order-cal-day">Tuesday, Apr 8</div>
+          <div class="order-cal-event" id="ce3">
+            <div class="order-event-time">4:00 PM</div>
+            <div class="order-event-bar" style="background:#a855f7;"></div>
+            <div>
+              <div class="order-event-title">Mia — Track Meet</div>
+              <div class="order-event-meta">📍 Lakewood High School</div>
+            </div>
+          </div>
+          <div class="order-cal-event" id="ce4">
+            <div class="order-event-time">6:30 PM</div>
+            <div class="order-event-bar" style="background:#22c55e;"></div>
+            <div>
+              <div class="order-event-title">Emma — Swim Practice</div>
+              <div class="order-event-meta">📍 Aquatic Center</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- HOW IT WORKS -->
   <section id="how-it-works">
