@@ -578,6 +578,8 @@ function EventCard({ event, onEdit, onDelete }) {
   const endsAt   = event.ends_at ? new Date(event.ends_at) : null;
   const isManual = event.source_app === 'custom' && event.source_name === '__manual__';
   const [deleting, setDeleting] = useState(false);
+  const [showLogistics, setShowLogistics] = useState(false);
+  const [logistics, setLogistics] = useState([]);
 
   async function handleDelete() {
     if (!confirm('Delete this event?')) return;
@@ -590,6 +592,19 @@ function EventCard({ event, onEdit, onDelete }) {
       setDeleting(false);
     }
   }
+
+  async function openLogistics() {
+    try {
+      const { logistics } = await api.logistics.get(event.id);
+      setLogistics(logistics || []);
+    } catch { setLogistics([]); }
+    setShowLogistics(true);
+  }
+
+  const dropoff = logistics.find(l => l.role === 'dropoff');
+  const pickup  = logistics.find(l => l.role === 'pickup');
+
+  const statusIcon = (s) => ({ assigned: '📋', requested: '⏳', confirmed: '✅', declined: '❌' }[s] || '📋');
 
   return (
     <div className="card" style={{
@@ -642,9 +657,25 @@ function EventCard({ event, onEdit, onDelete }) {
             {event.source_app}
           </span>
         </div>
+
+        {/* Logistics summary */}
+        {(dropoff || pickup) && (
+          <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+            {dropoff && (
+              <span style={{ fontSize: 11, color: 'var(--slate)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                🚗 Drop-off: {statusIcon(dropoff.status)} {dropoff.contact_name}
+              </span>
+            )}
+            {pickup && (
+              <span style={{ fontSize: 11, color: 'var(--slate)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                🏠 Pick-up: {statusIcon(pickup.status)} {pickup.contact_name}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Kid avatars + manual actions */}
+      {/* Actions */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
         {event.kids?.length > 0 && (
           <div style={{ display: 'flex' }}>
@@ -662,19 +693,183 @@ function EventCard({ event, onEdit, onDelete }) {
             ))}
           </div>
         )}
-        {isManual && (
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button onClick={() => onEdit(event)} className="btn btn-ghost btn-sm"
-              style={{ padding: '2px 8px', fontSize: 11 }}>
-              Edit
-            </button>
-            <button onClick={handleDelete} className="btn btn-ghost btn-sm"
-              disabled={deleting}
-              style={{ padding: '2px 8px', fontSize: 11, color: 'var(--red, #ef4444)' }}>
-              {deleting ? '…' : 'Delete'}
-            </button>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button onClick={openLogistics} className="btn btn-ghost btn-sm"
+            style={{ padding: '2px 8px', fontSize: 11 }}
+            title="Manage drop-off & pick-up">
+            🚗
+          </button>
+          {isManual && (
+            <>
+              <button onClick={() => onEdit(event)} className="btn btn-ghost btn-sm"
+                style={{ padding: '2px 8px', fontSize: 11 }}>
+                Edit
+              </button>
+              <button onClick={handleDelete} className="btn btn-ghost btn-sm"
+                disabled={deleting}
+                style={{ padding: '2px 8px', fontSize: 11, color: 'var(--red, #ef4444)' }}>
+                {deleting ? '…' : 'Delete'}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {showLogistics && (
+        <LogisticsModal
+          event={event}
+          logistics={logistics}
+          onClose={() => setShowLogistics(false)}
+          onUpdate={setLogistics}
+        />
+      )}
+    </div>
+  );
+}
+
+function LogisticsModal({ event, logistics, onClose, onUpdate }) {
+  const [contacts, setContacts] = useState([]);
+  const [loadingContacts, setLoadingContacts] = useState(true);
+  const [saving, setSaving] = useState('');
+  const [form, setForm] = useState({ role: 'dropoff', contact_id: '', send_request: false, note: '' });
+
+  const dropoff = logistics.find(l => l.role === 'dropoff');
+  const pickup  = logistics.find(l => l.role === 'pickup');
+
+  useEffect(() => {
+    api.contacts.list()
+      .then(({ contacts }) => setContacts(contacts))
+      .finally(() => setLoadingContacts(false));
+  }, []);
+
+  async function handleAssign(e) {
+    e.preventDefault();
+    if (!form.contact_id) return;
+    setSaving('assign');
+    try {
+      const { logistics: updated } = await api.logistics.assign(event.id, form);
+      onUpdate(prev => {
+        const filtered = prev.filter(l => l.role !== form.role);
+        return [...filtered, updated];
+      });
+      setForm(f => ({ ...f, contact_id: '', note: '', send_request: false }));
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving('');
+    }
+  }
+
+  async function handleRemove(role) {
+    setSaving(role);
+    try {
+      await api.logistics.remove(event.id, role);
+      onUpdate(prev => prev.filter(l => l.role !== role));
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving('');
+    }
+  }
+
+  const statusLabel = { assigned: 'Assigned', requested: 'Requested ⏳', confirmed: 'Confirmed ✅', declined: 'Declined ❌' };
+  const eventDate = new Date(event.starts_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const eventTime = new Date(event.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(15,22,41,0.65)',
+      display: 'flex', alignItems: 'flex-end', zIndex: 200,
+    }}>
+      <style>{`@media (min-width: 641px) { .logistics-modal { border-radius: 16px !important; margin: auto !important; max-width: 480px !important; } .logistics-wrap { align-items: center !important; padding: 20px !important; } }`}</style>
+      <div className="logistics-wrap" style={{ width: '100%', display: 'flex', alignItems: 'flex-end' }}>
+        <div className="card logistics-modal" style={{ width: '100%', padding: 28, borderRadius: '16px 16px 0 0', maxHeight: '88vh', overflowY: 'auto' }}>
+
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+            <div>
+              <h3 style={{ fontSize: 17, fontWeight: 600, marginBottom: 2 }}>🚗 Ride logistics</h3>
+              <p style={{ fontSize: 13, color: 'var(--slate)' }}>{eventDate} at {eventTime}</p>
+            </div>
+            <button onClick={onClose} style={{ fontSize: 22, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--slate)', lineHeight: 1 }}>×</button>
           </div>
-        )}
+
+          {/* Current assignments */}
+          {(dropoff || pickup) && (
+            <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[dropoff, pickup].filter(Boolean).map(l => (
+                <div key={l.role} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 14px', background: 'var(--off-white)', borderRadius: 8,
+                  borderLeft: `3px solid ${l.status === 'confirmed' ? 'var(--accent)' : l.status === 'declined' ? '#ef4444' : 'var(--slate-light)'}`,
+                }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, textTransform: 'capitalize' }}>
+                      {l.role === 'dropoff' ? '🚗 Drop-off' : '🏠 Pick-up'}
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--navy)', marginTop: 1 }}>
+                      {l.contact_name} · <span style={{ color: 'var(--slate)' }}>{statusLabel[l.status]}</span>
+                    </div>
+                    {l.note && <div style={{ fontSize: 12, color: 'var(--slate)', marginTop: 2, fontStyle: 'italic' }}>"{l.note}"</div>}
+                  </div>
+                  <button onClick={() => handleRemove(l.role)} disabled={saving === l.role}
+                    style={{ fontSize: 11, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>
+                    {saving === l.role ? '…' : 'Remove'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Assign form */}
+          <div style={{ borderTop: logistics.length > 0 ? '1px solid var(--border)' : 'none', paddingTop: logistics.length > 0 ? 16 : 0 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--navy)' }}>
+              {logistics.length > 0 ? 'Add another' : 'Assign someone'}
+            </p>
+
+            {loadingContacts ? (
+              <div className="spinner" style={{ width: 16, height: 16 }} />
+            ) : contacts.length === 0 ? (
+              <div style={{ fontSize: 14, color: 'var(--slate)', background: 'var(--off-white)', borderRadius: 8, padding: 16 }}>
+                No contacts yet. Add family and carpool contacts in <strong>Settings → Ride contacts</strong>.
+              </div>
+            ) : (
+              <form onSubmit={handleAssign} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <select className="input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={{ flex: 1 }}>
+                    <option value="dropoff">🚗 Drop-off</option>
+                    <option value="pickup">🏠 Pick-up</option>
+                  </select>
+                  <select className="input" value={form.contact_id} onChange={e => setForm(f => ({ ...f, contact_id: e.target.value }))} style={{ flex: 1 }}>
+                    <option value="">Select contact…</option>
+                    {contacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+
+                <input className="input" type="text" placeholder="Note (optional) — e.g. pick up at side entrance"
+                  value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
+
+                {form.contact_id && contacts.find(c => c.id === form.contact_id)?.email && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
+                    <input type="checkbox" checked={form.send_request}
+                      onChange={e => setForm(f => ({ ...f, send_request: e.target.checked }))}
+                      style={{ accentColor: 'var(--accent)' }} />
+                    Send a confirmation request to {contacts.find(c => c.id === form.contact_id)?.name}
+                  </label>
+                )}
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button type="submit" className="btn btn-primary" disabled={!form.contact_id || saving === 'assign'}
+                    style={{ flex: 1, justifyContent: 'center' }}>
+                    {saving === 'assign' ? <span className="spinner" style={{ width: 14, height: 14 }} /> :
+                      form.send_request ? 'Assign & send request' : 'Assign'}
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={onClose}>Done</button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

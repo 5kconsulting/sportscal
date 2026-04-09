@@ -74,4 +74,15 @@ export const api = {
     checkout: () => post('/billing/checkout'),
     portal:   () => post('/billing/portal'),
   },
+  contacts: {
+    list:   ()          => get('/contacts'),
+    create: (data)      => post('/contacts', data),
+    update: (id, data)  => patch(`/contacts/${id}`, data),
+    delete: (id)        => del(`/contacts/${id}`),
+  },
+  logistics: {
+    get:    (eventId)        => get(`/logistics/${eventId}`),
+    assign: (eventId, data)  => post(`/logistics/${eventId}`, data),
+    remove: (eventId, role)  => del(`/logistics/${eventId}/${role}`),
+  },
 };
