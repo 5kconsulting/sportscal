@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.jsx';
@@ -776,7 +777,7 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
   const eventDate = new Date(event.starts_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   const eventTime = new Date(event.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(15,22,41,0.65)',
       display: 'flex', alignItems: 'flex-end', zIndex: 200,
@@ -872,7 +873,7 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
         </div>
       </div>
     </div>
-  );
+  , document.body);
 }
 
 function EmptyState() {
