@@ -57,7 +57,14 @@ router.post('/:eventId', requireAuth, async (req, res) => {
     if (!contact) return res.status(404).json({ error: 'Contact not found' });
 
     const token = crypto.randomBytes(24).toString('hex');
-    const status = send_request && contact.email ? 'requested' : 'assigned';
+    const notify = req.body.notify || 'none';
+    const user_plan = (await queryOne(`SELECT plan FROM users WHERE id = $1`, [req.user.id]))?.plan;
+    const isPremium = user_plan === 'premium';
+
+    // Notifications (email/SMS) are premium only
+    const sendEmail = isPremium && (notify === 'email' || notify === 'both') && contact.email;
+    const sendSms   = isPremium && (notify === 'sms'   || notify === 'both') && contact.phone;
+    const status = (sendEmail || sendSms) ? 'requested' : 'assigned';
 
     // Upsert — replace existing assignment for this role
     const logistics = await queryOne(
@@ -72,8 +79,8 @@ router.post('/:eventId', requireAuth, async (req, res) => {
       [req.user.id, req.params.eventId, contact_id, role, status, token, note || null]
     );
 
-    // Send request email if requested
-    if (status === 'requested' && contact.email) {
+    // Send email if requested
+    if (sendEmail) {
       const confirmUrl = `${APP_URL}/api/logistics/respond/${token}/confirmed`;
       const declineUrl = `${APP_URL}/api/logistics/respond/${token}/declined`;
 
@@ -97,6 +104,39 @@ router.post('/:eventId', requireAuth, async (req, res) => {
           confirmUrl, declineUrl, parentName: event.user_name, note,
         }),
       }).catch(err => console.error('[logistics] email error:', err.message));
+    }
+
+    // Send SMS if requested
+    if (sendSms) {
+      const eventDate = new Date(event.starts_at).toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric'
+      });
+      const eventTime = new Date(event.starts_at).toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles'
+      });
+      const action = role === 'pickup' ? 'pick up' : 'drop off';
+      const kidName = event.display_title.split('—')[0].trim();
+      const confirmUrl = `${APP_URL}/api/logistics/respond/${token}/confirmed`;
+      const declineUrl = `${APP_URL}/api/logistics/respond/${token}/declined`;
+
+      const smsBody = `Hi ${contact.name.split(' ')[0]}! Can you ${action} ${kidName} on ${eventDate} at ${eventTime}${event.location ? ` at ${event.location}` : ''}?${note ? ` "${note}"` : ''}\n\nYes: ${confirmUrl}\nNo: ${declineUrl}`;
+
+      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+        try {
+          const twilio = (await import('twilio')).default;
+          const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+          await client.messages.create({
+            body: smsBody,
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: contact.phone,
+          });
+          console.log(`[logistics] SMS sent to ${contact.phone}`);
+        } catch (err) {
+          console.error('[logistics] SMS error:', err.message);
+        }
+      } else {
+        console.log('[logistics] SMS skipped — Twilio not configured. Message would be:', smsBody);
+      }
     }
 
     res.status(201).json({ logistics: { ...logistics, contact_name: contact.name, contact_email: contact.email } });

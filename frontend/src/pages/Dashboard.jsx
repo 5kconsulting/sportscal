@@ -729,10 +729,12 @@ function EventCard({ event, onEdit, onDelete }) {
 }
 
 function LogisticsModal({ event, logistics, onClose, onUpdate }) {
+  const { user } = useAuth();
+  const isPremium = user?.plan === 'premium';
   const [contacts, setContacts] = useState([]);
   const [loadingContacts, setLoadingContacts] = useState(true);
   const [saving, setSaving] = useState('');
-  const [form, setForm] = useState({ role: 'dropoff', contact_id: '', send_request: false, note: '' });
+  const [form, setForm] = useState({ role: 'dropoff', contact_id: '', send_request: false, notify: 'none', note: '' });
 
   const dropoff = logistics.find(l => l.role === 'dropoff');
   const pickup  = logistics.find(l => l.role === 'pickup');
@@ -748,12 +750,12 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
     if (!form.contact_id) return;
     setSaving('assign');
     try {
-      const { logistics: updated } = await api.logistics.assign(event.id, form);
+      const { logistics: updated } = await api.logistics.assign(event.id, { ...form, notify: form.notify });
       onUpdate(prev => {
         const filtered = prev.filter(l => l.role !== form.role);
         return [...filtered, updated];
       });
-      setForm(f => ({ ...f, contact_id: '', note: '', send_request: false }));
+      setForm(f => ({ ...f, contact_id: '', note: '', send_request: false, notify: 'none' }));
     } catch (err) {
       alert(err.message);
     } finally {
@@ -850,20 +852,90 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
                 <input className="input" type="text" placeholder="Note (optional) — e.g. pick up at side entrance"
                   value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
 
-                {form.contact_id && contacts.find(c => c.id === form.contact_id)?.email && (
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
-                    <input type="checkbox" checked={form.send_request}
-                      onChange={e => setForm(f => ({ ...f, send_request: e.target.checked }))}
-                      style={{ accentColor: 'var(--accent)' }} />
-                    Send a confirmation request to {contacts.find(c => c.id === form.contact_id)?.name}
-                  </label>
-                )}
+                {form.contact_id && (() => {
+                  const c = contacts.find(x => x.id === form.contact_id);
+                  const hasEmail = !!c?.email;
+                  const hasPhone = !!c?.phone;
+                  if (!hasEmail && !hasPhone) return null;
+
+                  if (!isPremium) return (
+                    <div style={{
+                      background: 'rgba(0,214,143,0.08)', borderRadius: 8,
+                      padding: '10px 14px', fontSize: 13, color: 'var(--slate)',
+                      border: '1px solid rgba(0,214,143,0.2)',
+                    }}>
+                      ⚡ <strong style={{ color: 'var(--accent-dim)' }}>Premium</strong> — upgrade to send email or text confirmation requests to contacts.
+                    </div>
+                  );
+                  return (
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--navy)', marginBottom: 8 }}>
+                        Send a confirmation request to {c.name}?
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                          fontSize: 13, padding: '6px 12px', borderRadius: 8,
+                          background: form.notify === 'none' ? 'var(--navy)' : 'var(--off-white)',
+                          color: form.notify === 'none' ? 'var(--white)' : 'var(--slate)',
+                          border: '1px solid var(--border)', transition: 'all 0.15s' }}>
+                          <input type="radio" name="notify" value="none"
+                            checked={form.notify === 'none'}
+                            onChange={() => setForm(f => ({ ...f, notify: 'none', send_request: false }))}
+                            style={{ display: 'none' }} />
+                          Just assign
+                        </label>
+                        {hasEmail && (
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                            fontSize: 13, padding: '6px 12px', borderRadius: 8,
+                            background: form.notify === 'email' ? 'var(--navy)' : 'var(--off-white)',
+                            color: form.notify === 'email' ? 'var(--white)' : 'var(--slate)',
+                            border: '1px solid var(--border)', transition: 'all 0.15s' }}>
+                            <input type="radio" name="notify" value="email"
+                              checked={form.notify === 'email'}
+                              onChange={() => setForm(f => ({ ...f, notify: 'email', send_request: true }))}
+                              style={{ display: 'none' }} />
+                            📧 Email
+                          </label>
+                        )}
+                        {hasPhone && (
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                            fontSize: 13, padding: '6px 12px', borderRadius: 8,
+                            background: form.notify === 'sms' ? 'var(--navy)' : 'var(--off-white)',
+                            color: form.notify === 'sms' ? 'var(--white)' : 'var(--slate)',
+                            border: '1px solid var(--border)', transition: 'all 0.15s' }}>
+                            <input type="radio" name="notify" value="sms"
+                              checked={form.notify === 'sms'}
+                              onChange={() => setForm(f => ({ ...f, notify: 'sms', send_request: true }))}
+                              style={{ display: 'none' }} />
+                            💬 Text
+                          </label>
+                        )}
+                        {hasEmail && hasPhone && (
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                            fontSize: 13, padding: '6px 12px', borderRadius: 8,
+                            background: form.notify === 'both' ? 'var(--navy)' : 'var(--off-white)',
+                            color: form.notify === 'both' ? 'var(--white)' : 'var(--slate)',
+                            border: '1px solid var(--border)', transition: 'all 0.15s' }}>
+                            <input type="radio" name="notify" value="both"
+                              checked={form.notify === 'both'}
+                              onChange={() => setForm(f => ({ ...f, notify: 'both', send_request: true }))}
+                              style={{ display: 'none' }} />
+                            📧 + 💬 Both
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button type="submit" className="btn btn-primary" disabled={!form.contact_id || saving === 'assign'}
                     style={{ flex: 1, justifyContent: 'center' }}>
                     {saving === 'assign' ? <span className="spinner" style={{ width: 14, height: 14 }} /> :
-                      form.send_request ? 'Assign & send request' : 'Assign'}
+                      form.notify === 'none' ? 'Assign' :
+                      form.notify === 'email' ? 'Assign & email' :
+                      form.notify === 'sms' ? 'Assign & text' :
+                      'Assign & notify'}
                   </button>
                   <button type="button" className="btn btn-ghost" onClick={onClose}>Done</button>
                 </div>
