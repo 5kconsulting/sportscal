@@ -33,9 +33,7 @@ export default function Dashboard() {
       api.events.list({ days }),
       api.kids.list(),
       api.sources.list(),
-      fetch('/api/overrides', { headers: { 'Authorization': `Bearer ${localStorage.getItem('sc_token')}` } })
-        .then(r => r.ok ? r.json() : { overrides: [] })
-        .catch(() => ({ overrides: [] })),
+      api.overrides.getAll(),
     ])
       .then(([{ events }, { kids }, { sources }, { overrides }]) => {
         setEvents(events);
