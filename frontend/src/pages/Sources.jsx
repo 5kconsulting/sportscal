@@ -59,6 +59,7 @@ const APP_OPTIONS = [
   { value: 'demosphere',    label: 'Demosphere',    fetchType: 'ical' },
   { value: '360player',     label: '360Player',     fetchType: 'ical' },
   { value: 'sportsyou',     label: 'SportsYou',     fetchType: 'ical' },
+  { value: 'band',          label: 'BAND',           fetchType: 'ical' },
   { value: 'custom',        label: 'Custom iCal',   fetchType: 'ical' },
 ];
 
@@ -295,6 +296,17 @@ const APP_INSTRUCTIONS = {
       'Paste it in the iCal URL field below.',
     ],
     note: 'sportsYou auto-syncs — any schedule changes in the app will update your SportsCal feed automatically.',
+  },
+  band: {
+    label: 'BAND',
+    steps: [
+      'Go to www.band.us on your computer and open the Band you want to add.',
+      'Click the Settings icon (gear) in the top right of the Band.',
+      'Scroll down and click "Export Band Events".',
+      'Copy the calendar URL provided.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'The BAND calendar URL is unique to your group. Any events added or updated in BAND will automatically sync to your SportsCal feed.',
   },
 };
 
@@ -621,7 +633,7 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
-    const appLabels = { teamsnap:'TeamSnap', teamsnapone:'TeamSnap ONE', gamechanger:'GameChanger', playmetrics:'PlayMetrics', teamsideline:'TeamSideline', byga:'BYGA', sportsengine:'SportsEngine', teamreach:'TeamReach', leagueapps:'LeagueApps', demosphere:'Demosphere', '360player':'360Player', sportsyou:'SportsYou', custom:'Custom' };
+    const appLabels = { teamsnap:'TeamSnap', teamsnapone:'TeamSnap ONE', gamechanger:'GameChanger', playmetrics:'PlayMetrics', teamsideline:'TeamSideline', byga:'BYGA', sportsengine:'SportsEngine', teamreach:'TeamReach', leagueapps:'LeagueApps', demosphere:'Demosphere', '360player':'360Player', sportsyou:'SportsYou', band:'BAND', custom:'Custom' };
     await onSave({
       name:       name || appLabels[app] || app,
       app,
