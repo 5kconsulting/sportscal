@@ -355,30 +355,39 @@ function buildResponseEmail({ logistics, action, eventDate, eventTime }) {
 
 function buildIcs({ logistics, eventDate, eventTime }) {
   const start = new Date(logistics.starts_at);
-  const end = logistics.ends_at ? new Date(logistics.ends_at) : new Date(start.getTime() + 60 * 60 * 1000);
-  const fmt = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  // Default to 1 hour duration if no end time
+  const end = (logistics.ends_at && logistics.ends_at !== logistics.starts_at)
+    ? new Date(logistics.ends_at)
+    : new Date(start.getTime() + 60 * 60 * 1000);
+
+  // Format as YYYYMMDDTHHMMSSZ
+  const fmt = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+
   const eventName = logistics.display_title.split('—')[1]?.trim() || logistics.display_title;
   const action_label = logistics.role === 'pickup' ? 'Pick up' : 'Drop off';
-  const uid = `sportscal-logistics-${logistics.id}@sportscalapp.com`;
+  const uid = `sportscal-${logistics.id}-${Date.now()}@sportscalapp.com`;
+  const now = fmt(new Date());
 
-  return [
+  const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//SportsCal//Ride Logistics//EN',
     'CALSCALE:GREGORIAN',
-    'METHOD:REQUEST',
+    'METHOD:PUBLISH',
     'BEGIN:VEVENT',
     `UID:${uid}`,
-    `DTSTART:${fmt(start)}Z`,
-    `DTEND:${fmt(end)}Z`,
+    `DTSTAMP:${now}`,
+    `DTSTART:${fmt(start)}`,
+    `DTEND:${fmt(end)}`,
     `SUMMARY:${action_label}: ${eventName}`,
-    logistics.location ? `LOCATION:${logistics.location}` : '',
+    logistics.location ? `LOCATION:${logistics.location}` : null,
     `DESCRIPTION:${action_label} assigned via SportsCal by ${logistics.parent_name}.`,
-    `ORGANIZER;CN=SportsCal:mailto:${process.env.EMAIL_FROM || 'noreply@mail.sportscalapp.com'}`,
     'STATUS:CONFIRMED',
     'END:VEVENT',
     'END:VCALENDAR',
   ].filter(Boolean).join('\r\n');
+
+  return lines;
 }
 
 function buildConfirmCalendarEmail({ logistics, eventDate, eventTime }) {
