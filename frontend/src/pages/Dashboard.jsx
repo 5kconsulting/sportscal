@@ -609,9 +609,16 @@ function EventCard({ event, onEdit, onDelete }) {
       try {
         const { overrides: rows } = await api.overrides.get(event.id);
         const map = {};
+        // Default all kids to attending (true), only override if explicitly set to false
+        event.kids.forEach(k => { map[k.id] = true; });
         rows.forEach(r => { map[r.kid_id] = r.attending; });
         setOverrides(map);
-      } catch { setOverrides({}); }
+      } catch {
+        // Default all to attending
+        const map = {};
+        event.kids.forEach(k => { map[k.id] = true; });
+        setOverrides(map);
+      }
     }
     setShowAttendance(s => !s);
   }
@@ -764,7 +771,7 @@ function EventCard({ event, onEdit, onDelete }) {
                        background: showAttendance ? 'var(--navy)' : 'transparent',
                        color: showAttendance ? 'var(--white)' : 'var(--slate)' }}
               title="Who's going?">
-              ✓ Going
+              {showAttendance ? '✓ Going ▲' : '✓ Going ▼'}
             </button>
           )}
           <button onClick={openLogistics} className="btn btn-ghost btn-sm"
