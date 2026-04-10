@@ -174,7 +174,8 @@ router.get('/respond/:token/:action', async (req, res) => {
     }
 
     const logistics = await queryOne(
-      `SELECT el.*, c.name AS contact_name, e.display_title, e.starts_at, e.location,
+      `SELECT el.*, c.name AS contact_name, c.email AS contact_email,
+              e.display_title, e.starts_at, e.ends_at, e.location,
               u.email AS parent_email, u.name AS parent_name
        FROM event_logistics el
        JOIN contacts c ON c.id = el.contact_id
@@ -207,6 +208,27 @@ router.get('/respond/:token/:action', async (req, res) => {
         html: buildResponseEmail({ logistics, action, eventDate, eventTime }),
         text: `${logistics.contact_name} has ${action === 'confirmed' ? 'confirmed' : 'declined'} the ${logistics.role} for ${logistics.display_title} on ${eventDate} at ${eventTime}.`,
       }).catch(err => console.error('[logistics] notify error:', err.message));
+    }
+
+    // If confirmed, send contact a calendar invite
+    if (action === 'confirmed' && logistics.contact_email) {
+      const icsContent = buildIcs({ logistics, eventDate, eventTime });
+      const eventName = logistics.display_title.split('—')[1]?.trim() || logistics.display_title;
+      const action_label = logistics.role === 'pickup' ? 'Pick up' : 'Drop off';
+
+      await resend.emails.send({
+        from: FROM,
+        to: logistics.contact_email,
+        subject: `📅 Calendar invite: ${action_label} for ${eventDate}`,
+        html: buildConfirmCalendarEmail({ logistics, eventDate, eventTime }),
+        text: `Hi ${logistics.contact_name.split(' ')[0]}, here's a calendar invite for the ${logistics.role} on ${eventDate} at ${eventTime}${logistics.location ? ` at ${logistics.location}` : ''}.`,
+        attachments: [
+          {
+            filename: 'ride.ics',
+            content: Buffer.from(icsContent).toString('base64'),
+          }
+        ],
+      }).catch(err => console.error('[logistics] calendar invite error:', err.message));
     }
 
     // Redirect to a friendly confirmation page
@@ -324,6 +346,73 @@ function buildResponseEmail({ logistics, action, eventDate, eventTime }) {
             ${logistics.location ? `<p style="margin:0;font-size:14px;color:#8896b0;">📍 ${logistics.location}</p>` : ''}
           </div>
           ${!confirmed ? '<p style="margin:20px 0 0;font-size:14px;color:#8896b0;">You may want to arrange an alternative.</p>' : ''}
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+function buildIcs({ logistics, eventDate, eventTime }) {
+  const start = new Date(logistics.starts_at);
+  const end = logistics.ends_at ? new Date(logistics.ends_at) : new Date(start.getTime() + 60 * 60 * 1000);
+  const fmt = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const eventName = logistics.display_title.split('—')[1]?.trim() || logistics.display_title;
+  const action_label = logistics.role === 'pickup' ? 'Pick up' : 'Drop off';
+  const uid = `sportscal-logistics-${logistics.id}@sportscalapp.com`;
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//SportsCal//Ride Logistics//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:REQUEST',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTART:${fmt(start)}Z`,
+    `DTEND:${fmt(end)}Z`,
+    `SUMMARY:${action_label}: ${eventName}`,
+    logistics.location ? `LOCATION:${logistics.location}` : '',
+    `DESCRIPTION:${action_label} assigned via SportsCal by ${logistics.parent_name}.`,
+    `ORGANIZER;CN=SportsCal:mailto:${process.env.EMAIL_FROM || 'noreply@mail.sportscalapp.com'}`,
+    'STATUS:CONFIRMED',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].filter(Boolean).join('\r\n');
+}
+
+function buildConfirmCalendarEmail({ logistics, eventDate, eventTime }) {
+  const eventName = logistics.display_title.split('—')[1]?.trim() || logistics.display_title;
+  const action_label = logistics.role === 'pickup' ? 'Pick up' : 'Drop off';
+  const firstName = logistics.contact_name.split(' ')[0];
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f4f6fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 16px;">
+    <tr><td align="center">
+      <table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#fff;border-radius:12px;overflow:hidden;">
+        <tr><td style="background:#0f1629;padding:24px 32px;">
+          <span style="font-size:16px;font-weight:600;color:#fff;">SportsCal</span>
+        </td></tr>
+        <tr><td style="padding:36px 32px;">
+          <p style="margin:0 0 8px;font-size:22px;font-weight:600;color:#0f1629;">
+            📅 You're all set, ${firstName}!
+          </p>
+          <p style="margin:0 0 24px;font-size:15px;color:#8896b0;line-height:1.6;">
+            Here's a calendar invite for your ${action_label.toLowerCase()} assignment. Tap the attachment to add it to your calendar.
+          </p>
+          <div style="background:#f4f6fa;border-radius:10px;padding:20px;margin-bottom:24px;border-left:4px solid #00d68f;">
+            <p style="margin:0 0 6px;font-size:16px;font-weight:600;color:#0f1629;">${action_label}: ${eventName}</p>
+            <p style="margin:0 0 4px;font-size:14px;color:#8896b0;">📅 ${eventDate} at ${eventTime}</p>
+            ${logistics.location ? `<p style="margin:0;font-size:14px;color:#8896b0;">📍 ${logistics.location}</p>` : ''}
+          </div>
+          <p style="margin:0;font-size:13px;color:#b8c4d8;line-height:1.6;">
+            Open the <strong>ride.ics</strong> attachment below to add this event to your calendar.
+          </p>
+        </td></tr>
+        <tr><td style="padding:16px 32px;border-top:1px solid #f4f6fa;">
+          <p style="margin:0;font-size:12px;color:#b8c4d8;text-align:center;">Sent via SportsCal · <a href="${APP_URL}" style="color:#b8c4d8;">sportscalapp.com</a></p>
         </td></tr>
       </table>
     </td></tr>
