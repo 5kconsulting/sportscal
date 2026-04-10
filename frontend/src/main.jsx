@@ -23,6 +23,7 @@ import Settings        from './pages/Settings.jsx';
 import ForgotPassword  from './pages/ForgotPassword.jsx';
 import ResetPassword   from './pages/ResetPassword.jsx';
 import Admin           from './pages/Admin.jsx';
+import LogisticsResponse from './pages/LogisticsResponse.jsx';
 
 function RequireGuest({ children }) {
   const { user, loading } = useAuth();
@@ -60,6 +61,7 @@ createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <Routes>
           <Route path="/"               element={<LandingRedirect />} />
+          <Route path="/logistics-response" element={<LogisticsResponse />} />
           <Route path="/login"          element={<RequireGuest><Login /></RequireGuest>} />
           <Route path="/signup"         element={<RequireGuest><Signup /></RequireGuest>} />
           <Route path="/forgot-password" element={<RequireGuest><ForgotPassword /></RequireGuest>} />
