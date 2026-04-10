@@ -381,10 +381,20 @@ function RideContacts() {
                   value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
               </div>
               <div className="field">
-                <label>Phone <span style={{ color: 'var(--slate-light)' }}>(optional)</span></label>
+                <label>Phone <span style={{ color: 'var(--slate-light)' }}>(for text requests)</span></label>
                 <input className="input" type="tel" placeholder="(503) 555-0123"
                   value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
+
+              {(form.email || form.phone) && (
+                <div style={{
+                  fontSize: 12, color: 'var(--slate)', lineHeight: 1.6,
+                  background: 'var(--off-white)', borderRadius: 8,
+                  padding: '10px 12px', border: '1px solid var(--border)',
+                }}>
+                  By adding this contact's email or phone number, you confirm that you have their permission to send them ride request messages via SportsCal. Each message includes a clear option to decline.
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="submit" className="btn btn-primary" disabled={saving} style={{ flex: 1, justifyContent: 'center' }}>
                   {saving ? <span className="spinner" style={{ width: 14, height: 14 }} /> : 'Save'}
