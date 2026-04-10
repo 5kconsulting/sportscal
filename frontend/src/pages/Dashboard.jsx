@@ -689,7 +689,7 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {} }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--navy)', marginBottom: 3,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      textDecoration: allNotGoing ? 'line-through' : 'none',
+                      textDecoration: allNotGoing ? 'line-through' : 'none', color: allNotGoing ? 'var(--slate)' : 'var(--navy)' }}>
           {event.display_title}
         </div>
         {allNotGoing && (
