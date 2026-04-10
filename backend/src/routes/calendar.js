@@ -5,6 +5,7 @@ import {
   getUpcomingEvents,
   getFeedCache,
   setFeedCache,
+  query,
 } from '../db/index.js';
 
 const router = Router();
@@ -57,12 +58,63 @@ router.get('/:token.ics', feedLimiter, async (req, res) => {
       .send(cache.ical_content);
   }
 
-  // Build fresh .ics
+  // Build fresh .ics — apply attendance overrides
   const events = await getUpcomingEvents(user.id, { days: 90 });
-  const icalContent = buildIcal(user, events);
+
+  // Fetch all overrides for this user in one query
+  const overrides = await query(
+    `SELECT eo.event_id, eo.kid_id, eo.attending,
+            k.name AS kid_name, k.color AS kid_color
+     FROM event_overrides eo
+     JOIN kids k ON k.id = eo.kid_id
+     WHERE eo.user_id = $1`,
+    [user.id]
+  );
+
+  // Group overrides by event_id
+  const overrideMap = {};
+  for (const o of overrides) {
+    if (!overrideMap[o.event_id]) overrideMap[o.event_id] = [];
+    overrideMap[o.event_id].push(o);
+  }
+
+  // Apply overrides to each event
+  const processedEvents = events.map(event => {
+    const eventOverrides = overrideMap[event.id];
+    if (!eventOverrides?.length) return event;
+
+    // Filter kids based on attendance overrides
+    const notAttending = eventOverrides
+      .filter(o => !o.attending)
+      .map(o => o.kid_id);
+
+    if (!notAttending.length) return event;
+
+    // Remove non-attending kids from the event's kid list
+    const attendingKids = (event.kids || []).filter(k => !notAttending.includes(k.id));
+
+    // If no kids are attending, skip this event entirely
+    if (attendingKids.length === 0 && (event.kids || []).length > 0) {
+      return null;
+    }
+
+    // Rebuild display title with only attending kids
+    const kidNames = attendingKids.map(k => k.name);
+    const eventName = event.display_title.includes('—')
+      ? event.display_title.split('—').slice(1).join('—').trim()
+      : event.display_title;
+
+    const newTitle = kidNames.length > 0
+      ? `${kidNames.join(', ')} — ${eventName}`
+      : eventName;
+
+    return { ...event, kids: attendingKids, display_title: newTitle };
+  }).filter(Boolean);
+
+  const icalContent = buildIcal(user, processedEvents);
 
   // Store in cache
-  await setFeedCache(user.id, icalContent, events.length);
+  await setFeedCache(user.id, icalContent, processedEvents.length);
 
   res
     .set('Content-Type', 'text/calendar; charset=utf-8')

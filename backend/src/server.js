@@ -30,6 +30,7 @@ import adminRoutes            from './routes/admin.js';
 import emailVerificationRoutes from './routes/emailVerification.js';
 import contactsRoutes         from './routes/contacts.js';
 import logisticsRoutes        from './routes/logistics.js';
+import overridesRoutes        from './routes/overrides.js';
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -86,6 +87,7 @@ app.use('/api/billing',    billingRoutes);
 app.use('/api/admin',      adminRoutes);
 app.use('/api/contacts',   contactsRoutes);
 app.use('/api/logistics',  logisticsRoutes);
+app.use('/api/overrides',  overridesRoutes);
 app.use('/feed',           calendarRoutes); // public: /feed/:token.ics
 
 // ============================================================

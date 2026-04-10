@@ -85,4 +85,9 @@ export const api = {
     assign: (eventId, data)  => post(`/logistics/${eventId}`, data),
     remove: (eventId, role)  => del(`/logistics/${eventId}/${role}`),
   },
+  overrides: {
+    get:    (eventId)              => get(`/overrides/${eventId}`),
+    set:    (eventId, data)        => post(`/overrides/${eventId}`, data),
+    remove: (eventId, kidId)       => del(`/overrides/${eventId}/${kidId}`),
+  },
 };

@@ -580,7 +580,9 @@ function EventCard({ event, onEdit, onDelete }) {
   const isManual = event.source_app === 'custom' && event.source_name === '__manual__';
   const [deleting, setDeleting] = useState(false);
   const [showLogistics, setShowLogistics] = useState(false);
+  const [showAttendance, setShowAttendance] = useState(false);
   const [logistics, setLogistics] = useState([]);
+  const [overrides, setOverrides] = useState({});
 
   async function handleDelete() {
     if (!confirm('Delete this event?')) return;
@@ -600,6 +602,32 @@ function EventCard({ event, onEdit, onDelete }) {
       setLogistics(logistics || []);
     } catch { setLogistics([]); }
     setShowLogistics(true);
+  }
+
+  async function toggleAttendance() {
+    if (!showAttendance && event.kids?.length > 0) {
+      try {
+        const { overrides: rows } = await api.overrides.get(event.id);
+        const map = {};
+        rows.forEach(r => { map[r.kid_id] = r.attending; });
+        setOverrides(map);
+      } catch { setOverrides({}); }
+    }
+    setShowAttendance(s => !s);
+  }
+
+  async function setKidAttendance(kidId, attending) {
+    setOverrides(prev => ({ ...prev, [kidId]: attending }));
+    try {
+      if (attending) {
+        await api.overrides.remove(event.id, kidId);
+      } else {
+        await api.overrides.set(event.id, { kid_id: kidId, attending: false });
+      }
+    } catch (err) {
+      // Revert on error
+      setOverrides(prev => ({ ...prev, [kidId]: !attending }));
+    }
   }
 
   const dropoff = logistics.find(l => l.role === 'dropoff');
@@ -674,6 +702,41 @@ function EventCard({ event, onEdit, onDelete }) {
             )}
           </div>
         )}
+
+        {/* Attendance override UI */}
+        {showAttendance && event.kids?.length > 0 && (
+          <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--off-white)', borderRadius: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--slate)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+              Who's going?
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {event.kids.map(kid => {
+                const attending = overrides[kid.id] !== false;
+                return (
+                  <label key={kid.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={attending}
+                      onChange={e => setKidAttendance(kid.id, e.target.checked)}
+                      style={{ accentColor: kid.color, width: 14, height: 14 }} />
+                    <div style={{
+                      width: 18, height: 18, borderRadius: '50%',
+                      background: kid.color, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 9, fontWeight: 700, color: 'white',
+                    }}>{kid.name[0]}</div>
+                    <span style={{ fontSize: 13, color: attending ? 'var(--navy)' : 'var(--slate)',
+                                   textDecoration: attending ? 'none' : 'line-through' }}>
+                      {kid.name}
+                    </span>
+                    {!attending && <span style={{ fontSize: 11, color: 'var(--slate)' }}>— not going</span>}
+                  </label>
+                );
+              })}
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--slate-light)', marginTop: 8, lineHeight: 1.5 }}>
+              Unchecked kids are removed from this event in your calendar feed.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Actions */}
@@ -695,6 +758,15 @@ function EventCard({ event, onEdit, onDelete }) {
           </div>
         )}
         <div style={{ display: 'flex', gap: 4 }}>
+          {event.kids?.length > 0 && (
+            <button onClick={toggleAttendance} className="btn btn-ghost btn-sm"
+              style={{ padding: '2px 8px', fontSize: 11,
+                       background: showAttendance ? 'var(--navy)' : 'transparent',
+                       color: showAttendance ? 'var(--white)' : 'var(--slate)' }}
+              title="Who's going?">
+              ✓ Going
+            </button>
+          )}
           <button onClick={openLogistics} className="btn btn-ghost btn-sm"
             style={{ padding: '2px 8px', fontSize: 11 }}
             title="Manage drop-off & pick-up">
