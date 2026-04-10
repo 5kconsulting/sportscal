@@ -404,10 +404,25 @@ export default function Sources() {
     setRefreshing(r => ({ ...r, [id]: true }));
     try {
       await api.sources.refresh(id);
+      // Poll for updated source data — worker is async so wait up to 15s
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        try {
+          const { sources: updated } = await api.sources.list();
+          const fresh = updated.find(s => s.id === id);
+          if (fresh) {
+            setSources(updated.filter(s => s.name !== '__manual__'));
+          }
+        } catch {}
+        if (attempts >= 10) {
+          clearInterval(poll);
+          setRefreshing(r => ({ ...r, [id]: false }));
+        }
+      }, 1500);
     } catch (err) {
       setError(err.message);
-    } finally {
-      setTimeout(() => setRefreshing(r => ({ ...r, [id]: false })), 1500);
+      setRefreshing(r => ({ ...r, [id]: false }));
     }
   }
 
