@@ -26,16 +26,28 @@ export default function Dashboard() {
     }
   }, []);
 
+  const [allOverrides, setAllOverrides] = useState({});
+
   useEffect(() => {
     Promise.all([
       api.events.list({ days }),
       api.kids.list(),
       api.sources.list(),
+      fetch('/api/overrides', { headers: { 'Authorization': `Bearer ${localStorage.getItem('sc_token')}` } })
+        .then(r => r.ok ? r.json() : { overrides: [] })
+        .catch(() => ({ overrides: [] })),
     ])
-      .then(([{ events }, { kids }, { sources }]) => {
+      .then(([{ events }, { kids }, { sources }, { overrides }]) => {
         setEvents(events);
         setKids(kids);
         setSources(sources);
+        // Build map: eventId -> { kidId -> attending }
+        const map = {};
+        (overrides || []).forEach(o => {
+          if (!map[o.event_id]) map[o.event_id] = {};
+          map[o.event_id][o.kid_id] = o.attending;
+        });
+        setAllOverrides(map);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -170,7 +182,8 @@ export default function Dashboard() {
         <div className="fade-up">
           {Object.entries(grouped).map(([day, dayEvents]) => (
             <DayGroup key={day} day={day} events={dayEvents}
-              onEdit={setEditingEvent} onDelete={handleEventDeleted} />
+              onEdit={setEditingEvent} onDelete={handleEventDeleted}
+              eventOverrides={allOverrides} />
           ))}
         </div>
       )}
@@ -546,7 +559,7 @@ function SubscribeGuide({ feedUrl, onClose }) {
   );
 }
 
-function DayGroup({ day, events, onEdit, onDelete }) {
+function DayGroup({ day, events, onEdit, onDelete, eventOverrides = {} }) {
   const isToday = day === formatDay(new Date());
 
   return (
@@ -567,13 +580,13 @@ function DayGroup({ day, events, onEdit, onDelete }) {
         </span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {events.map(event => <EventCard key={event.id} event={event} onEdit={onEdit} onDelete={onDelete} />)}
+        {events.map(event => <EventCard key={event.id} event={event} onEdit={onEdit} onDelete={onDelete} eventOverrides={eventOverrides?.[event.id] || {}} />)}
       </div>
     </div>
   );
 }
 
-function EventCard({ event, onEdit, onDelete }) {
+function EventCard({ event, onEdit, onDelete, eventOverrides = {} }) {
   const kidColor = event.kids?.[0]?.color || '#6366f1';
   const startsAt = new Date(event.starts_at);
   const endsAt   = event.ends_at ? new Date(event.ends_at) : null;
@@ -582,7 +595,12 @@ function EventCard({ event, onEdit, onDelete }) {
   const [showLogistics, setShowLogistics] = useState(false);
   const [showAttendance, setShowAttendance] = useState(false);
   const [logistics, setLogistics] = useState([]);
-  const [overrides, setOverrides] = useState({});
+  const [overrides, setOverrides] = useState(eventOverrides);
+
+  // Compute attendance status from overrides
+  const notGoingKids = event.kids?.filter(k => overrides[k.id] === false) || [];
+  const allNotGoing = event.kids?.length > 0 && notGoingKids.length === event.kids.length;
+  const someNotGoing = notGoingKids.length > 0 && !allNotGoing;
 
   async function handleDelete() {
     if (!confirm('Delete this event?')) return;
@@ -632,7 +650,6 @@ function EventCard({ event, onEdit, onDelete }) {
         await api.overrides.set(event.id, { kid_id: kidId, attending: false });
       }
     } catch (err) {
-      // Revert on error
       setOverrides(prev => ({ ...prev, [kidId]: !attending }));
     }
   }
@@ -648,10 +665,12 @@ function EventCard({ event, onEdit, onDelete }) {
       display: 'flex',
       alignItems: 'flex-start',
       gap: 14,
-      borderLeft: `3px solid ${kidColor}`,
+      borderLeft: `3px solid ${allNotGoing ? '#94a3b8' : kidColor}`,
       borderRadius: '0 var(--radius) var(--radius) 0',
       borderTopLeftRadius: 0,
       borderBottomLeftRadius: 0,
+      opacity: allNotGoing ? 0.5 : 1,
+      transition: 'opacity 0.2s',
     }}>
       {/* Time column */}
       <div style={{ minWidth: 56, textAlign: 'right', flexShrink: 0 }}>
@@ -671,9 +690,22 @@ function EventCard({ event, onEdit, onDelete }) {
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--navy)', marginBottom: 3,
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      textDecoration: allNotGoing ? 'line-through' : 'none',
+                      color: allNotGoing ? 'var(--slate)' : 'var(--navy)' }}>
           {event.display_title}
         </div>
+        {allNotGoing && (
+          <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginBottom: 4,
+                        textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            ✕ Not attending — hidden from calendar feed
+          </div>
+        )}
+        {someNotGoing && (
+          <div style={{ fontSize: 11, color: 'var(--slate)', marginBottom: 4 }}>
+            ✕ Not going: {notGoingKids.map(k => k.name).join(', ')}
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {event.location && (
             <a
