@@ -6,6 +6,22 @@ const router = Router();
 router.use(requireAuth);
 
 // ============================================================
+// GET /api/overrides
+// Get ALL overrides for the user (used by dashboard)
+// ============================================================
+router.get('/', async (req, res) => {
+  try {
+    const rows = await query(
+      `SELECT * FROM event_overrides WHERE user_id = $1`,
+      [req.user.id]
+    );
+    res.json({ overrides: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
 // GET /api/overrides/:eventId
 // Get attendance overrides for an event
 // ============================================================
