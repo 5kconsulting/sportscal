@@ -50,17 +50,13 @@ router.get('/:id',
 // ============================================================
 router.post('/',
   [
-    body('name').optional({ nullable: true }).trim().isLength({ max: 100 }),
+    body('name').trim().notEmpty().isLength({ max: 100 }),
     body('app').isIn(VALID_APPS),
     body('fetch_type').isIn(VALID_FETCH_TYPES),
     body('ical_url').optional({ nullable: true }).custom(val => {
       if (!val) return true;
       const normalized = val.replace(/^webcal:\/\//i, 'https://');
-      try { new URL(normalized); return true; } catch {
-        try { new URL(decodeURIComponent(normalized)); return true; } catch {
-          throw new Error('Invalid URL');
-        }
-      }
+      try { new URL(normalized); return true; } catch { throw new Error('Invalid iCal URL'); }
     }),
     body('scrape_url').optional({ nullable: true }).isURL(),
     body('scrape_config').optional({ nullable: true }).isObject(),
@@ -76,7 +72,6 @@ router.post('/',
 
     // Validate fetch_type ↔ URL combination
     const { fetch_type, ical_url, scrape_url } = req.body;
-    const appInfo = { teamsnap:'TeamSnap', gamechanger:'GameChanger', playmetrics:'PlayMetrics', teamsideline:'TeamSideline', byga:'BYGA', custom:'Custom' };
     if ((fetch_type === 'ical' || fetch_type === 'ical_with_scrape_fallback') && !ical_url) {
       return res.status(422).json({ error: 'ical_url required for this fetch type' });
     }
@@ -100,7 +95,7 @@ router.post('/',
 
     const source = await createSource({
       userId:                  req.user.id,
-      name:                    req.body.name || appInfo[req.body.app] || req.body.app,
+      name:                    req.body.name,
       app:                     req.body.app,
       fetchType:               fetch_type,
       icalUrl:                 ical_url || null,
@@ -134,21 +129,9 @@ router.patch('/:id',
     body('ical_url').optional({ nullable: true }).custom(val => {
       if (!val) return true;
       const normalized = val.replace(/^webcal:\/\//i, 'https://');
-      try { new URL(normalized); return true; } catch {
-        try { new URL(decodeURIComponent(normalized)); return true; } catch {
-          throw new Error('Invalid URL');
-        }
-      }
+      try { new URL(normalized); return true; } catch { throw new Error('Invalid iCal URL'); }
     }),
-    body('scrape_url').optional({ nullable: true }).custom(val => {
-      if (!val) return true;
-      const normalized = val.replace(/^webcal:\/\//i, 'https://');
-      try { new URL(normalized); return true; } catch {
-        try { new URL(decodeURIComponent(normalized)); return true; } catch {
-          throw new Error('Invalid URL');
-        }
-      }
-    }),
+    body('scrape_url').optional({ nullable: true }).isURL(),
     body('scrape_config').optional({ nullable: true }).isObject(),
     body('refresh_interval_minutes').optional().isInt({ min: 30, max: 1440 }),
     body('enabled').optional().isBoolean(),
