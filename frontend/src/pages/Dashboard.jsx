@@ -1087,6 +1087,7 @@ function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) {
     if (!iso) return '';
     const d = new Date(iso);
     const pad = n => String(n).padStart(2, '0');
+    // Use local time components so the datetime-local input shows correct local time
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
@@ -1132,9 +1133,18 @@ function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) {
     setError('');
     setSaving(true);
     try {
+      // Convert datetime-local values to proper ISO strings with local timezone offset
+      function localToISO(val) {
+        if (!val) return null;
+        // datetime-local gives "2026-04-11T18:00" — treat as local time
+        const d = new Date(val);
+        return d.toISOString();
+      }
+
       const payload = {
         ...form,
-        ends_at: form.ends_at || null,
+        starts_at: localToISO(form.starts_at),
+        ends_at: form.ends_at ? localToISO(form.ends_at) : null,
         location: form.location || null,
         description: form.description || null,
         recurrence_until: form.recurrence_until || null,
