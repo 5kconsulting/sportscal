@@ -66,8 +66,12 @@ export default function Dashboard() {
     setEditingEvent(null);
   }
 
-  function handleEventDeleted(id) {
-    setEvents(prev => prev.filter(e => e.id !== id));
+  function handleEventDeleted(id, recurrenceId, deleteSeries) {
+    if (deleteSeries && recurrenceId) {
+      setEvents(prev => prev.filter(e => e.recurrence_id !== recurrenceId));
+    } else {
+      setEvents(prev => prev.filter(e => e.id !== id));
+    }
   }
 
   useEffect(() => {
@@ -601,11 +605,14 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {} }) {
   const someNotGoing = notGoingKids.length > 0 && !allNotGoing;
 
   async function handleDelete() {
-    if (!confirm('Delete this event?')) return;
+    const deleteSeries = event.recurrence_id
+      ? confirm('This is a recurring event. Delete ALL events in this series?\n\nClick OK to delete all, Cancel to delete only this one.')
+      : false;
+    if (!deleteSeries && !confirm('Delete this event?')) return;
     setDeleting(true);
     try {
-      await api.manual.delete(event.id);
-      onDelete(event.id);
+      await api.manual.delete(event.id, deleteSeries);
+      onDelete(event.id, event.recurrence_id, deleteSeries);
     } catch (err) {
       alert(err.message);
       setDeleting(false);
@@ -1091,7 +1098,21 @@ function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) {
     description: existingEvent?.description || '',
     all_day:     existingEvent?.all_day || false,
     kid_ids:     existingEvent?.kids?.map(k => k.id) || [],
+    recurrence:        'none',
+    recurrence_days:   [],
+    recurrence_until:  '',
   });
+
+  const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  function toggleRecurrenceDay(day) {
+    setForm(f => ({
+      ...f,
+      recurrence_days: f.recurrence_days.includes(day)
+        ? f.recurrence_days.filter(d => d !== day)
+        : [...f.recurrence_days, day],
+    }));
+  }
   const [saving, setSaving]  = useState(false);
   const [error, setError]    = useState('');
 
@@ -1116,11 +1137,15 @@ function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) {
         ends_at: form.ends_at || null,
         location: form.location || null,
         description: form.description || null,
+        recurrence_until: form.recurrence_until || null,
       };
-      const { event } = isEditing
-        ? await api.manual.update(existingEvent.id, payload)
-        : await api.manual.create(payload);
-      onSave(event);
+      if (isEditing) {
+        const { event } = await api.manual.update(existingEvent.id, payload);
+        onSave(event, 1);
+      } else {
+        const { event, count } = await api.manual.create(payload);
+        onSave(event, count);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -1213,11 +1238,54 @@ function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) {
             </div>
           )}
 
+          {!isEditing && (
+            <div className="field">
+              <label>Repeats</label>
+              <select className="input" value={form.recurrence} onChange={e => setField('recurrence', e.target.value)}>
+                <option value="none">Does not repeat</option>
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Every 2 weeks</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+          )}
+
+          {!isEditing && form.recurrence !== 'none' && (
+            <>
+              {(form.recurrence === 'weekly' || form.recurrence === 'biweekly') && (
+                <div className="field">
+                  <label>Repeat on</label>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {DAY_LABELS.map((label, i) => (
+                      <button key={i} type="button" onClick={() => toggleRecurrenceDay(i)}
+                        style={{
+                          width: 40, height: 36, borderRadius: 8, fontSize: 12, fontWeight: 600,
+                          border: `2px solid ${form.recurrence_days.includes(i) ? 'var(--accent)' : 'var(--border)'}`,
+                          background: form.recurrence_days.includes(i) ? 'rgba(0,214,143,0.15)' : 'transparent',
+                          color: form.recurrence_days.includes(i) ? 'var(--accent-dim)' : 'var(--slate)',
+                          cursor: 'pointer',
+                        }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="field">
+                <label>Repeat until</label>
+                <input className="input" type="date"
+                  value={form.recurrence_until}
+                  onChange={e => setField('recurrence_until', e.target.value)}
+                  required />
+              </div>
+            </>
+          )}
+
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving
                 ? <span className="spinner" style={{ width: 14, height: 14 }} />
-                : isEditing ? 'Save changes' : 'Add to calendar'}
+                : isEditing ? 'Save changes' : form.recurrence !== 'none' ? 'Add recurring events' : 'Add to calendar'}
             </button>
             <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
           </div>

@@ -65,10 +65,10 @@ export const api = {
     get:   (id)          => get(`/events/${id}`),
   },
   manual: {
-    list:   ()          => get('/manual'),
-    create: (data)      => post('/manual', data),
-    update: (id, data)  => patch(`/manual/${id}`, data),
-    delete: (id)        => del(`/manual/${id}`),
+    list:   ()              => get('/manual'),
+    create: (data)          => post('/manual', data),
+    update: (id, data)      => patch(`/manual/${id}`, data),
+    delete: (id, series)    => del(`/manual/${id}${series ? '?series=true' : ''}`),
   },
   billing: {
     checkout: () => post('/billing/checkout'),

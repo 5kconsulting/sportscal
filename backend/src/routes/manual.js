@@ -60,6 +60,9 @@ router.post('/',
     body('all_day').optional().isBoolean(),
     body('kid_ids').optional().isArray(),
     body('kid_ids.*').optional().isUUID(),
+    body('recurrence').optional({ nullable: true }).isIn(['none', 'weekly', 'biweekly', 'monthly']),
+    body('recurrence_days').optional().isArray(),
+    body('recurrence_until').optional({ nullable: true }).isISO8601(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -69,35 +72,53 @@ router.post('/',
 
     const source = await getOrCreateManualSource(req.user.id);
 
-    // Get kids for display title
     let kids = [];
     if (req.body.kid_ids?.length) {
       const allKids = await getKidsByUser(req.user.id);
       kids = allKids.filter(k => req.body.kid_ids.includes(k.id));
     }
 
-    const rawTitle   = req.body.title;
-    const location   = req.body.location || null;
+    const rawTitle    = req.body.title;
+    const location    = req.body.location || null;
     const displayTitle = buildDisplayTitle(rawTitle, location, kids);
-    const sourceUid  = `manual-${crypto.randomUUID()}`;
-    const startsAt   = new Date(req.body.starts_at);
-    const endsAt     = req.body.ends_at ? new Date(req.body.ends_at) : null;
-    const contentHash = crypto.createHash('sha256')
-      .update(`${rawTitle}|${location}|${startsAt.toISOString()}`)
-      .digest('hex').slice(0, 16);
+    const startsAt    = new Date(req.body.starts_at);
+    const endsAt      = req.body.ends_at ? new Date(req.body.ends_at) : null;
+    const duration    = endsAt ? endsAt.getTime() - startsAt.getTime() : null;
+    const recurrence  = req.body.recurrence || 'none';
+    const recurrenceDays = req.body.recurrence_days || [];
+    const recurrenceUntil = req.body.recurrence_until ? new Date(req.body.recurrence_until) : null;
 
-    const event = await queryOne(
-      `INSERT INTO events
-         (user_id, source_id, source_uid, raw_title, display_title,
-          location, description, starts_at, ends_at, all_day, content_hash, last_seen_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
-       RETURNING *`,
-      [req.user.id, source.id, sourceUid, rawTitle, displayTitle,
-       location, req.body.description || null,
-       startsAt, endsAt, req.body.all_day || false, contentHash]
-    );
+    // Generate all event instances
+    const instances = generateInstances({
+      rawTitle, location, displayTitle,
+      startsAt, endsAt, duration,
+      allDay: req.body.all_day || false,
+      description: req.body.description || null,
+      recurrence, recurrenceDays, recurrenceUntil,
+    });
 
-    // Assign kids to source if provided (for color coding)
+    const recurrenceId = instances.length > 1 ? crypto.randomUUID() : null;
+    const createdEvents = [];
+
+    for (const instance of instances) {
+      const sourceUid = `manual-${crypto.randomUUID()}`;
+      const contentHash = crypto.createHash('sha256')
+        .update(`${instance.rawTitle}|${instance.location}|${instance.startsAt.toISOString()}`)
+        .digest('hex').slice(0, 16);
+
+      const event = await queryOne(
+        `INSERT INTO events
+           (user_id, source_id, source_uid, raw_title, display_title,
+            location, description, starts_at, ends_at, all_day, content_hash, last_seen_at, recurrence_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW(),$12)
+         RETURNING *`,
+        [req.user.id, source.id, sourceUid, instance.rawTitle, instance.displayTitle,
+         instance.location, instance.description,
+         instance.startsAt, instance.endsAt, instance.allDay, contentHash, recurrenceId]
+      );
+      createdEvents.push(event);
+    }
+
     if (req.body.kid_ids?.length) {
       for (const kidId of req.body.kid_ids) {
         await query(
@@ -108,14 +129,108 @@ router.post('/',
     }
 
     await invalidateFeedCache(req.user.id);
-
-    res.status(201).json({ event });
+    res.status(201).json({ event: createdEvents[0], count: createdEvents.length });
   }
 );
 
 // ============================================================
-// PATCH /api/manual/:id
+// DELETE /api/manual/:id
+// Optionally delete all events in the same recurrence series
 // ============================================================
+router.delete('/:id',
+  [param('id').isUUID()],
+  async (req, res) => {
+    const existing = await queryOne(
+      `SELECT e.recurrence_id FROM events e
+       WHERE e.id = $1 AND e.user_id = $2
+         AND e.source_id IN (SELECT id FROM sources WHERE name = '__manual__' AND user_id = $2)`,
+      [req.params.id, req.user.id]
+    );
+
+    if (!existing) return res.status(404).json({ error: 'Event not found' });
+
+    const deleteAll = req.query.series === 'true' && existing.recurrence_id;
+
+    if (deleteAll) {
+      await query(
+        `DELETE FROM events WHERE recurrence_id = $1 AND user_id = $2`,
+        [existing.recurrence_id, req.user.id]
+      );
+    } else {
+      await query(
+        `DELETE FROM events WHERE id = $1 AND user_id = $2`,
+        [req.params.id, req.user.id]
+      );
+    }
+
+    await invalidateFeedCache(req.user.id);
+    res.json({ ok: true, deletedSeries: !!deleteAll });
+  }
+);
+
+// ============================================================
+// Instance generator
+// ============================================================
+function generateInstances({ rawTitle, location, displayTitle, startsAt, endsAt, duration,
+  allDay, description, recurrence, recurrenceDays, recurrenceUntil }) {
+
+  if (recurrence === 'none' || !recurrenceUntil) {
+    return [{ rawTitle, location, displayTitle, startsAt, endsAt, allDay, description }];
+  }
+
+  const instances = [];
+  const until = new Date(recurrenceUntil);
+  until.setHours(23, 59, 59, 999);
+
+  // Max 365 instances as a safety cap
+  const MAX = 365;
+
+  if (recurrence === 'weekly' || recurrence === 'biweekly') {
+    const intervalDays = recurrence === 'biweekly' ? 14 : 7;
+    const days = recurrenceDays.length > 0 ? recurrenceDays.map(Number) : [startsAt.getDay()];
+
+    let current = new Date(startsAt);
+    current.setHours(0, 0, 0, 0);
+
+    // Start from the beginning of the week containing startsAt
+    const startDay = startsAt.getDay();
+
+    // Generate weekly occurrences
+    let weekStart = new Date(current);
+    weekStart.setDate(weekStart.getDate() - startDay); // go to Sunday of this week
+
+    while (instances.length < MAX) {
+      for (const day of days.sort((a, b) => a - b)) {
+        const occDate = new Date(weekStart);
+        occDate.setDate(occDate.getDate() + day);
+
+        // Must be >= original start date and <= until
+        if (occDate < startsAt) continue;
+        if (occDate > until) break;
+
+        const occStart = new Date(occDate);
+        occStart.setHours(startsAt.getHours(), startsAt.getMinutes(), startsAt.getSeconds());
+        const occEnd = duration ? new Date(occStart.getTime() + duration) : null;
+
+        instances.push({ rawTitle, location, displayTitle, startsAt: occStart, endsAt: occEnd, allDay, description });
+        if (instances.length >= MAX) break;
+      }
+
+      weekStart.setDate(weekStart.getDate() + intervalDays);
+      if (weekStart > until) break;
+    }
+
+  } else if (recurrence === 'monthly') {
+    let current = new Date(startsAt);
+    while (current <= until && instances.length < MAX) {
+      const occEnd = duration ? new Date(current.getTime() + duration) : null;
+      instances.push({ rawTitle, location, displayTitle, startsAt: new Date(current), endsAt: occEnd, allDay, description });
+      current.setMonth(current.getMonth() + 1);
+    }
+  }
+
+  return instances.length > 0 ? instances : [{ rawTitle, location, displayTitle, startsAt, endsAt, allDay, description }];
+}
 router.patch('/:id',
   [
     param('id').isUUID(),
@@ -186,25 +301,5 @@ router.patch('/:id',
   }
 );
 
-// ============================================================
-// DELETE /api/manual/:id
-// ============================================================
-router.delete('/:id',
-  [param('id').isUUID()],
-  async (req, res) => {
-    const deleted = await queryOne(
-      `DELETE FROM events
-       WHERE id = $1 AND user_id = $2
-         AND source_id IN (SELECT id FROM sources WHERE name = '__manual__' AND user_id = $2)
-       RETURNING id`,
-      [req.params.id, req.user.id]
-    );
-
-    if (!deleted) return res.status(404).json({ error: 'Event not found' });
-
-    await invalidateFeedCache(req.user.id);
-    res.json({ ok: true });
-  }
-);
-
 export default router;
+
