@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /sources
+Disallow: /kids
+Disallow: /settings
+Disallow: /admin
+Disallow: /login
+Disallow: /signup
+Disallow: /api/
+Disallow: /feed/
+
+Sitemap: https://www.sportscalapp.com/sitemap.xml

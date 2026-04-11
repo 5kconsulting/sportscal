@@ -23,6 +23,10 @@ const apiProxy = createProxyMiddleware({
 // Proxy FIRST before anything else
 app.use(apiProxy);
 
+// SEO files
+app.get('/robots.txt', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'robots.txt')));
+app.get('/sitemap.xml', (_req, res) => res.type('application/xml').sendFile(path.join(__dirname, 'landing', 'sitemap.xml')));
+
 // Explicit landing pages at their own paths
 app.get('/pricing', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'pricing.html')));
 app.get('/terms', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'terms.html')));
