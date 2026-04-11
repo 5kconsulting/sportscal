@@ -151,7 +151,8 @@ export default function Layout() {
           >
             💡 Feature request
           </a>
-          <a href="mailto:hello@sportscalapp.com?subject=Bug Report&body=Here's what happened..."
+          <a href="https://linear.app/sportscal/new?template=77b9401f-4f21-4447-8c74-71517cbfda1a"
+             target="_blank" rel="noopener noreferrer"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               width: '100%', padding: '8px 12px', borderRadius: 8, marginBottom: 6,
