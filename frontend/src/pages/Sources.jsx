@@ -200,7 +200,7 @@ const APP_INSTRUCTIONS = {
       'A popup will appear with the feed URL — copy it.',
       'Paste it in the iCal URL field below.',
     ],
-    note: 'The iCal icon may only appear if there are events visible. Try filtering to your team first if you don\'t see it.',
+    note: '⚠️ Important: Use the iCal URL from your league\'s website — NOT from the SportsEngine mobile app\'s "Subscribe" button, which generates an authenticated URL that won\'t work. The correct URL will start with webcal://sportngin.com or webcal://[yourleague].com.',
     webSteps: [
       'Log in to your SportsEngine account at ngin.com or your org\'s website.',
       'Go to your team page → Schedule or Calendar tab.',
