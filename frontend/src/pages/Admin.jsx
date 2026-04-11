@@ -88,16 +88,56 @@ function OverviewTab() {
     { label: 'New last 7 days', value: data?.new_last_7d ?? 0 },
   ];
 
+  const referralSources = data?.referralSources || [];
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
-      {stats.map(s => (
-        <div key={s.label} className="card" style={{ padding: '20px 24px' }}>
-          <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 4 }}>
-            {s.value}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
+        {stats.map(s => (
+          <div key={s.label} className="card" style={{ padding: '20px 24px' }}>
+            <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 4 }}>
+              {s.value}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--slate)' }}>{s.label}</div>
           </div>
-          <div style={{ fontSize: 13, color: 'var(--slate)' }}>{s.label}</div>
+        ))}
+      </div>
+
+      {referralSources.length > 0 && (
+        <div className="card" style={{ padding: 24 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 16, letterSpacing: '-0.01em' }}>Referral sources</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: 8,
+              padding: '6px 8px', fontSize: 11, fontWeight: 600, color: 'var(--slate)',
+              textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)' }}>
+              <span>Source</span>
+              <span style={{ textAlign: 'right' }}>Signups</span>
+              <span style={{ textAlign: 'right' }}>Premium</span>
+            </div>
+            {referralSources.map(r => (
+              <div key={r.source} style={{
+                display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: 8,
+                padding: '10px 8px', fontSize: 13, borderBottom: '1px solid var(--border)',
+                alignItems: 'center',
+              }}>
+                <span style={{ fontWeight: 500, color: r.source === 'direct' ? 'var(--slate)' : 'var(--navy)', fontStyle: r.source === 'direct' ? 'italic' : 'normal' }}>
+                  {r.source}
+                </span>
+                <span style={{ textAlign: 'right', color: 'var(--navy)' }}>{r.signups}</span>
+                <span style={{ textAlign: 'right' }}>
+                  <span style={{
+                    background: Number(r.conversions) > 0 ? 'rgba(0,214,143,0.15)' : 'transparent',
+                    color: Number(r.conversions) > 0 ? 'var(--accent-dim)' : 'var(--slate)',
+                    padding: '2px 8px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                  }}>
+                    {r.conversions}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -387,6 +427,7 @@ function ReportsTab() {
   const signups   = data?.signups || [];
   const plans     = data?.plans || [];
   const sourceApps = data?.sourceApps || [];
+  const referralSources = data?.referralSources || [];
 
   const maxSignups = Math.max(...signups.map(d => Number(d.count)), 1);
   const totalUsers = plans.reduce((s, p) => s + Number(p.count), 0);
@@ -524,6 +565,113 @@ function ReportsTab() {
         </div>
       </div>
 
+      {/* Referral sources */}
+      <div className="card" style={{ padding: 24 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.01em' }}>Referral sources</h3>
+        <p style={{ fontSize: 13, color: 'var(--slate)', marginBottom: 20 }}>Signups and conversions by referral source (utm ?ref= parameter).</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: 8,
+            padding: '6px 8px', fontSize: 11, fontWeight: 600, color: 'var(--slate)',
+            textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border)' }}>
+            <span>Source</span>
+            <span style={{ textAlign: 'right' }}>Signups</span>
+            <span style={{ textAlign: 'right' }}>Premium</span>
+          </div>
+          {referralSources.map(r => (
+            <div key={r.source} style={{
+              display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: 8,
+              padding: '10px 8px', fontSize: 13, borderBottom: '1px solid var(--border)',
+              alignItems: 'center',
+            }}>
+              <span style={{ fontWeight: 500, color: r.source === 'direct' ? 'var(--slate)' : 'var(--navy)', fontStyle: r.source === 'direct' ? 'italic' : 'normal' }}>
+                {r.source}
+              </span>
+              <span style={{ textAlign: 'right', color: 'var(--navy)' }}>{r.signups}</span>
+              <span style={{ textAlign: 'right' }}>
+                <span style={{
+                  background: Number(r.conversions) > 0 ? 'rgba(0,214,143,0.15)' : 'transparent',
+                  color: Number(r.conversions) > 0 ? 'var(--accent-dim)' : 'var(--slate)',
+                  padding: '2px 8px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                }}>
+                  {r.conversions}
+                </span>
+              </span>
+            </div>
+          ))}
+          {referralSources.length === 0 && (
+            <p style={{ color: 'var(--slate)', fontSize: 14, padding: '16px 8px' }}>No referral data yet.</p>
+          )}
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+// ---- Referral Link Generator ----
+function ReferralLinkGenerator() {
+  const [ref, setRef] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const baseUrl = 'https://www.sportscalapp.com/signup';
+  const link = ref.trim() ? `${baseUrl}?ref=${encodeURIComponent(ref.trim().toLowerCase().replace(/\s+/g, '-'))}` : '';
+
+  function handleCopy() {
+    if (!link) return;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="card" style={{ padding: 24 }}>
+      <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.01em' }}>Referral link generator</h3>
+      <p style={{ fontSize: 13, color: 'var(--slate)', marginBottom: 20 }}>
+        Generate a trackable signup link for any campaign, coach, or partner.
+      </p>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        <input
+          className="input"
+          type="text"
+          placeholder="e.g. texas-soccer-club, coach-mike, instagram"
+          value={ref}
+          onChange={e => setRef(e.target.value)}
+          style={{ flex: 1, minWidth: 200 }}
+        />
+      </div>
+      {link && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: 'var(--navy)', borderRadius: 8, padding: '10px 14px',
+        }}>
+          <code style={{
+            flex: 1, fontSize: 12, color: 'var(--accent)',
+            fontFamily: 'var(--mono)', wordBreak: 'break-all', lineHeight: 1.6,
+          }}>
+            {link}
+          </code>
+          <button onClick={handleCopy} style={{
+            flexShrink: 0, fontSize: 11, padding: '4px 10px',
+            background: copied ? 'var(--accent)' : 'var(--navy-mid)',
+            color: copied ? 'var(--navy)' : 'var(--slate-light)',
+            border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 500,
+          }}>
+            {copied ? '✓ Copied' : 'Copy'}
+          </button>
+        </div>
+      )}
+      <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {['texas-soccer-club', 'coach-mike', 'instagram', 'flyer', 'email-campaign'].map(preset => (
+          <button key={preset} onClick={() => setRef(preset)}
+            style={{
+              fontSize: 11, padding: '4px 10px',
+              background: 'var(--off-white)', color: 'var(--slate)',
+              border: '1px solid var(--border)', borderRadius: 20, cursor: 'pointer',
+            }}>
+            {preset}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -717,6 +865,9 @@ function ToolsTab() {
           ))}
         </div>
       </div>
+
+      {/* Referral link generator */}
+      <ReferralLinkGenerator />
 
       {/* Email tests */}
       <EmailTestCard />

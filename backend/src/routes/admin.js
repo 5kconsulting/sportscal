@@ -28,11 +28,20 @@ router.use(requireAdmin);
 // ============================================================
 router.get('/stats', async (_req, res) => {
   try {
-    const [users, sources, premium, recentSignups] = await Promise.all([
+    const [users, sources, premium, recentSignups, referralSources] = await Promise.all([
       queryOne(`SELECT COUNT(*) AS total FROM users`),
       queryOne(`SELECT COUNT(*) AS total FROM sources WHERE enabled = true`),
       queryOne(`SELECT COUNT(*) AS total FROM users WHERE plan = 'premium'`),
       queryOne(`SELECT COUNT(*) AS total FROM users WHERE created_at > NOW() - INTERVAL '7 days'`),
+      query(`
+        SELECT
+          COALESCE(referral_source, 'direct') AS source,
+          COUNT(*) AS signups,
+          COUNT(*) FILTER (WHERE plan = 'premium') AS conversions
+        FROM users
+        GROUP BY referral_source
+        ORDER BY signups DESC
+      `),
     ]);
 
     res.json({
@@ -42,6 +51,7 @@ router.get('/stats', async (_req, res) => {
       active_sources: Number(sources.total),
       new_last_7d:    Number(recentSignups.total),
       mrr:            Number(premium.total) * 5,
+      referralSources,
     });
   } catch (err) {
     console.error('[admin] stats error:', err.message);
@@ -249,7 +259,17 @@ router.get('/reports', async (_req, res) => {
       ORDER BY count DESC
     `);
 
-    res.json({ signups, cumulative, plans, mrr, sourceApps });
+    const referralSources = await query(`
+      SELECT
+        COALESCE(referral_source, 'direct') AS source,
+        COUNT(*) AS signups,
+        COUNT(*) FILTER (WHERE plan = 'premium') AS conversions
+      FROM users
+      GROUP BY referral_source
+      ORDER BY signups DESC
+    `);
+
+    res.json({ signups, cumulative, plans, mrr, sourceApps, referralSources });
   } catch (err) {
     console.error('[admin] reports error:', err.message);
     res.status(500).json({ error: err.message });
