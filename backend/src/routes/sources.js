@@ -22,7 +22,7 @@ import { buildDisplayTitle } from '../normalizer.js';
 const router = Router();
 router.use(requireAuth);
 
-const VALID_APPS = ['teamsnap', 'gamechanger', 'playmetrics', 'teamsideline', 'byga', 'custom'];
+const VALID_APPS = ['teamsnap', 'teamsnapone', 'gamechanger', 'playmetrics', 'teamsideline', 'byga', 'sportsengine', 'teamreach', 'leagueapps', 'demosphere', '360player', 'sportsyou', 'band', 'custom'];
 const VALID_FETCH_TYPES = ['ical', 'scrape', 'ical_with_scrape_fallback'];
 
 // ============================================================
