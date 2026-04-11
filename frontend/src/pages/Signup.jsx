@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { LogoMark } from '../components/LogoMark.jsx';
 
 export default function Signup() {
   const { signup }    = useAuth();
   const navigate      = useNavigate();
+  const [searchParams] = useSearchParams();
+  const referralSource = searchParams.get('ref') || null;
   const [form, setForm]   = useState({ name: '', email: '', password: '' });
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
@@ -17,7 +19,7 @@ export default function Signup() {
     setError('');
     setLoading(true);
     try {
-      await signup(form.name, form.email, form.password);
+      await signup(form.name, form.email, form.password, referralSource);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);

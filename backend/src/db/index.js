@@ -138,12 +138,12 @@ export async function getUserByFeedToken(token) {
   );
 }
 
-export async function createUser({ email, passwordHash, name }) {
+export async function createUser({ email, passwordHash, name, referralSource = null }) {
   return queryOne(
-    `INSERT INTO users (email, password_hash, name)
-     VALUES ($1, $2, $3)
+    `INSERT INTO users (email, password_hash, name, referral_source)
+     VALUES ($1, $2, $3, $4)
      RETURNING *`,
-    [email, passwordHash, name]
+    [email, passwordHash, name, referralSource]
   );
 }
 

@@ -18,8 +18,6 @@ import { welcomeEmail } from '../emails/templates.js';
 import { sendVerificationEmail } from './emailVerification.js';
 
 const router = Router();
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 
 // Tight rate limit on auth endpoints to prevent brute force
 const authLimiter = rateLimit({
@@ -46,16 +44,15 @@ router.post('/signup',
       return res.status(422).json({ errors: errors.array() });
     }
 
-    const { email, password, name } = req.body;
+    const { email, password, name, referral_source } = req.body;
 
     const existing = await getUserByEmail(email);
     if (existing) {
-      // Don't reveal whether the email exists — return same error
       return res.status(422).json({ errors: [{ msg: 'Invalid email or password' }] });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const user = await createUser({ email, passwordHash, name });
+    const user = await createUser({ email, passwordHash, name, referralSource: referral_source?.trim().slice(0, 100) || null });
 
     // Send welcome + verification emails (non-blocking)
     if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 're_xxxxxxxxxxxx') {

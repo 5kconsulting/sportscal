@@ -29,7 +29,10 @@ router.post('/checkout', requireAuth, async (req, res) => {
       const customer = await stripe.customers.create({
         email: user.email,
         name:  user.name,
-        metadata: { user_id: user.id },
+        metadata: {
+          user_id: user.id,
+          ...(user.referral_source && { referral_source: user.referral_source }),
+        },
       });
       customerId = customer.id;
       await query(`UPDATE users SET stripe_customer_id = $1 WHERE id = $2`, [customerId, user.id]);
@@ -43,6 +46,10 @@ router.post('/checkout', requireAuth, async (req, res) => {
       success_url:          `${APP_URL}/settings?upgraded=1`,
       cancel_url:           `${APP_URL}/settings?cancelled=1`,
       allow_promotion_codes: true,
+      metadata: {
+        user_id: user.id,
+        ...(user.referral_source && { referral_source: user.referral_source }),
+      },
     });
 
     res.json({ url: session.url });

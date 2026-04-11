@@ -42,8 +42,8 @@ export function AuthProvider({ children }) {
     setUser(user);
   }
 
-  async function signup(name, email, password) {
-    const { token, user } = await api.auth.signup({ name, email, password });
+  async function signup(name, email, password, referralSource = null) {
+    const { token, user } = await api.auth.signup({ name, email, password, referral_source: referralSource });
     localStorage.setItem('sc_token', token);
     localStorage.setItem('sc_user', JSON.stringify(user));
     setUser(user);

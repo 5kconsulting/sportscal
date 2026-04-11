@@ -249,7 +249,17 @@ router.get('/reports', async (_req, res) => {
       ORDER BY count DESC
     `);
 
-    res.json({ signups, cumulative, plans, mrr, sourceApps });
+    const referralSources = await query(`
+      SELECT
+        COALESCE(referral_source, 'direct') AS source,
+        COUNT(*) AS signups,
+        COUNT(*) FILTER (WHERE plan = 'premium') AS conversions
+      FROM users
+      GROUP BY referral_source
+      ORDER BY signups DESC
+    `);
+
+    res.json({ signups, cumulative, plans, mrr, sourceApps, referralSources });
   } catch (err) {
     console.error('[admin] reports error:', err.message);
     res.status(500).json({ error: err.message });
