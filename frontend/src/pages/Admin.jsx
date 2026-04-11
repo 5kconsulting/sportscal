@@ -528,6 +528,69 @@ function ReportsTab() {
   );
 }
 
+// ---- Email Test Card ----
+function EmailTestCard() {
+  const [status, setStatus] = useState({});
+
+  async function trigger(endpoint, label) {
+    setStatus(s => ({ ...s, [endpoint]: 'loading' }));
+    try {
+      const token = localStorage.getItem('sc_token');
+      const res = await fetch(`/api/admin/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      setStatus(s => ({ ...s, [endpoint]: 'ok' }));
+      setTimeout(() => setStatus(s => ({ ...s, [endpoint]: null })), 3000);
+    } catch (err) {
+      setStatus(s => ({ ...s, [endpoint]: 'error' }));
+      setTimeout(() => setStatus(s => ({ ...s, [endpoint]: null })), 3000);
+    }
+  }
+
+  const tests = [
+    { key: 'test-digest', label: 'Weekly digest email', desc: 'Sends your weekly summary email right now' },
+    { key: 'test-reminder', label: 'Event reminder email', desc: 'Sends a reminder for your next upcoming event' },
+  ];
+
+  return (
+    <div className="card" style={{ padding: 24 }}>
+      <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4, letterSpacing: '-0.01em' }}>Email tests</h3>
+      <p style={{ fontSize: 13, color: 'var(--slate)', marginBottom: 20 }}>Trigger emails immediately for your account to verify templates and delivery.</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {tests.map(t => (
+          <div key={t.key} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 16px', background: 'var(--navy)', borderRadius: 8,
+          }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--white)', marginBottom: 2 }}>{t.label}</div>
+              <div style={{ fontSize: 12, color: 'var(--slate)' }}>{t.desc}</div>
+            </div>
+            <button onClick={() => trigger(t.key, t.label)}
+              disabled={status[t.key] === 'loading'}
+              style={{
+                flexShrink: 0, fontSize: 12, padding: '6px 14px',
+                background: status[t.key] === 'ok' ? 'var(--accent)' :
+                            status[t.key] === 'error' ? '#ef4444' : 'var(--navy-mid)',
+                color: status[t.key] === 'ok' ? 'var(--navy)' : 'var(--white)',
+                border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 500,
+                marginLeft: 16,
+              }}>
+              {status[t.key] === 'loading' ? '...' :
+               status[t.key] === 'ok' ? '✓ Sent' :
+               status[t.key] === 'error' ? '✗ Error' : 'Send test'}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ---- Tools & FAQ ----
 function ToolsTab() {
   const [copied, setCopied] = useState('');
@@ -654,6 +717,9 @@ function ToolsTab() {
           ))}
         </div>
       </div>
+
+      {/* Email tests */}
+      <EmailTestCard />
 
       {/* FAQ */}
       <div className="card" style={{ padding: 24 }}>
