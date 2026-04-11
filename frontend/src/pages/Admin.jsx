@@ -272,6 +272,34 @@ function UsersTab() {
 function UserDetail({ user, onClose, onPlanChange }) {
   const { data, loading } = useAdminFetch(`/api/admin/users/${user.id}`);
   const feedUrl = `https://www.sportscalapp.com/feed/${data?.user?.feed_token}.ics`;
+  const [impersonating, setImpersonating] = useState(false);
+
+  async function handleImpersonate() {
+    if (!confirm(`Log in as ${user.name} (${user.email})? Your current session will be saved and restored when you log out.`)) return;
+    setImpersonating(true);
+    try {
+      const token = localStorage.getItem('sc_token');
+      const res = await fetch(`/api/admin/users/${user.id}/impersonate`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      // Save admin token so we can restore it
+      localStorage.setItem('sc_admin_token', token);
+      localStorage.setItem('sc_admin_user', localStorage.getItem('sc_user'));
+
+      // Switch to impersonated user
+      localStorage.setItem('sc_token', data.token);
+      localStorage.setItem('sc_user', JSON.stringify(data.user));
+
+      window.location.href = '/dashboard';
+    } catch (err) {
+      alert('Failed to impersonate: ' + err.message);
+      setImpersonating(false);
+    }
+  }
 
   return (
     <div style={{
@@ -363,6 +391,10 @@ function UserDetail({ user, onClose, onPlanChange }) {
                   Downgrade to Free
                 </button>
               )}
+              <button className="btn btn-ghost btn-sm" onClick={handleImpersonate} disabled={impersonating}
+                style={{ color: 'var(--accent-dim)', borderColor: 'var(--accent-dim)' }}>
+                {impersonating ? '...' : '👤 Log in as'}
+              </button>
               <button className="btn btn-ghost btn-sm" onClick={onClose}>Close</button>
             </div>
           </>

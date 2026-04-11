@@ -13,10 +13,21 @@ const NAV = [
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const isImpersonating = !!localStorage.getItem('sc_admin_token');
 
   function handleLogout() {
     logout();
     navigate('/login');
+  }
+
+  function handleRestoreAdmin() {
+    const adminToken = localStorage.getItem('sc_admin_token');
+    const adminUser  = localStorage.getItem('sc_admin_user');
+    localStorage.setItem('sc_token', adminToken);
+    localStorage.setItem('sc_user', adminUser);
+    localStorage.removeItem('sc_admin_token');
+    localStorage.removeItem('sc_admin_user');
+    window.location.href = '/admin';
   }
 
   return (
@@ -34,10 +45,30 @@ export default function Layout() {
         }
       `}</style>
 
+      {/* Impersonation banner */}
+      {isImpersonating && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999,
+          background: '#f59e0b', color: '#1a1a1a',
+          padding: '8px 16px', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', gap: 16, fontSize: 13, fontWeight: 600,
+        }}>
+          👤 You are logged in as <strong>{user?.name}</strong> ({user?.email})
+          <button onClick={handleRestoreAdmin} style={{
+            background: '#1a1a1a', color: '#f59e0b', border: 'none',
+            borderRadius: 6, padding: '4px 12px', fontSize: 12,
+            fontWeight: 700, cursor: 'pointer',
+          }}>
+            ← Back to Admin
+          </button>
+        </div>
+      )}
+
       {/* Sidebar (desktop) */}
       <aside className="sidebar" style={{
         width: 'var(--sidebar-w)',
         background: 'var(--navy)',
+        marginTop: isImpersonating ? '37px' : 0,
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,

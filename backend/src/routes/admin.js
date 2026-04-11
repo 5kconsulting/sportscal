@@ -103,6 +103,30 @@ router.get('/users', async (req, res) => {
 });
 
 // ============================================================
+// POST /api/admin/users/:id/impersonate
+// Generate a short-lived token to log in as another user
+// ============================================================
+router.post('/users/:id/impersonate', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const user = await queryOne(`SELECT * FROM users WHERE id = $1`, [req.params.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Generate a short-lived JWT (1 hour) for the target user
+    const jwt = await import('jsonwebtoken');
+    const token = jwt.default.sign(
+      { sub: user.id, impersonated_by: req.user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+  } catch (err) {
+    console.error('[admin] impersonate error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
 // GET /api/admin/users/:id
 // Single user detail with sources and recent events
 // ============================================================
