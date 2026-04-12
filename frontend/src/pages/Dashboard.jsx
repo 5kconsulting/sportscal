@@ -599,6 +599,11 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {} }) {
   const [logistics, setLogistics] = useState([]);
   const [overrides, setOverrides] = useState(eventOverrides);
 
+  // Sync overrides when the parent loads them asynchronously
+  useEffect(() => {
+    setOverrides(eventOverrides);
+  }, [eventOverrides]);
+
   // Compute attendance status from overrides
   const notGoingKids = event.kids?.filter(k => overrides[k.id] === false) || [];
   const allNotGoing = event.kids?.length > 0 && notGoingKids.length === event.kids.length;
