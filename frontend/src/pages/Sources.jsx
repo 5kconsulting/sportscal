@@ -313,6 +313,16 @@ const APP_INSTRUCTIONS = {
 function SourceHelpModal({ app, onClose }) {
   const info = APP_INSTRUCTIONS[app] || APP_INSTRUCTIONS.custom;
   const [view, setView] = useState('mobile');
+  const [gcStep, setGcStep] = useState(0);
+
+  const GC_STEPS = [
+    { img: '/gc-step1.png', caption: 'Open GameChanger and tap your team' },
+    { img: '/gc-step2.png', caption: 'Tap the ⚙️ Settings gear (top right)' },
+    { img: '/gc-step3.png', caption: 'Tap Schedule Sync' },
+    { img: '/gc-step4.png', caption: 'Tap "Sync Schedule to Your Calendar"' },
+    { img: '/gc-step5.png', caption: '"Calendar link copied" — link is in your clipboard!' },
+    { img: '/gc-step6.png', caption: 'Paste the link into SportsCal\'s iCal URL field' },
+  ];
 
   return (
     <div style={{
@@ -321,18 +331,9 @@ function SourceHelpModal({ app, onClose }) {
     }}>
       <style>{`
         @media (min-width: 641px) {
-          .help-modal { border-radius: 16px !important; margin: auto !important; max-width: ${app === 'gamechanger' ? '680px' : '520px'} !important; }
+          .help-modal { border-radius: 16px !important; margin: auto !important; max-width: 520px !important; }
           .help-wrap { align-items: center !important; padding: 20px !important; }
         }
-        @keyframes gc-tap { 0%,100%{transform:scale(1);opacity:0} 10%{opacity:1} 40%{transform:scale(0.85);opacity:1} 60%{transform:scale(1);opacity:1} 90%{opacity:0} }
-        @keyframes gc-slide { 0%,100%{transform:translateX(100%);opacity:0} 15%,85%{transform:translateX(0);opacity:1} }
-        @keyframes gc-highlight { 0%,100%{background:transparent} 50%{background:rgba(0,214,143,0.25)} }
-        .gc-step1 { animation: gc-slide 4s ease-in-out 0s infinite; }
-        .gc-step2 { animation: gc-slide 4s ease-in-out 4s infinite; }
-        .gc-step3 { animation: gc-slide 4s ease-in-out 8s infinite; }
-        .gc-tap1  { animation: gc-tap  1s ease-in-out 1.5s infinite 3; }
-        .gc-tap2  { animation: gc-tap  1s ease-in-out 5.5s infinite 3; }
-        .gc-tap3  { animation: gc-tap  1s ease-in-out 9.5s infinite 3; }
       `}</style>
       <div className="help-wrap" style={{ width: '100%', display: 'flex', alignItems: 'flex-end' }}>
         <div className="card help-modal" style={{
@@ -347,96 +348,7 @@ function SourceHelpModal({ app, onClose }) {
             <button onClick={onClose} style={{ fontSize: 22, color: 'var(--slate)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}>×</button>
           </div>
 
-          {/* GameChanger animated illustration */}
-          {app === 'gamechanger' && view === 'mobile' && (
-            <div style={{ display: 'flex', gap: 20, marginBottom: 20, alignItems: 'flex-start' }}>
-              {/* Phone mockup */}
-              <div style={{ flexShrink: 0, width: 160, position: 'relative' }}>
-                <div style={{
-                  width: 160, height: 280, borderRadius: 24, background: '#1a1a2e',
-                  border: '3px solid #333', position: 'relative', overflow: 'hidden',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                }}>
-                  {/* Status bar */}
-                  <div style={{ background: '#111', height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: 40, height: 6, borderRadius: 3, background: '#333' }} />
-                  </div>
-
-                  {/* Screen content - Step 1: Team Schedule with gear */}
-                  <div className="gc-step1" style={{ position: 'absolute', top: 28, left: 0, right: 0, bottom: 0, background: '#fff', padding: '12px 10px' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: '#333', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>9U Gold Schedule</span>
-                      <div className="gc-tap1" style={{ width: 22, height: 22, borderRadius: '50%', background: '#00d68f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>⚙️</div>
-                    </div>
-                    {['Apr 14 · 6:00 PM', 'Apr 16 · 5:30 PM', 'Apr 19 · 9:00 AM'].map((t, i) => (
-                      <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid #eee', fontSize: 9, color: '#555' }}>{t} · Practice</div>
-                    ))}
-                    <div style={{ marginTop: 8, fontSize: 9, color: '#999', textAlign: 'center' }}>Tap ⚙️ gear icon →</div>
-                  </div>
-
-                  {/* Screen content - Step 2: Settings menu */}
-                  <div className="gc-step2" style={{ position: 'absolute', top: 28, left: 0, right: 0, bottom: 0, background: '#fff', padding: '12px 10px' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: '#333', marginBottom: 10 }}>Settings</div>
-                    {['Team Info', 'Notifications'].map((item, i) => (
-                      <div key={i} style={{ padding: '7px 0', borderBottom: '1px solid #eee', fontSize: 10, color: '#555' }}>{item}</div>
-                    ))}
-                    <div className="gc-tap2" style={{ padding: '7px 0', borderBottom: '1px solid #eee', fontSize: 10, fontWeight: 700, color: '#00d68f', background: 'rgba(0,214,143,0.1)', borderRadius: 4, paddingLeft: 4 }}>
-                      📅 Schedule Sync
-                    </div>
-                    <div style={{ padding: '7px 0', fontSize: 10, color: '#555' }}>Privacy</div>
-                    <div style={{ marginTop: 8, fontSize: 9, color: '#999', textAlign: 'center' }}>Tap "Schedule Sync" →</div>
-                  </div>
-
-                  {/* Screen content - Step 3: Send Link */}
-                  <div className="gc-step3" style={{ position: 'absolute', top: 28, left: 0, right: 0, bottom: 0, background: '#fff', padding: '12px 10px' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: '#333', marginBottom: 8 }}>Schedule Sync</div>
-                    <div style={{ fontSize: 9, color: '#666', marginBottom: 10, lineHeight: 1.4 }}>Sync your team schedule to your calendar app.</div>
-                    <div className="gc-tap3" style={{
-                      background: '#00d68f', borderRadius: 8, padding: '8px',
-                      fontSize: 10, fontWeight: 700, color: '#0f1629', textAlign: 'center', marginBottom: 6,
-                    }}>
-                      📧 Send Link & Instructions
-                    </div>
-                    <div style={{ background: '#f5f5f5', borderRadius: 8, padding: '8px', fontSize: 10, color: '#333', textAlign: 'center' }}>
-                      Sync to Apple Calendar
-                    </div>
-                    <div style={{ marginTop: 8, fontSize: 9, color: '#999', textAlign: 'center' }}>Email yourself the link!</div>
-                  </div>
-                </div>
-                <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--slate)', marginTop: 8 }}>GameChanger app</div>
-              </div>
-
-              {/* Steps on right */}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-dim)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Follow these steps</div>
-                <ol style={{ paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 0 }}>
-                  {info.steps.map((step, i) => (
-                    <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                      <div style={{
-                        width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                        background: 'var(--accent)', color: 'var(--navy)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 11, fontWeight: 700, marginTop: 1,
-                      }}>
-                        {i + 1}
-                      </div>
-                      <div style={{ fontSize: 13, color: 'var(--navy)', lineHeight: 1.6, paddingTop: 2 }}>
-                        {step}
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            </div>
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}>
-              How to find your {info.label} iCal URL
-            </h3>
-            <button onClick={onClose} style={{ fontSize: 22, color: 'var(--slate)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}>×</button>
-          </div>
-
-          {/* Mobile/Web toggle if webSteps exist */}
+          {/* Mobile/Web toggle */}
           {info.webSteps && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
               {['mobile', 'web'].map(v => (
@@ -452,43 +364,120 @@ function SourceHelpModal({ app, onClose }) {
             </div>
           )}
 
-          {/* Steps — skip for GameChanger mobile since illustration handles it */}
-          {!(app === 'gamechanger' && view === 'mobile') && (
-            <ol style={{ paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-              {(view === 'web' && info.webSteps ? info.webSteps : info.steps).map((step, i) => (
-                <li key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                    background: 'var(--accent)', color: 'var(--navy)',
+          {/* GameChanger photo slideshow */}
+          {app === 'gamechanger' && view === 'mobile' ? (
+            <div>
+              {/* Photo */}
+              <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', marginBottom: 12, background: 'var(--off-white)' }}>
+                <img
+                  src={GC_STEPS[gcStep].img}
+                  alt={`Step ${gcStep + 1}`}
+                  style={{ width: '100%', display: 'block', maxHeight: 420, objectFit: 'contain' }}
+                />
+                {/* Prev / Next overlay buttons */}
+                {gcStep > 0 && (
+                  <button onClick={() => setGcStep(s => s - 1)} style={{
+                    position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
+                    background: 'rgba(15,22,41,0.7)', border: 'none', borderRadius: '50%',
+                    width: 36, height: 36, color: 'white', fontSize: 18, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 12, fontWeight: 700, marginTop: 1,
-                  }}>
-                    {i + 1}
-                  </div>
-                  <div style={{ fontSize: 14, color: 'var(--navy)', lineHeight: 1.6, paddingTop: 3 }}>
-                    {step}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
+                  }}>‹</button>
+                )}
+                {gcStep < GC_STEPS.length - 1 && (
+                  <button onClick={() => setGcStep(s => s + 1)} style={{
+                    position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                    background: 'rgba(15,22,41,0.7)', border: 'none', borderRadius: '50%',
+                    width: 36, height: 36, color: 'white', fontSize: 18, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>›</button>
+                )}
+                {/* Step badge */}
+                <div style={{
+                  position: 'absolute', top: 10, left: 10,
+                  background: 'var(--accent)', color: 'var(--navy)',
+                  borderRadius: '50%', width: 28, height: 28,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 13, fontWeight: 700,
+                }}>{gcStep + 1}</div>
+              </div>
 
-          {/* Note */}
-          {info.note && (
-            <div style={{
-              background: 'var(--off-white)', borderRadius: 8,
-              padding: '12px 14px', marginBottom: 20,
-              fontSize: 13, color: 'var(--slate)', lineHeight: 1.6,
-              borderLeft: '3px solid var(--accent)',
-            }}>
-              💡 {info.note}
+              {/* Caption */}
+              <div style={{
+                fontSize: 14, fontWeight: 500, color: 'var(--navy)',
+                textAlign: 'center', marginBottom: 12, minHeight: 40,
+                lineHeight: 1.5,
+              }}>
+                {GC_STEPS[gcStep].caption}
+              </div>
+
+              {/* Dot indicators */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 16 }}>
+                {GC_STEPS.map((_, i) => (
+                  <button key={i} onClick={() => setGcStep(i)} style={{
+                    width: i === gcStep ? 20 : 8, height: 8, borderRadius: 4,
+                    background: i === gcStep ? 'var(--accent)' : 'var(--border)',
+                    border: 'none', cursor: 'pointer', padding: 0,
+                    transition: 'all 0.2s',
+                  }} />
+                ))}
+              </div>
+
+              {/* Prev/Next buttons */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+                {gcStep > 0 && (
+                  <button className="btn btn-ghost btn-sm" onClick={() => setGcStep(s => s - 1)} style={{ flex: 1 }}>
+                    ← Previous
+                  </button>
+                )}
+                {gcStep < GC_STEPS.length - 1 ? (
+                  <button className="btn btn-primary btn-sm" onClick={() => setGcStep(s => s + 1)} style={{ flex: 1, justifyContent: 'center' }}>
+                    Next step →
+                  </button>
+                ) : (
+                  <button className="btn btn-primary btn-sm" onClick={onClose} style={{ flex: 1, justifyContent: 'center' }}>
+                    Got it — paste the URL ✓
+                  </button>
+                )}
+              </div>
             </div>
-          )}
+          ) : (
+            <>
+              {/* Standard steps */}
+              <ol style={{ paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                {(view === 'web' && info.webSteps ? info.webSteps : info.steps).map((step, i) => (
+                  <li key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                    <div style={{
+                      width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                      background: 'var(--accent)', color: 'var(--navy)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 700, marginTop: 1,
+                    }}>
+                      {i + 1}
+                    </div>
+                    <div style={{ fontSize: 14, color: 'var(--navy)', lineHeight: 1.6, paddingTop: 3 }}>
+                      {step}
+                    </div>
+                  </li>
+                ))}
+              </ol>
 
-          <button onClick={onClose} className="btn btn-primary"
-            style={{ width: '100%', justifyContent: 'center' }}>
-            Got it — let me paste the URL
-          </button>
+              {info.note && (
+                <div style={{
+                  background: 'var(--off-white)', borderRadius: 8,
+                  padding: '12px 14px', marginBottom: 20,
+                  fontSize: 13, color: 'var(--slate)', lineHeight: 1.6,
+                  borderLeft: '3px solid var(--accent)',
+                }}>
+                  💡 {info.note}
+                </div>
+              )}
+
+              <button onClick={onClose} className="btn btn-primary"
+                style={{ width: '100%', justifyContent: 'center' }}>
+                Got it — let me paste the URL
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
