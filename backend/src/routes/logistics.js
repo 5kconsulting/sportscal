@@ -85,7 +85,7 @@ router.post('/:eventId', requireAuth, async (req, res) => {
       const declineUrl = `${APP_URL}/api/logistics/respond/${token}/declined`;
 
       const eventDate = new Date(event.starts_at).toLocaleDateString('en-US', {
-        weekday: 'long', month: 'long', day: 'numeric'
+        weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles'
       });
       const eventTime = new Date(event.starts_at).toLocaleTimeString('en-US', {
         hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles'
@@ -109,7 +109,7 @@ router.post('/:eventId', requireAuth, async (req, res) => {
     // Send SMS if requested
     if (sendSms) {
       const eventDate = new Date(event.starts_at).toLocaleDateString('en-US', {
-        weekday: 'short', month: 'short', day: 'numeric'
+        weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles'
       });
       const eventTime = new Date(event.starts_at).toLocaleTimeString('en-US', {
         hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles'
@@ -194,7 +194,7 @@ router.get('/respond/:token/:action', async (req, res) => {
 
     // Notify parent
     const eventDate = new Date(logistics.starts_at).toLocaleDateString('en-US', {
-      weekday: 'long', month: 'long', day: 'numeric'
+      weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles'
     });
     const eventTime = new Date(logistics.starts_at).toLocaleTimeString('en-US', {
       hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles'
