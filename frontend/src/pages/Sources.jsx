@@ -738,6 +738,9 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
       <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 20 }}>
         {isEditing ? `Edit — ${initial.name}` : 'Add a source'}
       </h3>
+
+      {showHelp && <SourceHelpModal app={app} onClose={() => setShowHelp(false)} />}
+
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
         {!isEditing && (
@@ -757,8 +760,6 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
             </select>
           </div>
         )}
-
-        {showHelp && <SourceHelpModal app={app} onClose={() => setShowHelp(false)} />}
 
         <div className="field">
           <label>Label <span style={{ color: 'var(--slate-light)' }}>(optional)</span></label>
