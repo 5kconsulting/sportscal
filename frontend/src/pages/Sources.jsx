@@ -60,6 +60,7 @@ const APP_OPTIONS = [
   { value: '360player',     label: '360Player',     fetchType: 'ical' },
   { value: 'sportsyou',     label: 'SportsYou',     fetchType: 'ical' },
   { value: 'band',          label: 'BAND',           fetchType: 'ical' },
+  { value: 'rankone',       label: 'RankOne',        fetchType: 'ical' },
   { value: 'custom',        label: 'Custom iCal',   fetchType: 'ical' },
 ];
 
@@ -307,6 +308,17 @@ const APP_INSTRUCTIONS = {
       'Paste it in the iCal URL field below.',
     ],
     note: 'The BAND calendar URL is unique to your group. Any events added or updated in BAND will automatically sync to your SportsCal feed.',
+  },
+  rankone: {
+    label: 'RankOne',
+    steps: [
+      'Log in to your RankOne account at rankone.com.',
+      'Navigate to your team or activity\'s schedule/calendar page.',
+      'Look for a "Subscribe" or "iCal" or "Export Calendar" link below the schedule.',
+      'Click it to get the calendar URL, or right-click and copy the link.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'RankOne is used by many school athletic programs. The iCal URL is usually found on the team schedule page. If you can\'t find it, ask your athletic director.',
   },
 };
 
@@ -722,7 +734,7 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
-    const appLabels = { teamsnap:'TeamSnap', teamsnapone:'TeamSnap ONE', gamechanger:'GameChanger', playmetrics:'PlayMetrics', teamsideline:'TeamSideline', byga:'BYGA', sportsengine:'SportsEngine', teamreach:'TeamReach', leagueapps:'LeagueApps', demosphere:'Demosphere', '360player':'360Player', sportsyou:'SportsYou', band:'BAND', custom:'Custom' };
+    const appLabels = { teamsnap:'TeamSnap', teamsnapone:'TeamSnap ONE', gamechanger:'GameChanger', playmetrics:'PlayMetrics', teamsideline:'TeamSideline', byga:'BYGA', sportsengine:'SportsEngine', teamreach:'TeamReach', leagueapps:'LeagueApps', demosphere:'Demosphere', '360player':'360Player', sportsyou:'SportsYou', band:'BAND', rankone:'RankOne', custom:'Custom' };
     await onSave({
       name:       name || appLabels[app] || app,
       app,
