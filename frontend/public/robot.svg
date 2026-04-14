@@ -1,0 +1,97 @@
+<svg width="680" height="680" viewBox="0 0 680 680" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>SportsCal calendar robot mascot</title>
+  <desc>A friendly robot with a calendar for a body, in SportsCal navy and green brand colors</desc>
+
+  <!-- HEAD -->
+  <rect x="240" y="60" width="200" height="170" rx="32" fill="#1a2540"/>
+  <rect x="240" y="60" width="200" height="170" rx="32" fill="none" stroke="#00d68f" stroke-width="2.5"/>
+
+  <!-- Antenna base -->
+  <rect x="330" y="30" width="20" height="36" rx="8" fill="#1a2540" stroke="#00d68f" stroke-width="2"/>
+  <!-- Antenna ball -->
+  <circle cx="340" cy="24" r="10" fill="#00d68f"/>
+  <circle cx="340" cy="24" r="5" fill="#0f1629"/>
+
+  <!-- Eyes -->
+  <rect x="263" y="98" width="64" height="48" rx="10" fill="#0f1629" stroke="#00d68f" stroke-width="2"/>
+  <rect x="353" y="98" width="64" height="48" rx="10" fill="#0f1629" stroke="#00d68f" stroke-width="2"/>
+  <ellipse cx="295" cy="122" rx="16" ry="12" fill="#00d68f" opacity="0.9"/>
+  <ellipse cx="385" cy="122" rx="16" ry="12" fill="#00d68f" opacity="0.9"/>
+  <circle cx="295" cy="122" r="6" fill="#0f1629"/>
+  <circle cx="385" cy="122" r="6" fill="#0f1629"/>
+  <circle cx="302" cy="116" r="3" fill="#00d68f" opacity="0.6"/>
+  <circle cx="392" cy="116" r="3" fill="#00d68f" opacity="0.6"/>
+
+  <!-- Mouth -->
+  <rect x="275" y="176" width="130" height="26" rx="13" fill="#0f1629" stroke="#00d68f" stroke-width="1.5"/>
+  <line x1="296" y1="176" x2="296" y2="202" stroke="#00d68f" stroke-width="1.5" opacity="0.5"/>
+  <line x1="322" y1="176" x2="322" y2="202" stroke="#00d68f" stroke-width="1.5" opacity="0.5"/>
+  <line x1="358" y1="176" x2="358" y2="202" stroke="#00d68f" stroke-width="1.5" opacity="0.5"/>
+  <line x1="384" y1="176" x2="384" y2="202" stroke="#00d68f" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- Ear bolts -->
+  <circle cx="236" cy="130" r="12" fill="#1a2540" stroke="#00d68f" stroke-width="2"/>
+  <circle cx="236" cy="130" r="5" fill="#00d68f" opacity="0.4"/>
+  <circle cx="444" cy="130" r="12" fill="#1a2540" stroke="#00d68f" stroke-width="2"/>
+  <circle cx="444" cy="130" r="5" fill="#00d68f" opacity="0.4"/>
+
+  <!-- NECK -->
+  <rect x="316" y="228" width="48" height="28" rx="6" fill="#1a2540" stroke="#8896b0" stroke-width="1.5"/>
+  <line x1="316" y1="238" x2="364" y2="238" stroke="#8896b0" stroke-width="1" opacity="0.5"/>
+  <line x1="316" y1="248" x2="364" y2="248" stroke="#8896b0" stroke-width="1" opacity="0.5"/>
+
+  <!-- BODY -->
+  <rect x="190" y="254" width="300" height="260" rx="20" fill="#1a2540" stroke="#00d68f" stroke-width="2.5"/>
+
+  <!-- Calendar header -->
+  <rect x="190" y="254" width="300" height="72" rx="20" fill="#00d68f"/>
+  <rect x="190" y="294" width="300" height="32" fill="#00d68f"/>
+
+  <!-- Calendar ring bolts -->
+  <rect x="244" y="238" width="16" height="38" rx="8" fill="#243050" stroke="#00d68f" stroke-width="2"/>
+  <rect x="420" y="238" width="16" height="38" rx="8" fill="#243050" stroke="#00d68f" stroke-width="2"/>
+
+  <!-- Calendar month label -->
+  <text x="340" y="284" text-anchor="middle" font-family="'DM Sans', Arial, sans-serif" font-size="18" font-weight="700" fill="#0f1629">APRIL</text>
+
+  <!-- Calendar grid dots -->
+  <circle cx="240" cy="358" r="7" fill="#00d68f" opacity="0.7"/>
+  <circle cx="284" cy="358" r="7" fill="#00d68f" opacity="0.7"/>
+  <circle cx="328" cy="358" r="7" fill="#00d68f" opacity="0.7"/>
+  <circle cx="372" cy="358" r="7" fill="#00d68f" opacity="0.7"/>
+  <circle cx="416" cy="358" r="7" fill="#00d68f" opacity="0.7"/>
+  <circle cx="240" cy="396" r="7" fill="#00d68f" opacity="0.45"/>
+  <circle cx="284" cy="396" r="7" fill="#00d68f" opacity="0.45"/>
+  <circle cx="328" cy="396" r="9" fill="#00d68f"/>
+  <circle cx="372" cy="396" r="7" fill="#00d68f" opacity="0.45"/>
+  <circle cx="416" cy="396" r="7" fill="#00d68f" opacity="0.45"/>
+  <circle cx="240" cy="434" r="7" fill="#00d68f" opacity="0.25"/>
+  <circle cx="284" cy="434" r="7" fill="#00d68f" opacity="0.25"/>
+  <circle cx="328" cy="434" r="7" fill="#00d68f" opacity="0.25"/>
+  <circle cx="372" cy="434" r="7" fill="#00d68f" opacity="0.45"/>
+  <circle cx="416" cy="434" r="7" fill="#00d68f" opacity="0.25"/>
+  <circle cx="240" cy="472" r="7" fill="#00d68f" opacity="0.15"/>
+  <circle cx="284" cy="472" r="7" fill="#00d68f" opacity="0.15"/>
+  <circle cx="328" cy="472" r="7" fill="#00d68f" opacity="0.15"/>
+  <circle cx="372" cy="472" r="7" fill="#00d68f" opacity="0.15"/>
+  <circle cx="416" cy="472" r="7" fill="#00d68f" opacity="0.15"/>
+
+  <!-- ARMS -->
+  <rect x="118" y="270" width="76" height="32" rx="16" fill="#1a2540" stroke="#8896b0" stroke-width="1.5"/>
+  <circle cx="108" cy="286" r="20" fill="#1a2540" stroke="#00d68f" stroke-width="2"/>
+  <circle cx="96" cy="278" r="7" fill="#243050" stroke="#00d68f" stroke-width="1.5"/>
+  <circle cx="108" cy="272" r="7" fill="#243050" stroke="#00d68f" stroke-width="1.5"/>
+  <circle cx="120" cy="278" r="7" fill="#243050" stroke="#00d68f" stroke-width="1.5"/>
+
+  <rect x="486" y="270" width="76" height="32" rx="16" fill="#1a2540" stroke="#8896b0" stroke-width="1.5"/>
+  <circle cx="572" cy="286" r="20" fill="#1a2540" stroke="#00d68f" stroke-width="2"/>
+  <circle cx="560" cy="278" r="7" fill="#243050" stroke="#00d68f" stroke-width="1.5"/>
+  <circle cx="572" cy="272" r="7" fill="#243050" stroke="#00d68f" stroke-width="1.5"/>
+  <circle cx="584" cy="278" r="7" fill="#243050" stroke="#00d68f" stroke-width="1.5"/>
+
+  <!-- LEGS -->
+  <rect x="232" y="510" width="56" height="90" rx="16" fill="#1a2540" stroke="#8896b0" stroke-width="1.5"/>
+  <rect x="216" y="588" width="80" height="28" rx="12" fill="#1a2540" stroke="#00d68f" stroke-width="2"/>
+  <rect x="392" y="510" width="56" height="90" rx="16" fill="#1a2540" stroke="#8896b0" stroke-width="1.5"/>
+  <rect x="384" y="588" width="80" height="28" rx="12" fill="#1a2540" stroke="#00d68f" stroke-width="2"/>
+</svg>

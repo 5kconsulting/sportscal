@@ -268,7 +268,7 @@ export default function SetupAgent({ onSourceAdded }) {
 
         <div className="card" style={{ padding: 32, textAlign: 'center' }}>
           <div style={{ marginBottom: 16 }}>
-            <img src="/favicon.svg" alt="SportsCal" style={{ width: 64, height: 64, borderRadius: 14 }} />
+            <img src="/robot.svg" alt="SportsCal" style={{ width: 120, height: 120, marginBottom: 16 }} />
           </div>
           <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8, letterSpacing: '-0.01em' }}>
             Your calendar setup assistant
@@ -357,13 +357,13 @@ export default function SetupAgent({ onSourceAdded }) {
               justifyContent: isUser ? 'flex-end' : 'flex-start',
             }}>
               {!isUser && (
-                <div style={{
+               <div style={{
                 width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-                background: 'var(--accent)', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', marginRight: 8, marginTop: 2, flexShrink: 0,
+                background: 'var(--navy)', display: 'flex', alignItems: 'center',
+                justifyContent: 'center',
             }}>
-            <img src="/favicon.svg" alt="" style={{ width: 20, height: 20, borderRadius: 4 }} />
-                </div>
+              <img src="/robot.svg" alt="" style={{ width: 22, height: 22 }} />
+              </div>
               )}
               <div style={{
                 maxWidth: '78%',
@@ -392,10 +392,12 @@ export default function SetupAgent({ onSourceAdded }) {
         {loading && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{
-              width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-              background: 'var(--accent)', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: 14,
-            }}>🤖</div>
+            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+            background: 'var(--navy)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center',
+        }}>
+          <img src="/robot.svg" alt="" style={{ width: 22, height: 22 }} />
+          </div>
             <div style={{
               padding: '10px 14px', borderRadius: '16px 16px 16px 4px',
               border: '1px solid var(--border)', background: 'var(--card-bg, #fff)',
