@@ -281,8 +281,8 @@ function LinkIcon({ color = 'currentColor' }) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
       <path d="M6.5 9.5l3-3" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M5 7.5L3.5 9A3.182 3.182 0 007 12.5l1.5-1.5" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M8.5 5.5L10 4A3.182 3.182 0 006.5.5L5 2" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M4.5 8.5L3 10a3 3 0 004.243 4.243L9 12.5" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M7 3.5l1.757-1.757A3 3 0 0113 6l-1.5 1.5" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
