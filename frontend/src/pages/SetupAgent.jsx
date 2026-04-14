@@ -360,10 +360,10 @@ export default function SetupAgent({ onSourceAdded }) {
                <div style={{
                 width: 28, height: 28, borderRadius: 8, flexShrink: 0,
                 background: 'var(--navy)', display: 'flex', alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: 'center', marginRight: 8, marginTop: 2,
             }}>
-              <img src="/robot.svg" alt="" style={{ width: 22, height: 22 }} />
-              </div>
+              <img src="/robot-head.svg" alt="" style={{ width: 24, height: 24 }} />
+                </div>
               )}
               <div style={{
                 maxWidth: '78%',
@@ -392,12 +392,12 @@ export default function SetupAgent({ onSourceAdded }) {
         {loading && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{
-            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-            background: 'var(--navy)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center',
-        }}>
-          <img src="/robot.svg" alt="" style={{ width: 22, height: 22 }} />
-          </div>
+              width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+              background: 'var(--navy)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', marginRight: 8, marginTop: 2,
+            }}>
+             <img src="/robot-head.svg" alt="" style={{ width: 24, height: 24 }} />
+            </div>
             <div style={{
               padding: '10px 14px', borderRadius: '16px 16px 16px 4px',
               border: '1px solid var(--border)', background: 'var(--card-bg, #fff)',
