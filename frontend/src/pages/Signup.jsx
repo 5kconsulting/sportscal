@@ -53,6 +53,7 @@ export default function Signup() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 48 }}>
             <LogoMark size={40} />
+              <span style={{ fontSize: 20, fontWeight: 600, color: 'var(--white)', letterSpacing: '-0.02em' }}>SportsCal</span>
           </div>
           <h1 style={{
             fontSize: 36, fontWeight: 600, color: 'var(--white)',
@@ -72,6 +73,7 @@ export default function Signup() {
             {/* Mobile logo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32, justifyContent: 'center' }}>
               <LogoMark size={36} />
+                <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--white)', letterSpacing: '-0.02em' }}>SportsCal</span>
             </div>
 
             <div className="card fade-up" style={{ padding: '32px' }}>

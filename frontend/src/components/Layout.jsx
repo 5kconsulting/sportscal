@@ -74,9 +74,7 @@ export default function Layout() {
         flexShrink: 0,
       }}>
         <div style={{ padding: '20px 24px 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <LogoMark size={36} />
-          </div>
+          <LogoMark size={32} />
         </div>
 
         <nav style={{ flex: 1, padding: '0 12px' }}>
