@@ -267,7 +267,9 @@ export default function SetupAgent({ onSourceAdded }) {
         </div>
 
         <div className="card" style={{ padding: 32, textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🤖</div>
+          <div style={{ marginBottom: 16 }}>
+            <img src="/favicon.svg" alt="SportsCal" style={{ width: 64, height: 64, borderRadius: 14 }} />
+          </div>
           <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8, letterSpacing: '-0.01em' }}>
             Your calendar setup assistant
           </h2>
@@ -356,10 +358,12 @@ export default function SetupAgent({ onSourceAdded }) {
             }}>
               {!isUser && (
                 <div style={{
-                  width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                  background: 'var(--accent)', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', fontSize: 14, marginRight: 8, marginTop: 2,
-                }}>🤖</div>
+                width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                background: 'var(--accent)', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', marginRight: 8, marginTop: 2, flexShrink: 0,
+            }}>
+            <img src="/favicon.svg" alt="" style={{ width: 20, height: 20, borderRadius: 4 }} />
+                </div>
               )}
               <div style={{
                 maxWidth: '78%',

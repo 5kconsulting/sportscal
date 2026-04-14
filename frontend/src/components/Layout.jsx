@@ -313,3 +313,22 @@ function BallIcon() {
     </svg>
   );
 }
+function LightbulbIcon({ color = 'currentColor' }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M8 1.5a4.5 4.5 0 00-2 8.5v1a1 1 0 001 1h2a1 1 0 001-1v-1a4.5 4.5 0 00-2-8.5z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
+      <path d="M6 13.5h4" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function BugIcon({ color = 'currentColor' }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <ellipse cx="8" cy="9" rx="3.5" ry="4.5" stroke={color} strokeWidth="1.5"/>
+      <path d="M5.5 7A2.5 2.5 0 018 4.5 2.5 2.5 0 0110.5 7" stroke={color} strokeWidth="1.5"/>
+      <path d="M4.5 8H2M11.5 8H14M4.5 10.5H2M11.5 10.5H14M6 13.5c0 .8.9 1.5 2 1.5s2-.7 2-1.5" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M6.5 4.5L5 3M9.5 4.5L11 3" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
