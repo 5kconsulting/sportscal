@@ -220,9 +220,9 @@ async function validateAndAssignKids(sourceId, kidIds, userId, res) {
 
 async function triggerFetch(source) {
   if (source.fetch_type === 'scrape') {
-    await enqueueScrapeFetch(source, { priority: 1 });
+    await enqueueScrapeFetch(source, { priority: 1, force: true });
   } else {
-    await enqueueIcalFetch(source, { priority: 1 });
+    await enqueueIcalFetch(source, { priority: 1, force: true });
   }
 }
 

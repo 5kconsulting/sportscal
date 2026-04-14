@@ -514,40 +514,34 @@ export default function Sources() {
   }, []);
 
   async function handleRefresh(id) {
-    setRefreshing(r => ({ ...r, [id]: true }));
-    try {
-      await api.sources.refresh(id);
-      // Poll for updated source data — worker is async so wait up to 15s
-      let attempts = 0;
-      const poll = setInterval(async () => {
-        attempts++;
-        try {
-          const { sources: updated } = await api.sources.list();
-          const fresh = updated.find(s => s.id === id);
-          if (fresh) {
-            setSources(updated.filter(s => s.name !== '__manual__'));
-          }
-        } catch {}
-        if (attempts >= 10) {
+  setRefreshing(r => ({ ...r, [id]: true }));
+  try {
+    await api.sources.refresh(id);
+    const originalSource = sources.find(s => s.id === id);
+    const originalFetchedAt = originalSource?.last_fetched_at;
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts++;
+      try {
+        const { sources: updated } = await api.sources.list();
+        const fresh = updated.find(s => s.id === id);
+        if (fresh && fresh.last_fetched_at !== originalFetchedAt) {
+          setSources(updated.filter(s => s.name !== '__manual__'));
           clearInterval(poll);
           setRefreshing(r => ({ ...r, [id]: false }));
+          return;
         }
-      }, 1500);
-    } catch (err) {
-      setError(err.message);
-      setRefreshing(r => ({ ...r, [id]: false }));
-    }
+      } catch {}
+      if (attempts >= 15) {
+        clearInterval(poll);
+        setRefreshing(r => ({ ...r, [id]: false }));
+      }
+    }, 1500);
+  } catch (err) {
+    setError(err.message);
+    setRefreshing(r => ({ ...r, [id]: false }));
   }
-
-  async function handleDelete(id) {
-    if (!confirm('Remove this source? All events from it will be deleted.')) return;
-    try {
-      await api.sources.delete(id);
-      setSources(s => s.filter(s => s.id !== id));
-    } catch (err) {
-      setError(err.message);
-    }
-  }
+}
 
   async function handleToggle(source) {
     try {

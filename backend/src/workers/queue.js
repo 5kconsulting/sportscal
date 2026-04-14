@@ -49,18 +49,24 @@ export const JobType = {
 };
 
 export async function enqueueIcalFetch(source, opts = {}) {
+  const jobId = opts.force
+    ? `ical:${source.id}:${Date.now()}`
+    : `ical:${source.id}`;
   return icalQueue.add(
     JobType.FETCH_ICAL,
     { sourceId: source.id, userId: source.user_id },
-    { jobId: `ical-${source.id}`, priority: opts.priority || 10 }
+    { jobId, priority: opts.priority || 10 }
   );
 }
 
 export async function enqueueScrapeFetch(source, opts = {}) {
+  const jobId = opts.force
+    ? `scrape:${source.id}:${Date.now()}`
+    : `scrape:${source.id}`;
   return scrapeQueue.add(
     JobType.FETCH_SCRAPE,
     { sourceId: source.id, userId: source.user_id },
-    { jobId: `scrape-${source.id}`, priority: opts.priority || 10 }
+    { jobId, priority: opts.priority || 10 }
   );
 }
 
