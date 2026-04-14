@@ -1,7 +1,7 @@
 export function LogoMark({ size = 32 }) {
   const iconSize = Math.round(size * 1.25);
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <img
         src="/logomark.svg"
         alt="SportsCal icon"
@@ -14,7 +14,7 @@ export function LogoMark({ size = 32 }) {
         letterSpacing: '-0.02em',
         lineHeight: 1,
         fontFamily: "'DM Sans', sans-serif",
-        marginBottom: Math.round(size * 0.09),
+        marginTop: 3,
       }}>
         SportsCal
       </span>
