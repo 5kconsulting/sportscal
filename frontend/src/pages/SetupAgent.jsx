@@ -358,11 +358,11 @@ export default function SetupAgent({ onSourceAdded }) {
             }}>
               {!isUser && (
                <div style={{
-                width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                width: 56, height: 56, borderRadius: 8, flexShrink: 0,
                 background: 'var(--navy)', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', marginRight: 8, marginTop: 2,
             }}>
-              <img src="/robot-head.svg" alt="" style={{ width: 24, height: 24 }} />
+              <img src="/robot-head.svg" alt="" style={{ width: 48, height: 48 }} />
                 </div>
               )}
               <div style={{
@@ -392,11 +392,11 @@ export default function SetupAgent({ onSourceAdded }) {
         {loading && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{
-              width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+              width: 56, height: 56, borderRadius: 8, flexShrink: 0,
               background: 'var(--navy)', display: 'flex', alignItems: 'center',
               justifyContent: 'center', marginRight: 8, marginTop: 2,
             }}>
-             <img src="/robot-head.svg" alt="" style={{ width: 24, height: 24 }} />
+             <img src="/robot-head.svg" alt="" style={{ width: 48, height: 48 }} />
             </div>
             <div style={{
               padding: '10px 14px', borderRadius: '16px 16px 16px 4px',
