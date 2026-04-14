@@ -22,6 +22,7 @@ import Sources         from './pages/Sources.jsx';
 import Settings        from './pages/Settings.jsx';
 import ForgotPassword  from './pages/ForgotPassword.jsx';
 import ResetPassword   from './pages/ResetPassword.jsx';
+import SetupAgent      from './pages/SetupAgent.jsx';
 import Admin           from './pages/Admin.jsx';
 import LogisticsResponse from './pages/LogisticsResponse.jsx';
 
@@ -76,6 +77,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="kids"         element={<Kids />} />
             <Route path="sources"      element={<Sources />} />
             <Route path="settings"     element={<Settings />} />
+            <Route path="setup"        element={<SetupAgent onSourceAdded={() => {}} />} />  {/* ← add this */}
           </Route>
         </Routes>
       </BrowserRouter>

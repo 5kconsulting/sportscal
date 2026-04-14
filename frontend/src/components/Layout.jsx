@@ -7,6 +7,7 @@ const NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: GridIcon },
   { to: '/kids',      label: 'Family',    icon: UsersIcon },
   { to: '/sources',   label: 'Sources',   icon: LinkIcon },
+  { to: '/setup',     label: 'Setup',     icon: SparkleIcon },
   { to: '/settings',  label: 'Settings',  icon: GearIcon },
 ];
 
@@ -199,10 +200,10 @@ export default function Layout() {
         {NAV.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} end={to === '/'} style={({ isActive }) => ({
             display: 'flex', flexDirection: 'column', alignItems: 'center',
-            gap: 3, padding: '4px 12px', borderRadius: 8,
+            gap: 3, padding: '4px 8px', borderRadius: 8,
             color: isActive ? 'var(--accent)' : 'var(--slate)',
             textDecoration: 'none', transition: 'color 0.15s',
-            minWidth: 56,
+            minWidth: 48,
           })}>
             {({ isActive }) => (
               <>
@@ -217,10 +218,10 @@ export default function Layout() {
         {user?.is_admin && (
           <NavLink to="/admin" style={({ isActive }) => ({
             display: 'flex', flexDirection: 'column', alignItems: 'center',
-            gap: 3, padding: '4px 12px', borderRadius: 8,
+            gap: 3, padding: '4px 8px', borderRadius: 8,
             color: isActive ? 'var(--accent)' : 'var(--slate)',
             textDecoration: 'none', transition: 'color 0.15s',
-            minWidth: 56,
+            minWidth: 48,
           })}>
             {({ isActive }) => (
               <>
@@ -264,6 +265,7 @@ function GridIcon({ color = 'currentColor' }) {
     </svg>
   );
 }
+
 function UsersIcon({ color = 'currentColor' }) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -274,6 +276,7 @@ function UsersIcon({ color = 'currentColor' }) {
     </svg>
   );
 }
+
 function LinkIcon({ color = 'currentColor' }) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -283,6 +286,7 @@ function LinkIcon({ color = 'currentColor' }) {
     </svg>
   );
 }
+
 function GearIcon({ color = 'currentColor' }) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -291,6 +295,15 @@ function GearIcon({ color = 'currentColor' }) {
     </svg>
   );
 }
+
+function SparkleIcon({ color = 'currentColor' }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M8 1.5L9.2 6.8L14 8L9.2 9.2L8 14.5L6.8 9.2L2 8L6.8 6.8Z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 function BallIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
