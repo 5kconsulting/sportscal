@@ -6,8 +6,8 @@ import { VerificationBanner } from './VerificationBanner.jsx';
 const NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: GridIcon },
   { to: '/kids',      label: 'Family',    icon: UsersIcon },
-  { to: '/sources',   label: 'Sources',   icon: LinkIcon },
   { to: '/setup',     label: 'Setup',     icon: SparkleIcon },
+  { to: '/sources',   label: 'Sources',   icon: LinkIcon },
   { to: '/settings',  label: 'Settings',  icon: GearIcon },
 ];
 

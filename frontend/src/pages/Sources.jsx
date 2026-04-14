@@ -568,7 +568,10 @@ export default function Sources() {
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 4 }}>Sources</h1>
           <p style={{ color: 'var(--slate)', fontSize: 15 }}>
-            Connect your sports apps and assign kids to each one.
+            Connect your sports apps and assign kids to each one.{' '}
+            <a href="/setup" style={{ color: 'var(--accent-dim)', fontWeight: 500, textDecoration: 'none' }}>
+                Want help? Use the setup agent →
+            </a>
           </p>
         </div>
         {!showForm && (
