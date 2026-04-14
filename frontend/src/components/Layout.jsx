@@ -74,11 +74,8 @@ export default function Layout() {
         flexShrink: 0,
       }}>
         <div style={{ padding: '20px 24px 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <LogoMark size={32} />
-            <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--white)', letterSpacing: '-0.02em' }}>
-              SportsCal
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <LogoMark size={36} />
           </div>
         </div>
 
