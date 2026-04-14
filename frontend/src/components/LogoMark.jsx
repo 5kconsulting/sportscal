@@ -1,4 +1,4 @@
-export function LogoMark({ size = 32 }) {
+export function LogoMark({ size = 32, dark = false }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <img
@@ -9,7 +9,7 @@ export function LogoMark({ size = 32 }) {
       <span style={{
         fontSize: size * 0.53,
         fontWeight: 600,
-        color: 'var(--white)',
+        color: dark ? 'var(--navy)' : 'var(--white)',
         letterSpacing: '-0.02em',
         lineHeight: 1,
         fontFamily: "'DM Sans', sans-serif",
