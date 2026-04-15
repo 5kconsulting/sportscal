@@ -1019,31 +1019,22 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
                           </label>
                         )}
                         {hasPhone && (
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6,
                             fontSize: 13, padding: '6px 12px', borderRadius: 8,
-                            background: form.notify === 'sms' ? 'var(--navy)' : 'var(--off-white)',
-                            color: form.notify === 'sms' ? 'var(--white)' : 'var(--slate)',
-                            border: '1px solid var(--border)', transition: 'all 0.15s' }}>
-                            <input type="radio" name="notify" value="sms"
-                              checked={form.notify === 'sms'}
-                              onChange={() => setForm(f => ({ ...f, notify: 'sms', send_request: true }))}
-                              style={{ display: 'none' }} />
-                            💬 Text
+                            background: 'var(--off-white)', color: 'var(--slate)',
+                            border: '1px solid var(--border)', opacity: 0.6, cursor: 'not-allowed' }}>
+                            💬 Text <span style={{ fontSize: 11, marginLeft: 2 }}>(coming soon)</span>
                           </label>
                         )}
                         {hasEmail && hasPhone && (
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6,
                             fontSize: 13, padding: '6px 12px', borderRadius: 8,
-                            background: form.notify === 'both' ? 'var(--navy)' : 'var(--off-white)',
-                            color: form.notify === 'both' ? 'var(--white)' : 'var(--slate)',
-                            border: '1px solid var(--border)', transition: 'all 0.15s' }}>
-                            <input type="radio" name="notify" value="both"
-                              checked={form.notify === 'both'}
-                              onChange={() => setForm(f => ({ ...f, notify: 'both', send_request: true }))}
-                              style={{ display: 'none' }} />
-                            📧 + 💬 Both
+                            background: 'var(--off-white)', color: 'var(--slate)',
+                            border: '1px solid var(--border)', opacity: 0.6, cursor: 'not-allowed' }}>
+                            📧 + 💬 Both <span style={{ fontSize: 11, marginLeft: 2 }}>(coming soon)</span>
                           </label>
                         )}
+                        
                       </div>
                     </div>
                   );
