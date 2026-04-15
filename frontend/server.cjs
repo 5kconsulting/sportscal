@@ -42,3 +42,5 @@ app.use('/demo-feeds', (_req, res, next) => {
 
 // SPA fallback — handles /, /login, /signup, /kids, etc.
 app.use((_req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
+
+app.listen(PORT, () => console.log('[server] listening on port ' + PORT));
