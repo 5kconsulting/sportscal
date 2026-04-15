@@ -238,7 +238,25 @@
       background: var(--accent-dim);
       transform: translateY(-1px);
     }
-
+    .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    padding: 14px 28px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 2px solid rgba(255,255,255,0.25);
+    color: var(--white);
+    background: transparent;
+    transition: all 0.2s;
+    letter-spacing: -0.01em;
+    }
+    .btn-ghost:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-1px);
+    }
     .btn-secondary {
       display: inline-flex;
       align-items: center;
@@ -875,12 +893,13 @@
     </p>
     <div class="hero-cta-group">
       <a href="https://www.sportscalapp.com/signup" class="btn-primary">
-        Get started free →
+      Get started free →
       </a>
-      <a href="#how-it-works" class="btn-secondary">
-        See how it works
-      </a>
-    </div>
+    <a href="https://www.sportscalapp.com/signup?next=/setup" class="btn-ghost">
+      Try with sample data →
+    </a>
+</div>
+
   </div>
 
   <!-- APPS STRIP (scrolling) -->
