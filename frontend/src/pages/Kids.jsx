@@ -348,7 +348,7 @@ function RideContacts() {
                     {[c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info'}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => openEdit(c)}>Edit</button>
                   <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c.id)}>Remove</button>
                 </div>
