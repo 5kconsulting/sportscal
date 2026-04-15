@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { api } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.jsx';
 
-// ── App instructions corpus fed to the agent ─────────────────────────────────
 const APP_INSTRUCTIONS = {
   teamsnap: {
     label: 'TeamSnap',
@@ -76,46 +75,58 @@ const APP_LIST = Object.entries(APP_INSTRUCTIONS).map(([value, info]) => ({
   label: info.label,
 }));
 
-const SYSTEM_PROMPT = `You are a friendly setup assistant for SportsCal, a service that aggregates youth sports calendars into one unified feed.
+const DEMO_FEEDS = [
+  { sport: 'Soccer',     url: 'https://www.sportscalapp.com/demo-feeds/soccer-games.ics',       name: 'Tualatin FC U12 Girls' },
+  { sport: 'Baseball',   url: 'https://www.sportscalapp.com/demo-feeds/baseball-schedule.ics',   name: 'Tigard Tigers 10U' },
+  { sport: 'Basketball', url: 'https://www.sportscalapp.com/demo-feeds/basketball-games.ics',    name: 'Sherwood Hoops AAU 12U' },
+  { sport: 'Volleyball', url: 'https://www.sportscalapp.com/demo-feeds/volleyball-schedule.ics', name: 'Tigard Storm 14U' },
+  { sport: 'Swimming',   url: 'https://www.sportscalapp.com/demo-feeds/swim-meets.ics',          name: 'Tualatin Hills Swim Club' },
+  { sport: 'Track',      url: 'https://www.sportscalapp.com/demo-feeds/track-field.ics',         name: 'Tualatin HS Track & Field' },
+];
 
-Your job is to guide parents step-by-step through finding their iCal URLs from sports apps and adding them to their SportsCal account.
+function buildSystemPrompt() {
+  const appNames = Object.values(APP_INSTRUCTIONS).map(a => a.label).join(', ');
+  const appValues = APP_LIST.map(a => '- ' + a.label + ' -> "' + a.value + '"').join('\n');
+  const demoList = DEMO_FEEDS.map(f => '- ' + f.sport + ': ' + f.url).join('\n');
+  const appInstructions = JSON.stringify(APP_INSTRUCTIONS, null, 2);
 
-You have knowledge of these apps: ${Object.values(APP_INSTRUCTIONS).map(a => a.label).join(', ')}, and Custom iCal.
+  return 'You are a friendly setup assistant for SportsCal, a service that aggregates youth sports calendars into one unified feed.\n\n'
+    + 'Your job is to guide parents step-by-step through finding their iCal URLs from sports apps and adding them to their SportsCal account.\n\n'
+    + 'You have knowledge of these apps: ' + appNames + ', and Custom iCal.\n\n'
+    + '## Your personality\n'
+    + '- Warm, encouraging, and patient - parents are often not tech-savvy\n'
+    + '- Concise - do not write walls of text\n'
+    + '- Celebrate small wins ("Perfect! Got it!")\n'
+    + '- Use occasional emoji but do not overdo it\n\n'
+    + '## Your job\n'
+    + '1. Start by asking which apps the parent uses (list them or let them type)\n'
+    + '2. Walk through each app one at a time\n'
+    + '3. When the user pastes a URL, validate it looks like an iCal URL (starts with https:// or webcal://, ideally contains .ics or known domain patterns)\n'
+    + '4. Ask what to name the source and which kid(s) it\'s for\n'
+    + '5. Confirm details before adding: "Ready to add \'Tualatin Baseball\' for James from GameChanger - sound right?"\n'
+    + '6. After user confirms, respond with a special JSON action block:\n\n'
+    + 'ACTION:{"action":"add_source","name":"<n>","app":"<app_value>","ical_url":"<url>","kid_names":[<names>]}\n\n'
+    + '7. After each source is added, ask if there are more to add\n'
+    + '8. When done, give a cheerful summary of what was added\n\n'
+    + '## Demo mode\n'
+    + 'If the user has no sources yet OR says they want to "try it" or "see how it works", offer the demo feeds:\n\n'
+    + '"Want to try it with some sample sports data first? I have pre-made feeds for soccer, baseball, basketball, volleyball, swimming, and track - all realistic schedules from the Portland area. You can swap them out for your real feeds any time."\n\n'
+    + 'If they say yes, walk them through adding whichever sports they want using these URLs:\n'
+    + demoList + '\n\n'
+    + 'Use app value "custom" for all demo feeds. Ask which kid(s) to assign each one to, then add them normally.\n\n'
+    + '## App instructions reference\n'
+    + appInstructions + '\n\n'
+    + '## App values (use these exact values in the action JSON)\n'
+    + appValues + '\n\n'
+    + '## Important rules\n'
+    + '- Only emit the ACTION: block when the user has explicitly confirmed they want to add the source\n'
+    + '- One ACTION block per message\n'
+    + '- If a URL does not look valid, ask the user to double-check it\n'
+    + '- If you are unsure which app a URL is from, make your best guess based on the domain\n'
+    + '- Never ask for passwords or login credentials - only iCal URLs\n'
+    + '- Keep responses short and conversational';
+}
 
-## Your personality
-- Warm, encouraging, and patient — parents are often not tech-savvy
-- Concise — don't write walls of text
-- Celebrate small wins ("Perfect! Got it!")
-- Use occasional emoji but don't overdo it
-
-## Your job
-1. Start by asking which apps the parent uses (list them or let them type)
-2. Walk through each app one at a time
-3. When the user pastes a URL, validate it looks like an iCal URL (starts with https:// or webcal://, ideally contains .ics or known domain patterns)
-4. Ask what to name the source and which kid(s) it's for
-5. Confirm details before adding: "Ready to add 'Tualatin Baseball' for James from GameChanger — sound right?"
-6. After user confirms, respond with a special JSON action block (this triggers the actual API call):
-
-ACTION:{"action":"add_source","name":"<name>","app":"<app_value>","ical_url":"<url>","kid_names":[<names>]}
-
-7. After each source is added, ask if there are more to add
-8. When done, give a cheerful summary of what was added
-
-## App instructions reference
-${JSON.stringify(APP_INSTRUCTIONS, null, 2)}
-
-## App values (use these exact values in the action JSON)
-${APP_LIST.map(a => `- ${a.label} → "${a.value}"`).join('\n')}
-
-## Important rules
-- Only emit the ACTION: block when the user has explicitly confirmed they want to add the source
-- One ACTION block per message
-- If a URL doesn't look valid, ask the user to double-check it
-- If you're unsure which app a URL is from, make your best guess based on the domain
-- Never ask for passwords or login credentials — only iCal URLs
-- Keep responses short and conversational`;
-
-// ── Utility ───────────────────────────────────────────────────────────────────
 function extractAction(text) {
   const match = text.match(/ACTION:(\{.*?\})/s);
   if (!match) return null;
@@ -130,7 +141,6 @@ function isIcalUrl(url) {
   return /^(https?|webcal):\/\/.+/i.test(url.trim());
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
 export default function SetupAgent({ onSourceAdded }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -153,10 +163,19 @@ export default function SetupAgent({ onSourceAdded }) {
   async function startSetup() {
     setStarted(true);
     setLoading(true);
+
+    let existingSources = [];
+    try {
+      const { sources } = await api.sources.list();
+      existingSources = sources.filter(s => s.name !== '__manual__');
+    } catch {}
+
     const kidNames = kids.map(k => k.name).join(', ');
-    const intro = kids.length > 0
-      ? `Hi! I'm here to help you set up your sports calendars. I can see you have ${kids.length > 1 ? `${kids.length} kids` : '1 kid'} in your family: ${kidNames}. Which sports apps do you use? For example: TeamSnap, GameChanger, PlayMetrics — or just tell me what apps you've got!`
-      : `Hi! I'm here to help you set up your sports calendars. Which sports apps do you use? For example: TeamSnap, GameChanger, PlayMetrics — or just tell me what you've got!`;
+    const isNew = existingSources.length === 0;
+
+    const intro = isNew
+      ? 'Hi' + (kids.length > 0 ? ', I can see you have ' + (kids.length > 1 ? kids.length + ' kids' : '1 kid') + ': ' + kidNames : '') + '! Want to jump right in with your real sports apps, or would you like to try SportsCal first with some sample schedules? I have demo feeds for soccer, baseball, basketball, volleyball, swimming, and track ready to go.'
+      : 'Hi' + (kids.length > 0 ? ' - I see you already have ' + existingSources.length + ' source' + (existingSources.length !== 1 ? 's' : '') + ' set up' : '') + '! Want to add more? Which apps do you use?';
 
     setMessages([{ role: 'assistant', content: intro }]);
     setLoading(false);
@@ -172,38 +191,33 @@ export default function SetupAgent({ onSourceAdded }) {
     setLoading(true);
 
     try {
-      // Build conversation for API
       const apiMessages = newMessages.map(m => ({ role: m.role, content: m.content }));
-
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1000,
-          system: SYSTEM_PROMPT,
+          system: buildSystemPrompt(),
           messages: apiMessages,
         }),
       });
 
       const data = await res.json();
-      const rawContent = data.content?.[0]?.text || "Sorry, something went wrong. Please try again.";
+      const rawContent = data.content?.[0]?.text || 'Sorry, something went wrong. Please try again.';
       const action = extractAction(rawContent);
       const displayContent = stripAction(rawContent);
 
-      const assistantMsg = { role: 'assistant', content: rawContent, display: displayContent };
-      setMessages(prev => [...prev, assistantMsg]);
+      setMessages(prev => [...prev, { role: 'assistant', content: rawContent, display: displayContent }]);
 
-      // Execute action if present
-      if (action?.action === 'add_source') {
+      if (action && action.action === 'add_source') {
         await executeAddSource(action);
       }
-
-    } catch (err) {
+    } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "Sorry, I hit an error. Please try again.",
-        display: "Sorry, I hit an error. Please try again.",
+        content: 'Sorry, I hit an error. Please try again.',
+        display: 'Sorry, I hit an error. Please try again.',
       }]);
     } finally {
       setLoading(false);
@@ -213,10 +227,10 @@ export default function SetupAgent({ onSourceAdded }) {
 
   async function executeAddSource(action) {
     try {
-      // Match kid names to IDs
-      const kidIds = action.kid_names
-        ?.map(name => kids.find(k => k.name.toLowerCase() === name.toLowerCase())?.id)
-        .filter(Boolean) || [];
+      const kidIds = (action.kid_names || [])
+        .map(name => kids.find(k => k.name.toLowerCase() === name.toLowerCase()))
+        .filter(Boolean)
+        .map(k => k.id);
 
       const { source } = await api.sources.create({
         name: action.name,
@@ -227,18 +241,12 @@ export default function SetupAgent({ onSourceAdded }) {
       });
 
       setAddedSources(prev => [...prev, source]);
-      onSourceAdded?.(source);
-
-      // Inject a system note into the chat
-      setMessages(prev => [...prev, {
-        role: 'system',
-        content: `✓ Added "${action.name}"`,
-      }]);
-
+      if (onSourceAdded) onSourceAdded(source);
+      setMessages(prev => [...prev, { role: 'system', content: 'Added "' + action.name + '"' }]);
     } catch (err) {
       setMessages(prev => [...prev, {
         role: 'system',
-        content: `⚠ Couldn't add "${action.name}": ${err.message}`,
+        content: 'Could not add "' + action.name + '": ' + err.message,
         error: true,
       }]);
     }
@@ -251,7 +259,6 @@ export default function SetupAgent({ onSourceAdded }) {
     }
   }
 
-  // ── Quick reply chips ───────────────────────────────────────────────────────
   const QUICK_APPS = ['TeamSnap', 'GameChanger', 'PlayMetrics', 'SportsEngine', 'TeamSideline', 'BYGA'];
 
   if (!started) {
@@ -268,7 +275,7 @@ export default function SetupAgent({ onSourceAdded }) {
 
         <div className="card" style={{ padding: 32, textAlign: 'center' }}>
           <div style={{ marginBottom: 16 }}>
-            <img src="/robot.svg" alt="SportsCal" style={{ width: 120, height: 120, marginBottom: 16 }} />
+            <img src="/robot.svg" alt="SportsCal assistant" style={{ width: 120, height: 120, marginBottom: 16 }} />
           </div>
           <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8, letterSpacing: '-0.01em' }}>
             Your calendar setup assistant
@@ -301,7 +308,6 @@ export default function SetupAgent({ onSourceAdded }) {
 
   return (
     <div style={{ padding: '40px', maxWidth: 640, height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
       <div style={{ marginBottom: 20, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
@@ -310,22 +316,18 @@ export default function SetupAgent({ onSourceAdded }) {
             </h1>
             {addedSources.length > 0 && (
               <p style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 500 }}>
-                ✓ {addedSources.length} source{addedSources.length !== 1 ? 's' : ''} added
+                {addedSources.length} source{addedSources.length !== 1 ? 's' : ''} added
               </p>
             )}
           </div>
           {addedSources.length > 0 && (
-            <a href="/dashboard/sources" style={{
-              fontSize: 13, color: 'var(--accent-dim)', fontWeight: 500,
-              textDecoration: 'none',
-            }}>
+            <a href="/sources" style={{ fontSize: 13, color: 'var(--accent-dim)', fontWeight: 500, textDecoration: 'none' }}>
               View sources →
             </a>
           )}
         </div>
       </div>
 
-      {/* Chat window */}
       <div style={{
         flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column',
         gap: 12, marginBottom: 16,
@@ -341,7 +343,7 @@ export default function SetupAgent({ onSourceAdded }) {
                 padding: '6px 12px',
                 background: msg.error ? 'rgba(239,68,68,0.08)' : 'rgba(0,214,143,0.08)',
                 borderRadius: 8,
-                border: `1px solid ${msg.error ? 'rgba(239,68,68,0.2)' : 'rgba(0,214,143,0.2)'}`,
+                border: '1px solid ' + (msg.error ? 'rgba(239,68,68,0.2)' : 'rgba(0,214,143,0.2)'),
               }}>
                 {msg.content}
               </div>
@@ -349,20 +351,17 @@ export default function SetupAgent({ onSourceAdded }) {
           }
 
           const isUser = msg.role === 'user';
-          const displayText = msg.display ?? msg.content;
+          const displayText = msg.display != null ? msg.display : msg.content;
 
           return (
-            <div key={i} style={{
-              display: 'flex',
-              justifyContent: isUser ? 'flex-end' : 'flex-start',
-            }}>
+            <div key={i} style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
               {!isUser && (
-               <div style={{
-                width: 56, height: 56, borderRadius: 8, flexShrink: 0,
-                background: 'var(--navy)', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', marginRight: 8, marginTop: 2,
-            }}>
-              <img src="/robot-head.svg" alt="" style={{ width: 48, height: 48 }} />
+                <div style={{
+                  width: 56, height: 56, borderRadius: 8, flexShrink: 0,
+                  background: 'var(--navy)', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', marginRight: 8, marginTop: 2,
+                }}>
+                  <img src="/robot-head.svg" alt="" style={{ width: 48, height: 48 }} />
                 </div>
               )}
               <div style={{
@@ -370,7 +369,7 @@ export default function SetupAgent({ onSourceAdded }) {
                 padding: '10px 14px',
                 borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                 background: isUser ? 'var(--accent)' : 'var(--card-bg, #fff)',
-                color: isUser ? 'var(--navy)' : 'var(--navy)',
+                color: 'var(--navy)',
                 fontSize: 14,
                 lineHeight: 1.6,
                 fontWeight: isUser ? 500 : 400,
@@ -378,12 +377,9 @@ export default function SetupAgent({ onSourceAdded }) {
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
               }}>
-                {/* Detect pasted URLs and highlight them */}
-                {isIcalUrl(displayText) ? (
-                  <span style={{ fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all' }}>
-                    {displayText}
-                  </span>
-                ) : displayText}
+                {isIcalUrl(displayText)
+                  ? <span style={{ fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all' }}>{displayText}</span>
+                  : displayText}
               </div>
             </div>
           );
@@ -394,9 +390,9 @@ export default function SetupAgent({ onSourceAdded }) {
             <div style={{
               width: 56, height: 56, borderRadius: 8, flexShrink: 0,
               background: 'var(--navy)', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', marginRight: 8, marginTop: 2,
+              justifyContent: 'center',
             }}>
-             <img src="/robot-head.svg" alt="" style={{ width: 48, height: 48 }} />
+              <img src="/robot-head.svg" alt="" style={{ width: 48, height: 48 }} />
             </div>
             <div style={{
               padding: '10px 14px', borderRadius: '16px 16px 16px 4px',
@@ -410,7 +406,6 @@ export default function SetupAgent({ onSourceAdded }) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input area */}
       <div style={{
         flexShrink: 0,
         display: 'flex', gap: 8, alignItems: 'flex-end',
@@ -468,7 +463,7 @@ function TypingDots() {
           width: 6, height: 6, borderRadius: '50%',
           background: 'var(--slate)',
           animation: 'typingBounce 1.2s ease-in-out infinite',
-          animationDelay: `${i * 0.2}s`,
+          animationDelay: i * 0.2 + 's',
         }} />
       ))}
       <style>{`
