@@ -35,8 +35,10 @@ app.get('/privacy', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 
 // Static assets
 app.use(express.static(path.join(__dirname, 'dist')));
 app.use('/landing', express.static(path.join(__dirname, 'landing')));
+app.use('/demo-feeds', (_req, res, next) => {
+  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+  next();
+}, express.static(path.join(__dirname, 'dist', 'demo-feeds')));
 
 // SPA fallback — handles /, /login, /signup, /kids, etc.
 app.use((_req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
