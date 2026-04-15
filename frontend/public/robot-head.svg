@@ -4,10 +4,10 @@
 
   <!-- Head -->
   <rect x="165" y="50" width="350" height="280" rx="56" fill="#1a2540"/>
-  <rect x="165" y="50" width="350" height="280" rx="56" fill="none" stroke="#00d68f" stroke-width="6"/>
+  <rect x="165" y="50" width="350" height="280" rx="56" fill="none" stroke="#00d68f" stroke-width="16"/>
 
   <!-- Antenna base -->
-  <rect x="325" y="16" width="30" height="42" rx="10" fill="#1a2540" stroke="#00d68f" stroke-width="4"/>
+  <rect x="325" y="16" width="30" height="42" rx="10" fill="#1a2540" stroke="#00d68f" stroke-width="6"/>
   <!-- Antenna ball -->
   <circle cx="340" cy="12" r="18" fill="#00d68f"/>
   <circle cx="340" cy="12" r="8" fill="#0f1629"/>
