@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [kids, setKids]       = useState([]);
   const [sources, setSources] = useState([]);
+  const [kidFilter, setKidFilter] = useState(null);
   const [onboardingDismissed, setOnboardingDismissed] = useState(
     () => localStorage.getItem('sc_onboarding_done') === '1'
   );
@@ -82,7 +83,10 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, [days]);
 
-  const grouped = groupByDay(events);
+  const filteredEvents = kidFilter
+    ? events.filter(e => e.kids?.some(k => k.id === kidFilter))
+    : events;
+  const grouped = groupByDay(filteredEvents);
   const hasEvents = Object.keys(grouped).length > 0;
 
   return (
@@ -157,8 +161,43 @@ export default function Dashboard() {
       {/* Feed URL card */}
       <FeedUrlCard user={user} />
 
-      {/* Filter */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '28px 0 20px' }}>
+      {/* Kid filter */}
+      {kids.length > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '28px 0 0' }}>
+          {[null, ...kids].map(kid => {
+            const isActive = kidFilter === (kid ? kid.id : null);
+            return (
+              <button
+                key={kid ? kid.id : 'all'}
+                onClick={() => setKidFilter(kid ? kid.id : null)}
+                className="btn btn-sm"
+                style={{
+                  background: isActive ? (kid ? kid.color : 'var(--navy)') : 'var(--white)',
+                  color:      isActive ? 'var(--white)' : 'var(--slate)',
+                  border:     `1px solid ${isActive ? (kid ? kid.color : 'var(--navy)') : 'var(--border)'}`,
+                  borderRadius: 20,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                {kid && (
+                  <div style={{
+                    width: 16, height: 16, borderRadius: '50%',
+                    background: isActive ? 'rgba(255,255,255,0.3)' : kid.color,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 9, fontWeight: 700, color: 'white', flexShrink: 0,
+                  }}>
+                    {kid.name[0]}
+                  </div>
+                )}
+                {kid ? kid.name : 'Everyone'}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Date range filter */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 20px' }}>
         <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--slate)' }}>Show</span>
         {[7, 14, 30].map(d => (
           <button key={d} onClick={() => setDays(d)}
@@ -1034,7 +1073,6 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
                             📧 + 💬 Both <span style={{ fontSize: 11, marginLeft: 2 }}>(coming soon)</span>
                           </label>
                         )}
-                        
                       </div>
                     </div>
                   );
