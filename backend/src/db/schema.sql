@@ -1,6 +1,12 @@
 -- ============================================================
 -- SportsCal SaaS Schema
 -- Multi-tenant: every table scoped to user_id
+--
+-- IDEMPOTENT: every statement is safe to re-run on boot.
+--   TABLE   -> CREATE TABLE IF NOT EXISTS
+--   INDEX   -> CREATE INDEX IF NOT EXISTS
+--   VIEW    -> CREATE OR REPLACE VIEW
+--   TRIGGER -> DROP TRIGGER IF EXISTS + CREATE TRIGGER
 -- ============================================================
 
 -- Extensions
@@ -10,7 +16,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ============================================================
 -- USERS
 -- ============================================================
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email         TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
@@ -42,11 +48,14 @@ CREATE TABLE users (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Safe additions for columns introduced after initial deploy
+ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_source TEXT;
+
 -- ============================================================
 -- KIDS
 -- Each kid belongs to one user (parent account)
 -- ============================================================
-CREATE TABLE kids (
+CREATE TABLE IF NOT EXISTS kids (
   id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name       TEXT NOT NULL,
@@ -57,13 +66,13 @@ CREATE TABLE kids (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX kids_user_id_idx ON kids(user_id);
+CREATE INDEX IF NOT EXISTS kids_user_id_idx ON kids(user_id);
 
 -- ============================================================
 -- SOURCES
 -- A calendar source: iCal URL, scrape target, or both
 -- ============================================================
-CREATE TABLE sources (
+CREATE TABLE IF NOT EXISTS sources (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
@@ -101,8 +110,8 @@ CREATE TABLE sources (
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX sources_user_id_idx ON sources(user_id);
-CREATE INDEX sources_next_fetch_idx ON sources(last_fetched_at, refresh_interval_minutes)
+CREATE INDEX IF NOT EXISTS sources_user_id_idx ON sources(user_id);
+CREATE INDEX IF NOT EXISTS sources_next_fetch_idx ON sources(last_fetched_at, refresh_interval_minutes)
   WHERE enabled = true;
 
 -- ============================================================
@@ -110,20 +119,20 @@ CREATE INDEX sources_next_fetch_idx ON sources(last_fetched_at, refresh_interval
 -- Which kids are assigned to which source.
 -- Drives the "Bob - Soccer Practice" title prefix.
 -- ============================================================
-CREATE TABLE kid_sources (
+CREATE TABLE IF NOT EXISTS kid_sources (
   kid_id    UUID NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
   source_id UUID NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
   PRIMARY KEY (kid_id, source_id)
 );
 
-CREATE INDEX kid_sources_source_id_idx ON kid_sources(source_id);
+CREATE INDEX IF NOT EXISTS kid_sources_source_id_idx ON kid_sources(source_id);
 
 -- ============================================================
 -- EVENTS
 -- Normalized events pulled from all sources.
 -- One row per unique event per source.
 -- ============================================================
-CREATE TABLE events (
+CREATE TABLE IF NOT EXISTS events (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   source_id       UUID NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
@@ -159,18 +168,18 @@ CREATE TABLE events (
   UNIQUE (source_id, source_uid)
 );
 
-CREATE INDEX events_user_id_idx ON events(user_id);
-CREATE INDEX events_source_id_idx ON events(source_id);
-CREATE INDEX events_starts_at_idx ON events(user_id, starts_at);
+CREATE INDEX IF NOT EXISTS events_user_id_idx ON events(user_id);
+CREATE INDEX IF NOT EXISTS events_source_id_idx ON events(source_id);
+CREATE INDEX IF NOT EXISTS events_starts_at_idx ON events(user_id, starts_at);
 -- Feed generation: upcoming events for a user (no partial index — NOW() not allowed)
-CREATE INDEX events_upcoming_idx ON events(user_id, starts_at);
+CREATE INDEX IF NOT EXISTS events_upcoming_idx ON events(user_id, starts_at);
 
 -- ============================================================
 -- FEED_CACHE
 -- Pre-built .ics content per user so the serve path is fast.
 -- Invalidated whenever events change for that user.
 -- ============================================================
-CREATE TABLE feed_cache (
+CREATE TABLE IF NOT EXISTS feed_cache (
   user_id      UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   ical_content TEXT NOT NULL,
   built_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -181,7 +190,7 @@ CREATE TABLE feed_cache (
 -- REFRESH_JOBS
 -- Audit log of every fetch attempt (debugging + monitoring)
 -- ============================================================
-CREATE TABLE refresh_jobs (
+CREATE TABLE IF NOT EXISTS refresh_jobs (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   source_id   UUID NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
   user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -194,8 +203,8 @@ CREATE TABLE refresh_jobs (
   error_message   TEXT
 );
 
-CREATE INDEX refresh_jobs_source_id_idx ON refresh_jobs(source_id);
-CREATE INDEX refresh_jobs_started_at_idx ON refresh_jobs(started_at DESC);
+CREATE INDEX IF NOT EXISTS refresh_jobs_source_id_idx ON refresh_jobs(source_id);
+CREATE INDEX IF NOT EXISTS refresh_jobs_started_at_idx ON refresh_jobs(started_at DESC);
 
 -- ============================================================
 -- AUTO-UPDATE updated_at
@@ -208,18 +217,23 @@ BEGIN
 END;
 $$;
 
+-- Postgres has no "CREATE TRIGGER IF NOT EXISTS" before PG14, so drop-then-create
+DROP TRIGGER IF EXISTS users_updated_at ON users;
 CREATE TRIGGER users_updated_at
   BEFORE UPDATE ON users
   FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
 
+DROP TRIGGER IF EXISTS kids_updated_at ON kids;
 CREATE TRIGGER kids_updated_at
   BEFORE UPDATE ON kids
   FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
 
+DROP TRIGGER IF EXISTS sources_updated_at ON sources;
 CREATE TRIGGER sources_updated_at
   BEFORE UPDATE ON sources
   FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
 
+DROP TRIGGER IF EXISTS events_updated_at ON events;
 CREATE TRIGGER events_updated_at
   BEFORE UPDATE ON events
   FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
@@ -228,7 +242,7 @@ CREATE TRIGGER events_updated_at
 -- PLAN LIMITS VIEW
 -- Easy reference for enforcing free vs paid limits
 -- ============================================================
-CREATE VIEW plan_limits AS
+CREATE OR REPLACE VIEW plan_limits AS
 SELECT
   'free'    AS plan, 2 AS max_kids, 2  AS max_sources, false AS email_digest
 UNION ALL SELECT

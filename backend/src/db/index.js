@@ -76,25 +76,33 @@ export async function withTransaction(fn) {
 
 // ============================================================
 // Schema migration runner
-// Applies schema.sql once on startup if tables don't exist.
-// For production, swap this out for a proper migration tool
-// like node-pg-migrate or Flyway.
+// Applies schema.sql on startup. The schema file is written to
+// be IDEMPOTENT — every statement uses IF NOT EXISTS / OR REPLACE
+// / DROP + CREATE — so re-running it on an existing DB is safe
+// and silent.
+//
+// For production schema changes beyond what IF NOT EXISTS can
+// handle (column renames, data backfills, etc.), use a proper
+// migration tool like node-pg-migrate.
 // ============================================================
 export async function runMigrations() {
   const schemaPath = path.join(__dirname, 'schema.sql');
   const sql = fs.readFileSync(schemaPath, 'utf8');
 
+  // Wrap the whole schema in a transaction so it's all-or-nothing.
+  // With idempotent SQL, a failure here is a REAL error — log and throw.
+  const client = await pool.connect();
   try {
-    await pool.query(sql);
+    await client.query('BEGIN');
+    await client.query(sql);
+    await client.query('COMMIT');
     console.log('[db] schema applied');
   } catch (err) {
-    // Ignore "already exists" errors on re-run
-    if (err.code === '42P07' || err.message.includes('already exists')) {
-      console.log('[db] schema already up to date');
-    } else {
-      console.error('[db] migration failed', err.message);
-      throw err;
-    }
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[db] migration failed', err.message);
+    throw err;
+  } finally {
+    client.release();
   }
 }
 
