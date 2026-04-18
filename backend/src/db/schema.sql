@@ -3,10 +3,14 @@
 -- Multi-tenant: every table scoped to user_id
 --
 -- IDEMPOTENT: every statement is safe to re-run on boot.
---   TABLE   -> CREATE TABLE IF NOT EXISTS
---   INDEX   -> CREATE INDEX IF NOT EXISTS
---   VIEW    -> CREATE OR REPLACE VIEW
---   TRIGGER -> DROP TRIGGER IF EXISTS + CREATE TRIGGER
+--   TABLE      -> CREATE TABLE IF NOT EXISTS
+--   INDEX      -> CREATE INDEX IF NOT EXISTS
+--   VIEW       -> CREATE OR REPLACE VIEW
+--   TRIGGER    -> DROP TRIGGER IF EXISTS + CREATE TRIGGER
+--   COLUMN     -> ALTER TABLE ... ADD COLUMN IF NOT EXISTS
+--   CHECK      -> ALTER TABLE ... DROP CONSTRAINT IF EXISTS + ADD CONSTRAINT
+--                 (drop-and-recreate keeps CHECKs in sync with schema.sql,
+--                  so editing an allowed-values list is a one-line change)
 -- ============================================================
 
 -- Extensions
@@ -27,18 +31,15 @@ CREATE TABLE IF NOT EXISTS users (
   feed_token    TEXT NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(24), 'hex'),
 
   -- Billing
-  plan          TEXT NOT NULL DEFAULT 'free'
-                  CHECK (plan IN ('free', 'premium')),
+  plan          TEXT NOT NULL DEFAULT 'free',
   stripe_customer_id   TEXT,
   stripe_subscription_id TEXT,
   plan_expires_at      TIMESTAMPTZ,
 
   -- Email preferences
   digest_enabled     BOOLEAN NOT NULL DEFAULT true,
-  digest_day         SMALLINT NOT NULL DEFAULT 0   -- 0=Sun,1=Mon,...,6=Sat
-                       CHECK (digest_day BETWEEN 0 AND 6),
-  digest_hour        SMALLINT NOT NULL DEFAULT 18  -- local hour (0-23)
-                       CHECK (digest_hour BETWEEN 0 AND 23),
+  digest_day         SMALLINT NOT NULL DEFAULT 0,   -- 0=Sun,1=Mon,...,6=Sat
+  digest_hour        SMALLINT NOT NULL DEFAULT 18,  -- local hour (0-23)
   reminder_hours_before SMALLINT NOT NULL DEFAULT 12, -- hours before event
 
   -- Timezone for email rendering
@@ -48,8 +49,24 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Safe additions for columns introduced after initial deploy
-ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_source TEXT;
+-- Columns added after initial deploy
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin           BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified     BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_source    TEXT;
+
+-- CHECK constraints (drop-and-recreate so edits are declarative)
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_plan_check;
+ALTER TABLE users ADD  CONSTRAINT users_plan_check
+  CHECK (plan IN ('free', 'premium'));
+
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_digest_day_check;
+ALTER TABLE users ADD  CONSTRAINT users_digest_day_check
+  CHECK (digest_day BETWEEN 0 AND 6);
+
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_digest_hour_check;
+ALTER TABLE users ADD  CONSTRAINT users_digest_hour_check
+  CHECK (digest_hour BETWEEN 0 AND 23);
 
 -- ============================================================
 -- KIDS
@@ -69,6 +86,20 @@ CREATE TABLE IF NOT EXISTS kids (
 CREATE INDEX IF NOT EXISTS kids_user_id_idx ON kids(user_id);
 
 -- ============================================================
+-- CONTACTS
+-- Named people (parents, coaches, grandparents) who can be
+-- assigned to event logistics (pickup/dropoff).
+-- ============================================================
+CREATE TABLE IF NOT EXISTS contacts (
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name       TEXT NOT NULL,
+  email      TEXT,
+  phone      TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================
 -- SOURCES
 -- A calendar source: iCal URL, scrape target, or both
 -- ============================================================
@@ -78,15 +109,8 @@ CREATE TABLE IF NOT EXISTS sources (
 
   -- Display
   name        TEXT NOT NULL,           -- e.g. "Emma - Soccer (TeamSnap)"
-  app         TEXT NOT NULL            -- teamsnap | gamechanger | playmetrics
-                CHECK (app IN (        --   | teamsideline | byga | custom
-                  'teamsnap', 'gamechanger', 'playmetrics',
-                  'teamsideline', 'byga', 'custom'
-                )),
-
-  -- Fetch strategy
-  fetch_type  TEXT NOT NULL DEFAULT 'ical'
-                CHECK (fetch_type IN ('ical', 'scrape', 'ical_with_scrape_fallback')),
+  app         TEXT NOT NULL,           -- see CHECK constraint below
+  fetch_type  TEXT NOT NULL DEFAULT 'ical',
 
   -- iCal
   ical_url    TEXT,
@@ -99,7 +123,7 @@ CREATE TABLE IF NOT EXISTS sources (
   -- Schedule
   refresh_interval_minutes INTEGER NOT NULL DEFAULT 120,
   last_fetched_at          TIMESTAMPTZ,
-  last_fetch_status        TEXT CHECK (last_fetch_status IN ('ok', 'error', 'pending')),
+  last_fetch_status        TEXT,
   last_fetch_error         TEXT,
   last_event_count         INTEGER,
 
@@ -109,6 +133,28 @@ CREATE TABLE IF NOT EXISTS sources (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Columns added after initial deploy
+ALTER TABLE sources ADD COLUMN IF NOT EXISTS last_error_alert_at TIMESTAMPTZ;
+
+-- CHECK constraints — drop and recreate so edits are declarative.
+-- To add a new source app: just add it to the IN list below and deploy.
+ALTER TABLE sources DROP CONSTRAINT IF EXISTS sources_app_check;
+ALTER TABLE sources ADD  CONSTRAINT sources_app_check
+  CHECK (app IN (
+    'teamsnap', 'teamsnapone', 'gamechanger', 'playmetrics',
+    'teamsideline', 'byga', 'sportsengine', 'teamreach',
+    'leagueapps', 'demosphere', '360player', 'sportsyou',
+    'band', 'rankone', 'custom'
+  ));
+
+ALTER TABLE sources DROP CONSTRAINT IF EXISTS sources_fetch_type_check;
+ALTER TABLE sources ADD  CONSTRAINT sources_fetch_type_check
+  CHECK (fetch_type IN ('ical', 'scrape', 'ical_with_scrape_fallback'));
+
+ALTER TABLE sources DROP CONSTRAINT IF EXISTS sources_last_fetch_status_check;
+ALTER TABLE sources ADD  CONSTRAINT sources_last_fetch_status_check
+  CHECK (last_fetch_status IN ('ok', 'error', 'pending'));
 
 CREATE INDEX IF NOT EXISTS sources_user_id_idx ON sources(user_id);
 CREATE INDEX IF NOT EXISTS sources_next_fetch_idx ON sources(last_fetched_at, refresh_interval_minutes)
@@ -168,11 +214,59 @@ CREATE TABLE IF NOT EXISTS events (
   UNIQUE (source_id, source_uid)
 );
 
+-- Columns added after initial deploy
+ALTER TABLE events ADD COLUMN IF NOT EXISTS recurrence_id UUID;
+
 CREATE INDEX IF NOT EXISTS events_user_id_idx ON events(user_id);
 CREATE INDEX IF NOT EXISTS events_source_id_idx ON events(source_id);
 CREATE INDEX IF NOT EXISTS events_starts_at_idx ON events(user_id, starts_at);
 -- Feed generation: upcoming events for a user (no partial index — NOW() not allowed)
 CREATE INDEX IF NOT EXISTS events_upcoming_idx ON events(user_id, starts_at);
+
+-- ============================================================
+-- EVENT_LOGISTICS
+-- Pickup/dropoff assignments per event. Each (event, role) pair
+-- is unique — there's one pickup and one dropoff per event.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS event_logistics (
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  event_id   UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  contact_id UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+  role       TEXT NOT NULL,
+  status     TEXT NOT NULL DEFAULT 'assigned',
+  token      TEXT UNIQUE,
+  note       TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (event_id, role)
+);
+
+ALTER TABLE event_logistics DROP CONSTRAINT IF EXISTS event_logistics_role_check;
+ALTER TABLE event_logistics ADD  CONSTRAINT event_logistics_role_check
+  CHECK (role IN ('dropoff', 'pickup'));
+
+ALTER TABLE event_logistics DROP CONSTRAINT IF EXISTS event_logistics_status_check;
+ALTER TABLE event_logistics ADD  CONSTRAINT event_logistics_status_check
+  CHECK (status IN ('assigned', 'requested', 'confirmed', 'declined'));
+
+-- ============================================================
+-- EVENT_OVERRIDES
+-- Per-kid attendance overrides for a given event.
+-- Lets a parent mark "Emma isn't going to this practice" without
+-- deleting the event from the source.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS event_overrides (
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  event_id   UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  kid_id     UUID NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+  attending  BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (event_id, kid_id)
+);
+
+CREATE INDEX IF NOT EXISTS event_overrides_event_idx ON event_overrides(event_id);
+CREATE INDEX IF NOT EXISTS event_overrides_user_idx  ON event_overrides(user_id);
 
 -- ============================================================
 -- FEED_CACHE
@@ -196,12 +290,16 @@ CREATE TABLE IF NOT EXISTS refresh_jobs (
   user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   started_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   finished_at TIMESTAMPTZ,
-  status      TEXT CHECK (status IN ('running', 'ok', 'error')),
+  status      TEXT,
   events_added    INTEGER DEFAULT 0,
   events_updated  INTEGER DEFAULT 0,
   events_removed  INTEGER DEFAULT 0,
   error_message   TEXT
 );
+
+ALTER TABLE refresh_jobs DROP CONSTRAINT IF EXISTS refresh_jobs_status_check;
+ALTER TABLE refresh_jobs ADD  CONSTRAINT refresh_jobs_status_check
+  CHECK (status IN ('running', 'ok', 'error'));
 
 CREATE INDEX IF NOT EXISTS refresh_jobs_source_id_idx ON refresh_jobs(source_id);
 CREATE INDEX IF NOT EXISTS refresh_jobs_started_at_idx ON refresh_jobs(started_at DESC);
