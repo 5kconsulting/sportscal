@@ -4,6 +4,7 @@
 // ============================================================
 
 const BASE_URL = process.env.FRONTEND_URL || 'https://sportscalapp.com';
+const DEFAULT_TZ = 'America/Los_Angeles';
 
 const styles = {
   body:    'margin:0;padding:0;background:#f4f6fa;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;',
@@ -137,9 +138,10 @@ export function welcomeEmail(user) {
 // Weekly digest email
 // ============================================================
 export function digestEmail(user, events) {
-  const grouped = groupByDay(events, user.timezone);
-  const total   = events.length;
-  const dateRange = formatDateRange();
+  const tz        = user.timezone || DEFAULT_TZ;
+  const grouped   = groupByDay(events, tz);
+  const total     = events.length;
+  const dateRange = formatDateRange(tz);
 
   const dayRows = Object.entries(grouped).map(([day, dayEvents]) => `
     <p style="${styles.dayLabel}">${day}</p>
@@ -147,8 +149,8 @@ export function digestEmail(user, events) {
       <div style="${styles.eventRow}">
         <p style="${styles.eventTitle}">${escapeHtml(e.display_title)}</p>
         <p style="${styles.eventMeta}">
-          ${e.all_day ? 'All day' : formatTime(new Date(e.starts_at))}
-          ${e.ends_at && !e.all_day ? ` – ${formatTime(new Date(e.ends_at))}` : ''}
+          ${e.all_day ? 'All day' : formatTime(new Date(e.starts_at), tz)}
+          ${e.ends_at && !e.all_day ? ` – ${formatTime(new Date(e.ends_at), tz)}` : ''}
           ${e.location ? ` &nbsp;·&nbsp; 📍 ${escapeHtml(e.location)}` : ''}
         </p>
       </div>
@@ -181,6 +183,7 @@ export function digestEmail(user, events) {
 // Reminder email
 // ============================================================
 export function reminderEmail(user, event) {
+  const tz         = user.timezone || DEFAULT_TZ;
   const startsAt   = new Date(event.starts_at);
   const hoursUntil = Math.round((startsAt - Date.now()) / 3_600_000);
 
@@ -194,8 +197,8 @@ export function reminderEmail(user, event) {
       <tr>
         <td style="font-size:14px;color:#8896b0;padding:6px 16px 6px 0;white-space:nowrap;">When</td>
         <td style="font-size:14px;color:#0f1629;font-weight:500;padding:6px 0;">
-          ${formatFullDateTime(startsAt)}
-          ${event.ends_at ? ` – ${formatTime(new Date(event.ends_at))}` : ''}
+          ${formatFullDateTime(startsAt, tz)}
+          ${event.ends_at ? ` – ${formatTime(new Date(event.ends_at), tz)}` : ''}
         </td>
       </tr>
       ${event.location ? `
@@ -218,47 +221,57 @@ export function reminderEmail(user, event) {
   return {
     subject: `Reminder: ${event.display_title} in ~${hoursUntil}h`,
     html: layout(content, `${event.display_title} is coming up in about ${hoursUntil} hours.`),
-    text: `Reminder: ${event.display_title}\nWhen: ${formatFullDateTime(startsAt)}\n${event.location ? `Where: ${event.location}` : ''}`,
+    text: `Reminder: ${event.display_title}\nWhen: ${formatFullDateTime(startsAt, tz)}\n${event.location ? `Where: ${event.location}` : ''}`,
   };
 }
 
 // ============================================================
 // Helpers
 // ============================================================
-function groupByDay(events, timezone = 'America/Los_Angeles') {
+function groupByDay(events, timezone = DEFAULT_TZ) {
   const groups = {};
   for (const e of events) {
-    const day = new Date(e.starts_at).toLocaleDateString('en-US', {
-      weekday: 'long', month: 'long', day: 'numeric', timeZone: timezone,
-    });
+    const day = formatDay(new Date(e.starts_at), timezone, e.all_day);
     if (!groups[day]) groups[day] = [];
     groups[day].push(e);
   }
   return groups;
 }
 
-function formatTime(date) {
-  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-}
-
-function formatFullDateTime(date) {
+function formatDay(date, timezone, allDay = false) {
   return date.toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
-    hour: 'numeric', minute: '2-digit', hour12: true,
+    timeZone: allDay ? 'UTC' : timezone,
   });
 }
 
-function formatDateRange() {
+function formatTime(date, timezone = DEFAULT_TZ) {
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric', minute: '2-digit', hour12: true,
+    timeZone: timezone,
+  });
+}
+
+function formatFullDateTime(date, timezone = DEFAULT_TZ) {
+  return date.toLocaleString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+    timeZone: timezone,
+  });
+}
+
+function formatDateRange(timezone = DEFAULT_TZ) {
   const s = new Date(), e = new Date();
   e.setDate(e.getDate() + 6);
-  const o = { month: 'short', day: 'numeric' };
+  const o = { month: 'short', day: 'numeric', timeZone: timezone };
   return `${s.toLocaleDateString('en-US', o)} – ${e.toLocaleDateString('en-US', o)}`;
 }
 
 function buildDigestText(user, events) {
-  const lines = [`YOUR WEEK IN SPORTS — ${formatDateRange()}`, ''];
+  const tz = user.timezone || DEFAULT_TZ;
+  const lines = [`YOUR WEEK IN SPORTS — ${formatDateRange(tz)}`, ''];
   for (const e of events) {
-    const time = e.all_day ? 'All day' : formatTime(new Date(e.starts_at));
+    const time = e.all_day ? 'All day' : formatTime(new Date(e.starts_at), tz);
     lines.push(`${time} — ${e.display_title}`);
     if (e.location) lines.push(`  📍 ${e.location}`);
   }
