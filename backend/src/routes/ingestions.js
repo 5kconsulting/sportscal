@@ -17,17 +17,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { query, queryOne } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js'; // adjust if your repo path differs
+import { connection } from '../workers/queue.js';
 
 const router = express.Router();
 
-// --- BullMQ producer --------------------------------------------------------
-const pdfQueue = new Queue('pdf-ingestion', {
-  connection: {
-    host: process.env.REDIS_HOST,
-    port: Number(process.env.REDIS_PORT || 6379),
-    password: process.env.REDIS_PASSWORD,
-  },
-});
+// --- BullMQ producer (shares the connection used by workers) ----------------
+const pdfQueue = new Queue('pdf-ingestion', { connection });
 
 // --- storage config ---------------------------------------------------------
 const STORAGE_ROOT = process.env.INGESTION_STORAGE_ROOT || '/data/ingestions';

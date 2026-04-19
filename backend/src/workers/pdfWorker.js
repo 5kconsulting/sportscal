@@ -5,6 +5,8 @@
 // Queue: 'pdf-ingestion'
 // Job payload: { ingestionId }
 //
+// Auto-starts on import (matches icalWorker/scrapeWorker/emailWorker pattern).
+//
 // Status transitions:
 //   pending -> reading -> parsing -> ready_for_review   (happy path)
 //                                  -> failed            (error path)
@@ -15,14 +17,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import fs from 'node:fs/promises';
 import { query, queryOne } from '../db/index.js';
 import { buildExtractionSystemPrompt, buildUserMessage } from '../lib/extractionPrompt.js';
-
-const CONNECTION = {
-  connection: {
-    host: process.env.REDIS_HOST,
-    port: Number(process.env.REDIS_PORT || 6379),
-    password: process.env.REDIS_PASSWORD,
-  },
-};
+import { connection } from './queue.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -75,8 +70,8 @@ function validateEvent(ev) {
 async function processIngestion(job) {
   const { ingestionId } = job.data;
 
-  // NOTE: kids table has no 'sport' column — we only pull name + timezone.
-  // The LLM infers the sport from the PDF content itself, which is usually fine.
+  // kids table has no 'sport' column — pull name + timezone only.
+  // The LLM infers the sport from the PDF content itself.
   const ingestion = await queryOne(
     `SELECT i.*, k.name AS kid_name, u.timezone AS user_timezone
        FROM ingestions i
@@ -212,32 +207,33 @@ async function processIngestion(job) {
   );
 }
 
-// --- worker boot ------------------------------------------------------------
+// --- worker boot (auto-start on import, matches icalWorker pattern) --------
 
-export function startPdfWorker() {
-  const worker = new Worker(
-    'pdf-ingestion',
-    async (job) => {
-      try {
-        await processIngestion(job);
-      } catch (err) {
-        console.error('[pdfWorker] Unhandled error on job ' + job.id, err);
-        if (job.data?.ingestionId) {
-          await setFailed(job.data.ingestionId, 'Unexpected error: ' + err.message).catch(() => {});
-        }
-        throw err;
+const worker = new Worker(
+  'pdf-ingestion',
+  async (job) => {
+    try {
+      await processIngestion(job);
+    } catch (err) {
+      console.error('[pdfWorker] Unhandled error on job ' + job.id, err);
+      if (job.data?.ingestionId) {
+        await setFailed(job.data.ingestionId, 'Unexpected error: ' + err.message).catch(() => {});
       }
+      throw err;
+    }
+  },
+  {
+    connection,
+    concurrency: 2,
+    defaultJobOptions: {
+      attempts: 2,
+      backoff: { type: 'exponential', delay: 5000 },
     },
-    {
-      ...CONNECTION,
-      concurrency: 2,
-    },
-  );
+  },
+);
 
-  worker.on('ready', () => console.log('[pdfWorker] ready'));
-  worker.on('failed', (job, err) => {
-    console.error('[pdfWorker] job failed', job?.id, err?.message);
-  });
+worker.on('completed', (job) => console.log(`[pdfWorker] job ${job.id} completed`));
+worker.on('failed',    (job, err) => console.error(`[pdfWorker] job ${job.id} failed:`, err?.message));
 
-  return worker;
-}
+console.log('[pdfWorker] ready');
+export default worker;
