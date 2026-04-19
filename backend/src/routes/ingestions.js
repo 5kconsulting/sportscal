@@ -46,6 +46,21 @@ const upload = multer({
   },
 });
 
+// Wrap multer so its errors (bad MIME, file too big, etc.) return a clean
+// 400 to the client instead of bubbling up to the global 500 handler.
+function uploadMiddleware(req, res, next) {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      const msg =
+        err.code === 'LIMIT_FILE_SIZE'
+          ? 'File is too large (max 10MB)'
+          : err.message || 'Upload failed';
+      return res.status(400).json({ error: msg });
+    }
+    next();
+  });
+}
+
 // Build events.content_hash the same way the iCal worker does.
 // Matches the schema comment: hash(raw_title + location + starts_at + ends_at)
 function computeContentHash(raw_title, location, starts_at, ends_at) {
@@ -64,7 +79,7 @@ function computeContentHash(raw_title, location, starts_at, ends_at) {
 // POST /api/ingestions
 // multipart/form-data: file (pdf), kidId (uuid)
 // ----------------------------------------------------------------------------
-router.post('/', requireAuth, upload.single('file'), async (req, res) => {
+router.post('/', requireAuth, uploadMiddleware, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -78,10 +93,15 @@ router.post('/', requireAuth, upload.single('file'), async (req, res) => {
     // Verify the kid belongs to this user
     const kid = await queryOne(
       `SELECT id FROM kids WHERE id = $1 AND user_id = $2`,
-      [kidId, req.userId],
+      [kidId, req.user.id],
     );
     if (!kid) {
-      return res.status(404).json({ error: 'Kid not found' });
+      console.warn(
+        '[POST /api/ingestions] Kid not found — kidId=%s userId=%s',
+        JSON.stringify(kidId),
+        JSON.stringify(req.user.id),
+      );
+      return res.status(404).json({ error: 'Kid not found', kidId });
     }
 
     // Write file to disk with a guaranteed-unique name
@@ -100,7 +120,7 @@ router.post('/', requireAuth, upload.single('file'), async (req, res) => {
        RETURNING id, status, status_detail, created_at`,
       [
         ingestionId,
-        req.userId,
+        req.user.id,
         kidId,
         req.file.originalname,
         req.file.mimetype,
@@ -139,7 +159,7 @@ router.get('/:id', requireAuth, async (req, res) => {
             created_at, updated_at, reviewed_at
        FROM ingestions
       WHERE id = $1 AND user_id = $2`,
-    [req.params.id, req.userId],
+    [req.params.id, req.user.id],
   );
 
   if (!ingestion) {
@@ -159,7 +179,7 @@ router.get('/', requireAuth, async (req, res) => {
       WHERE user_id = $1
       ORDER BY created_at DESC
       LIMIT 50`,
-    [req.userId],
+    [req.user.id],
   );
   res.json(rows);
 });
@@ -177,7 +197,7 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
 
   const ingestion = await queryOne(
     `SELECT * FROM ingestions WHERE id = $1 AND user_id = $2`,
-    [req.params.id, req.userId],
+    [req.params.id, req.user.id],
   );
   if (!ingestion) {
     return res.status(404).json({ error: 'Ingestion not found' });
@@ -205,7 +225,7 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
       `INSERT INTO sources (user_id, app, name, fetch_type, enabled)
        VALUES ($1, 'pdf_upload', $2, 'manual', true)
        RETURNING id`,
-      [req.userId, derivedName],
+      [req.user.id, derivedName],
     );
 
     // 2) Link the kid to this source
@@ -242,7 +262,7 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
          ON CONFLICT (source_id, source_uid) DO NOTHING`,
         [
-          req.userId,
+          req.user.id,
           source.id,
           sourceUid,
           rawTitle,
@@ -272,7 +292,7 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
     );
 
     // 5) Invalidate feed_cache so the next .ics fetch rebuilds with new events
-    await query(`DELETE FROM feed_cache WHERE user_id = $1`, [req.userId]);
+    await query(`DELETE FROM feed_cache WHERE user_id = $1`, [req.user.id]);
 
     await query('COMMIT');
 
@@ -294,7 +314,7 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
 router.post('/:id/reject', requireAuth, async (req, res) => {
   const ingestion = await queryOne(
     `SELECT id, storage_path FROM ingestions WHERE id = $1 AND user_id = $2`,
-    [req.params.id, req.userId],
+    [req.params.id, req.user.id],
   );
   if (!ingestion) return res.status(404).json({ error: 'Not found' });
 
