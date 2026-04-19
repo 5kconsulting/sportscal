@@ -9,6 +9,12 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 const TERMINAL = new Set(['ready_for_review', 'approved', 'rejected', 'failed']);
 const POLL_MS = 1500;
 
+// Matches the pattern in lib/api.js — JWT in localStorage under 'sc_token'
+function authHeader() {
+  const token = localStorage.getItem('sc_token');
+  return token ? { Authorization: 'Bearer ' + token } : {};
+}
+
 export function useIngestion() {
   const [ingestion, setIngestion] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -26,7 +32,9 @@ export function useIngestion() {
 
   const pollOnce = useCallback(async (id) => {
     try {
-      const res = await fetch('/api/ingestions/' + id);
+      const res = await fetch('/api/ingestions/' + id, {
+        headers: { ...authHeader() },
+      });
       if (!res.ok) throw new Error('Poll failed: ' + res.status);
       const data = await res.json();
       setIngestion(data);
@@ -46,8 +54,11 @@ export function useIngestion() {
       form.append('file', file);
       form.append('kidId', kidId);
 
+      // IMPORTANT: do NOT set Content-Type here — the browser must set it
+      // to multipart/form-data with the correct boundary. Only send auth.
       const res = await fetch('/api/ingestions', {
         method: 'POST',
+        headers: { ...authHeader() },
         body: form,
       });
       if (!res.ok) {
@@ -75,21 +86,28 @@ export function useIngestion() {
     if (!ingestion) return;
     const res = await fetch('/api/ingestions/' + ingestion.id + '/approve', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeader(),
+      },
       body: JSON.stringify({ events: editedEvents, sourceName }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.error || 'Approve failed');
     }
+    const result = await res.json();
     // Refresh our local copy
     pollOnce(ingestion.id);
-    return res.json();
+    return result;
   }, [ingestion, pollOnce]);
 
   const reject = useCallback(async () => {
     if (!ingestion) return;
-    await fetch('/api/ingestions/' + ingestion.id + '/reject', { method: 'POST' });
+    await fetch('/api/ingestions/' + ingestion.id + '/reject', {
+      method: 'POST',
+      headers: { ...authHeader() },
+    });
     stopPolling();
     setIngestion(null);
   }, [ingestion, stopPolling]);
