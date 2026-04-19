@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { useIngestion } from '../hooks/useIngestion.js';
+import IngestionReviewModal from '../components/IngestionReviewModal.jsx';
 
 const APP_INSTRUCTIONS = {
   teamsnap: {
@@ -84,30 +86,48 @@ const DEMO_FEEDS = [
   { sport: 'Track',      url: 'https://www.sportscalapp.com/demo-feeds/track-field.ics',         name: 'Tualatin HS Track & Field' },
 ];
 
-function buildSystemPrompt() {
+function buildSystemPrompt(kids) {
   const appNames = Object.values(APP_INSTRUCTIONS).map(a => a.label).join(', ');
   const appValues = APP_LIST.map(a => '- ' + a.label + ' -> "' + a.value + '"').join('\n');
   const demoList = DEMO_FEEDS.map(f => '- ' + f.sport + ': ' + f.url).join('\n');
   const appInstructions = JSON.stringify(APP_INSTRUCTIONS, null, 2);
+  const kidRoster = (kids || []).map(k => '- ' + k.name + ' (id: ' + k.id + ')').join('\n') || '(no kids yet)';
 
   return 'You are a friendly setup assistant for SportsCal, a service that aggregates youth sports calendars into one unified feed.\n\n'
-    + 'Your job is to guide parents step-by-step through finding their iCal URLs from sports apps and adding them to their SportsCal account.\n\n'
+    + 'Your job is to guide parents step-by-step through finding their iCal URLs from sports apps and adding them to their SportsCal account. You can ALSO accept PDF schedules from the user and extract events from them automatically.\n\n'
     + 'You have knowledge of these apps: ' + appNames + ', and Custom iCal.\n\n'
+    + '## Kids on this account\n'
+    + kidRoster + '\n\n'
     + '## Your personality\n'
     + '- Warm, encouraging, and patient - parents are often not tech-savvy\n'
     + '- Concise - do not write walls of text\n'
     + '- Celebrate small wins ("Perfect! Got it!")\n'
     + '- Use occasional emoji but do not overdo it\n\n'
     + '## Your job\n'
-    + '1. Start by asking which apps the parent uses (list them or let them type)\n'
-    + '2. Walk through each app one at a time\n'
-    + '3. When the user pastes a URL, validate it looks like an iCal URL (starts with https:// or webcal://, ideally contains .ics or known domain patterns)\n'
-    + '4. Ask what to name the source and which kid(s) it\'s for\n'
-    + '5. Confirm details before adding: "Ready to add \'Tualatin Baseball\' for James from GameChanger - sound right?"\n'
-    + '6. After user confirms, respond with a special JSON action block:\n\n'
+    + '1. Start by asking which apps the parent uses (list them or let them type). You can also mention: "If you only have a PDF schedule from the coach, I can read that too."\n'
+    + '2. For iCal URL flow: walk through each app one at a time. When the user pastes a URL, validate it looks like an iCal URL.\n'
+    + '3. Ask what to name the source and which kid(s) it\'s for.\n'
+    + '4. Confirm details before adding: "Ready to add \'Tualatin Baseball\' for James from GameChanger - sound right?"\n'
+    + '5. After user confirms, respond with this action block:\n\n'
     + 'ACTION:{"action":"add_source","name":"<n>","app":"<app_value>","ical_url":"<url>","kid_names":[<names>]}\n\n'
-    + '7. After each source is added, ask if there are more to add\n'
-    + '8. When done, give a cheerful summary of what was added\n\n'
+    + '6. After each source is added, ask if there are more to add.\n'
+    + '7. When done, give a cheerful summary of what was added.\n\n'
+    + '## PDF upload flow\n'
+    + 'If the user says they have a PDF of their schedule (or a photo, which we will treat like a PDF for now):\n\n'
+    + '  Step 1 — Ask which kid it is for. You MUST know the kid before the upload.\n'
+    + '          If there is only one kid, confirm it. If multiple, ask.\n'
+    + '  Step 2 — Once you know the kid, tell the user to tap the 📎 paperclip\n'
+    + '          at the bottom of the chat to upload, and emit this action:\n\n'
+    + 'ACTION:{"action":"request_pdf_upload","kid_id":"<kid uuid>","kid_name":"<name>"}\n\n'
+    + '  Step 3 — The system will show live progress messages (Reading... Parsing...)\n'
+    + '          as the PDF is processed. You do NOT need to narrate progress.\n'
+    + '  Step 4 — When extraction finishes, a review modal opens automatically.\n'
+    + '          Do NOT emit any action for this — the frontend handles it.\n'
+    + '  Step 5 — After the user reviews + approves (or cancels), you will receive\n'
+    + '          a system message telling you what happened. React conversationally:\n'
+    + '          - On success: celebrate and ask if there are more schedules.\n'
+    + '          - On cancel: offer to try a different file or switch to iCal URL flow.\n'
+    + '          - On failure (no events / bad file): apologize briefly, offer alternatives.\n\n'
     + '## Demo mode\n'
     + 'If the user has no sources yet OR says they want to "try it" or "see how it works", offer the demo feeds:\n\n'
     + '"Want to try it with some sample sports data first? I have pre-made feeds for soccer, baseball, basketball, volleyball, swimming, and track - all realistic schedules from the Portland area. You can swap them out for your real feeds any time."\n\n'
@@ -119,11 +139,11 @@ function buildSystemPrompt() {
     + '## App values (use these exact values in the action JSON)\n'
     + appValues + '\n\n'
     + '## Important rules\n'
-    + '- Only emit the ACTION: block when the user has explicitly confirmed they want to add the source\n'
+    + '- Only emit an ACTION: block when the user has explicitly confirmed / you need the UI to do something\n'
     + '- One ACTION block per message\n'
     + '- If a URL does not look valid, ask the user to double-check it\n'
     + '- If you are unsure which app a URL is from, make your best guess based on the domain\n'
-    + '- Never ask for passwords or login credentials - only iCal URLs\n'
+    + '- Never ask for passwords or login credentials - only iCal URLs or PDF uploads\n'
     + '- Keep responses short and conversational';
 }
 
@@ -141,6 +161,33 @@ function isIcalUrl(url) {
   return /^(https?|webcal):\/\/.+/i.test(url.trim());
 }
 
+// Map ingestion status -> human-friendly chat bubble text + icon.
+function statusToBubble(ing) {
+  if (!ing) return null;
+  const detail = ing.status_detail || ing.status;
+  switch (ing.status) {
+    case 'pending':
+    case 'uploading':
+      return '📄 Uploading your PDF...';
+    case 'reading':
+      return '🔍 ' + detail;
+    case 'parsing':
+      return '✨ ' + detail;
+    case 'ready_for_review':
+      return '✅ ' + detail;
+    case 'approving':
+      return '📥 Adding events to your calendar...';
+    case 'approved':
+      return '✅ ' + detail;
+    case 'failed':
+      return '⚠️ ' + (ing.extraction_error || detail || 'Something went wrong reading that PDF');
+    case 'rejected':
+      return null;
+    default:
+      return '📄 ' + detail;
+  }
+}
+
 export default function SetupAgent({ onSourceAdded }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -151,6 +198,13 @@ export default function SetupAgent({ onSourceAdded }) {
   const [started, setStarted] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // --- PDF ingestion state ---
+  const { ingestion, uploading, error: ingestionError, uploadPdf, approve, reject, reset: resetIngestion } = useIngestion();
+  const [pendingKid, setPendingKid] = useState(null); // { id, name } — which kid the next upload is for
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const statusMsgIdxRef = useRef(null); // index of the in-place status bubble
 
   useEffect(() => {
     api.kids.list().then(({ kids }) => setKids(kids)).catch(() => {});
@@ -159,6 +213,41 @@ export default function SetupAgent({ onSourceAdded }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  // Whenever ingestion status changes, update the in-chat status bubble
+  // (one bubble, updated in place — not a spam of messages).
+  useEffect(() => {
+    if (!ingestion) {
+      statusMsgIdxRef.current = null;
+      return;
+    }
+    const bubble = statusToBubble(ingestion);
+    if (!bubble) return;
+
+    setMessages(prev => {
+      const next = [...prev];
+      const idx = statusMsgIdxRef.current;
+      if (idx != null && next[idx] && next[idx].role === 'system') {
+        next[idx] = {
+          ...next[idx],
+          content: bubble,
+          error: ingestion.status === 'failed',
+        };
+      } else {
+        next.push({
+          role: 'system',
+          content: bubble,
+          error: ingestion.status === 'failed',
+        });
+        statusMsgIdxRef.current = next.length - 1;
+      }
+      return next;
+    });
+
+    if (ingestion.status === 'ready_for_review') {
+      setShowReviewModal(true);
+    }
+  }, [ingestion?.status, ingestion?.status_detail, ingestion?.extraction_error]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function startSetup() {
     setStarted(true);
@@ -174,8 +263,8 @@ export default function SetupAgent({ onSourceAdded }) {
     const isNew = existingSources.length === 0;
 
     const intro = isNew
-      ? 'Hi' + (kids.length > 0 ? ', I can see you have ' + (kids.length > 1 ? kids.length + ' kids' : '1 kid') + ': ' + kidNames : '') + '! Want to jump right in with your real sports apps, or would you like to try SportsCal first with some sample schedules? I have demo feeds for soccer, baseball, basketball, volleyball, swimming, and track ready to go.'
-      : 'Hi' + (kids.length > 0 ? ' - I see you already have ' + existingSources.length + ' source' + (existingSources.length !== 1 ? 's' : '') + ' set up' : '') + '! Want to add more? Which apps do you use?';
+      ? 'Hi' + (kids.length > 0 ? ', I can see you have ' + (kids.length > 1 ? kids.length + ' kids' : '1 kid') + ': ' + kidNames : '') + '! Want to jump right in with your real sports apps, or would you like to try SportsCal first with some sample schedules? I have demo feeds for soccer, baseball, basketball, volleyball, swimming, and track ready to go. (If you only have a PDF from the coach, I can read that too — just say "I have a PDF".)'
+      : 'Hi' + (kids.length > 0 ? ' - I see you already have ' + existingSources.length + ' source' + (existingSources.length !== 1 ? 's' : '') + ' set up' : '') + '! Want to add more? Which apps do you use? (I can also read PDF schedules if you have one.)';
 
     setMessages([{ role: 'assistant', content: intro }]);
     setLoading(false);
@@ -191,19 +280,23 @@ export default function SetupAgent({ onSourceAdded }) {
     setLoading(true);
 
     try {
-      const apiMessages = newMessages.map(m => ({ role: m.role, content: m.content }));
+      // Filter out system messages for the Anthropic API — those are UI-only.
+      const apiMessages = newMessages
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => ({ role: m.role, content: m.content }));
+
       const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1000,
-          system: buildSystemPrompt(),
+          system: buildSystemPrompt(kids),
           messages: apiMessages,
         }),
       });
@@ -215,8 +308,8 @@ export default function SetupAgent({ onSourceAdded }) {
 
       setMessages(prev => [...prev, { role: 'assistant', content: rawContent, display: displayContent }]);
 
-      if (action && action.action === 'add_source') {
-        await executeAddSource(action);
+      if (action) {
+        await handleAction(action);
       }
     } catch {
       setMessages(prev => [...prev, {
@@ -227,6 +320,29 @@ export default function SetupAgent({ onSourceAdded }) {
     } finally {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }
+
+  async function handleAction(action) {
+    if (action.action === 'add_source') {
+      return executeAddSource(action);
+    }
+    if (action.action === 'request_pdf_upload') {
+      // The model has pinned a kid; stash and open the file picker.
+      const kidId = action.kid_id;
+      const kidName = action.kid_name || kids.find(k => k.id === kidId)?.name || 'your kid';
+      if (!kidId) {
+        setMessages(prev => [...prev, {
+          role: 'system',
+          content: 'Something went wrong — I lost track of which kid this is for. Try again?',
+          error: true,
+        }]);
+        return;
+      }
+      setPendingKid({ id: kidId, name: kidName });
+      // Small UX nudge if the user doesn't find the paperclip
+      setTimeout(() => fileInputRef.current?.click(), 100);
+      return;
     }
   }
 
@@ -257,6 +373,95 @@ export default function SetupAgent({ onSourceAdded }) {
     }
   }
 
+  // --- PDF upload handlers ---------------------------------------------------
+
+  function openFilePicker() {
+    if (!pendingKid && kids.length === 1) {
+      // Sensible default: single-kid accounts don't need to ask
+      setPendingKid({ id: kids[0].id, name: kids[0].name });
+    }
+    fileInputRef.current?.click();
+  }
+
+  async function onFileChosen(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file
+    if (!file) return;
+
+    // If user tapped paperclip without agent context, ask for the kid
+    if (!pendingKid) {
+      if (kids.length === 1) {
+        setPendingKid({ id: kids[0].id, name: kids[0].name });
+      } else {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'Which kid is this schedule for? Tell me their name and I\'ll upload the PDF.',
+          display: 'Which kid is this schedule for? Tell me their name and I\'ll upload the PDF.',
+        }]);
+        return;
+      }
+    }
+
+    const targetKid = pendingKid || { id: kids[0].id, name: kids[0].name };
+
+    // Reset any prior status bubble so this upload gets a fresh one
+    statusMsgIdxRef.current = null;
+
+    try {
+      await uploadPdf(file, targetKid.id);
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        role: 'system',
+        content: 'Upload failed: ' + err.message,
+        error: true,
+      }]);
+    }
+  }
+
+  async function handleApprove(editedEvents, sourceName) {
+    try {
+      const result = await approve(editedEvents, sourceName);
+      setShowReviewModal(false);
+
+      // Refresh sources so the dashboard picks up the new one
+      if (onSourceAdded) {
+        // We don't have the full source object, but triggering a refresh
+        // is the common intent; callers typically re-fetch on this callback.
+        onSourceAdded({ id: result.sourceId, name: sourceName, app: 'pdf_upload' });
+      }
+
+      const kidName = pendingKid?.name || 'your kid';
+      const followup = '✅ Added ' + result.eventsInserted + ' events for ' + kidName + '! Want to add another schedule?';
+
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: followup, display: followup },
+      ]);
+
+      setPendingKid(null);
+      statusMsgIdxRef.current = null;
+      resetIngestion();
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        role: 'system',
+        content: 'Could not add events: ' + err.message,
+        error: true,
+      }]);
+    }
+  }
+
+  async function handleReject() {
+    setShowReviewModal(false);
+    try {
+      await reject();
+    } catch {}
+    const msg = 'No worries — I tossed that file. Want to try a different PDF, or would an iCal URL work instead?';
+    setMessages(prev => [...prev, { role: 'assistant', content: msg, display: msg }]);
+    setPendingKid(null);
+    statusMsgIdxRef.current = null;
+    resetIngestion();
+  }
+
   function handleKeyDown(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -274,7 +479,7 @@ export default function SetupAgent({ onSourceAdded }) {
             Set up my calendars
           </h1>
           <p style={{ color: 'var(--slate)', fontSize: 15, lineHeight: 1.6 }}>
-            I'll walk you through finding your iCal URLs from each sports app and add them to your account automatically.
+            I'll walk you through finding your iCal URLs from each sports app — or read a PDF schedule from the coach — and add everything to your account automatically.
           </p>
         </div>
 
@@ -286,7 +491,7 @@ export default function SetupAgent({ onSourceAdded }) {
             Your calendar setup assistant
           </h2>
           <p style={{ color: 'var(--slate)', fontSize: 14, marginBottom: 28, lineHeight: 1.6, maxWidth: 380, margin: '0 auto 28px' }}>
-            Tell me which apps you use — TeamSnap, GameChanger, PlayMetrics, and more — and I'll guide you through getting each URL step by step.
+            Tell me which apps you use — TeamSnap, GameChanger, PlayMetrics, and more — or drop in a PDF schedule and I'll read it for you.
           </p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 28 }}>
@@ -301,6 +506,10 @@ export default function SetupAgent({ onSourceAdded }) {
               padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
               background: 'var(--off-white)', color: 'var(--slate)',
             }}>+ 8 more</span>
+            <span style={{
+              padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+              background: 'var(--off-white)', color: 'var(--slate)',
+            }}>📄 PDF</span>
           </div>
 
           <button className="btn btn-primary" onClick={startSetup} style={{ fontSize: 15, padding: '12px 32px' }}>
@@ -411,6 +620,15 @@ export default function SetupAgent({ onSourceAdded }) {
         <div ref={bottomRef} />
       </div>
 
+      {/* Hidden file input — triggered by paperclip or ACTION:request_pdf_upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf"
+        style={{ display: 'none' }}
+        onChange={onFileChosen}
+      />
+
       <div style={{
         flexShrink: 0,
         display: 'flex', gap: 8, alignItems: 'flex-end',
@@ -419,12 +637,29 @@ export default function SetupAgent({ onSourceAdded }) {
         borderRadius: 12, padding: '8px 8px 8px 14px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
       }}>
+        <button
+          type="button"
+          onClick={openFilePicker}
+          disabled={uploading}
+          title="Upload a PDF schedule"
+          style={{
+            width: 32, height: 32, borderRadius: 8, border: 'none',
+            background: 'transparent',
+            color: 'var(--slate)',
+            cursor: uploading ? 'default' : 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 18, flexShrink: 0,
+            opacity: uploading ? 0.4 : 1,
+          }}
+        >
+          📎
+        </button>
         <textarea
           ref={inputRef}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message or paste a URL..."
+          placeholder="Type a message, paste a URL, or tap 📎 to upload a PDF..."
           rows={1}
           style={{
             flex: 1, border: 'none', outline: 'none', resize: 'none',
@@ -454,8 +689,17 @@ export default function SetupAgent({ onSourceAdded }) {
       </div>
 
       <p style={{ fontSize: 11, color: 'var(--slate)', textAlign: 'center', marginTop: 8 }}>
-        Press Enter to send · Shift+Enter for new line
+        Press Enter to send · Shift+Enter for new line · 📎 for PDF
       </p>
+
+      {showReviewModal && ingestion?.status === 'ready_for_review' && (
+        <IngestionReviewModal
+          ingestion={ingestion}
+          kidName={pendingKid?.name}
+          onApprove={handleApprove}
+          onCancel={handleReject}
+        />
+      )}
     </div>
   );
 }

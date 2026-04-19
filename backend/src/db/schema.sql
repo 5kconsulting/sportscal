@@ -139,18 +139,22 @@ ALTER TABLE sources ADD COLUMN IF NOT EXISTS last_error_alert_at TIMESTAMPTZ;
 
 -- CHECK constraints — drop and recreate so edits are declarative.
 -- To add a new source app: just add it to the IN list below and deploy.
+-- 'pdf_upload' and 'email_forward' are for AI-ingested sources that don't poll.
 ALTER TABLE sources DROP CONSTRAINT IF EXISTS sources_app_check;
 ALTER TABLE sources ADD  CONSTRAINT sources_app_check
   CHECK (app IN (
     'teamsnap', 'teamsnapone', 'gamechanger', 'playmetrics',
     'teamsideline', 'byga', 'sportsengine', 'teamreach',
     'leagueapps', 'demosphere', '360player', 'sportsyou',
-    'band', 'rankone', 'custom'
+    'band', 'rankone', 'custom',
+    'pdf_upload', 'email_forward'
   ));
 
+-- 'manual' fetch_type is for AI-ingested sources whose events are frozen
+-- at the moment of approval (no recurring fetch).
 ALTER TABLE sources DROP CONSTRAINT IF EXISTS sources_fetch_type_check;
 ALTER TABLE sources ADD  CONSTRAINT sources_fetch_type_check
-  CHECK (fetch_type IN ('ical', 'scrape', 'ical_with_scrape_fallback'));
+  CHECK (fetch_type IN ('ical', 'scrape', 'ical_with_scrape_fallback', 'manual'));
 
 ALTER TABLE sources DROP CONSTRAINT IF EXISTS sources_last_fetch_status_check;
 ALTER TABLE sources ADD  CONSTRAINT sources_last_fetch_status_check
@@ -269,6 +273,79 @@ CREATE INDEX IF NOT EXISTS event_overrides_event_idx ON event_overrides(event_id
 CREATE INDEX IF NOT EXISTS event_overrides_user_idx  ON event_overrides(user_id);
 
 -- ============================================================
+-- INGESTIONS
+-- One row per uploaded blob (PDF today, email/photo later).
+-- Tracks the extraction lifecycle and the LLM's output until
+-- the user approves/rejects and real events are written.
+-- The raw file is deleted after 60 days by the cleanup cron;
+-- the row itself and extracted_events stay for audit.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS ingestions (
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id           UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kid_id            UUID NOT NULL REFERENCES kids(id) ON DELETE CASCADE,
+
+  -- Set once the user approves and we create a real source.
+  -- ON DELETE SET NULL so deleting the source doesn't wipe the audit trail.
+  source_id         UUID REFERENCES sources(id) ON DELETE SET NULL,
+
+  kind              TEXT NOT NULL,
+  original_filename TEXT,
+  original_mime     TEXT,
+  original_size     INTEGER,
+
+  -- Filesystem path; nulled out by the 60-day cleanup cron.
+  storage_path      TEXT,
+
+  status            TEXT NOT NULL DEFAULT 'pending',
+  status_detail     TEXT,
+
+  -- The array of events the LLM extracted (pre-approval).
+  extracted_events  JSONB,
+  event_count       INTEGER,
+  approved_count    INTEGER,
+
+  extraction_error  TEXT,
+
+  -- Cost tracking (from Anthropic API usage block).
+  input_tokens      INTEGER,
+  output_tokens     INTEGER,
+
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  reviewed_at       TIMESTAMPTZ,
+  file_deleted_at   TIMESTAMPTZ
+);
+
+-- CHECK constraints — drop-and-recreate so edits are declarative.
+ALTER TABLE ingestions DROP CONSTRAINT IF EXISTS ingestions_kind_check;
+ALTER TABLE ingestions ADD  CONSTRAINT ingestions_kind_check
+  CHECK (kind IN ('pdf', 'email', 'photo'));
+
+ALTER TABLE ingestions DROP CONSTRAINT IF EXISTS ingestions_status_check;
+ALTER TABLE ingestions ADD  CONSTRAINT ingestions_status_check
+  CHECK (status IN (
+    'pending',
+    'uploading',
+    'reading',
+    'parsing',
+    'ready_for_review',
+    'approving',
+    'approved',
+    'rejected',
+    'failed'
+  ));
+
+CREATE INDEX IF NOT EXISTS ingestions_user_status_idx
+  ON ingestions(user_id, status);
+CREATE INDEX IF NOT EXISTS ingestions_kid_idx
+  ON ingestions(kid_id);
+-- Partial index: the 60-day cleanup cron only scans rows with files still on disk
+CREATE INDEX IF NOT EXISTS ingestions_file_cleanup_idx
+  ON ingestions(created_at)
+  WHERE storage_path IS NOT NULL;
+
+-- ============================================================
 -- FEED_CACHE
 -- Pre-built .ics content per user so the serve path is fast.
 -- Invalidated whenever events change for that user.
@@ -334,6 +411,11 @@ CREATE TRIGGER sources_updated_at
 DROP TRIGGER IF EXISTS events_updated_at ON events;
 CREATE TRIGGER events_updated_at
   BEFORE UPDATE ON events
+  FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
+
+DROP TRIGGER IF EXISTS ingestions_updated_at ON ingestions;
+CREATE TRIGGER ingestions_updated_at
+  BEFORE UPDATE ON ingestions
   FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
 
 -- ============================================================
