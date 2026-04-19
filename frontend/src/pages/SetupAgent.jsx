@@ -91,7 +91,7 @@ function buildSystemPrompt(kids) {
   const appValues = APP_LIST.map(a => '- ' + a.label + ' -> "' + a.value + '"').join('\n');
   const demoList = DEMO_FEEDS.map(f => '- ' + f.sport + ': ' + f.url).join('\n');
   const appInstructions = JSON.stringify(APP_INSTRUCTIONS, null, 2);
-  const kidRoster = (kids || []).map(k => '- ' + k.name + ' (id: ' + k.id + ')').join('\n') || '(no kids yet)';
+  const kidRoster = (kids || []).map(k => '- ' + k.name).join('\n') || '(no kids yet)';
 
   return 'You are a friendly setup assistant for SportsCal, a service that aggregates youth sports calendars into one unified feed.\n\n'
     + 'Your job is to guide parents step-by-step through finding their iCal URLs from sports apps and adding them to their SportsCal account. You can ALSO accept PDF schedules from the user and extract events from them automatically.\n\n'
@@ -118,11 +118,13 @@ function buildSystemPrompt(kids) {
     + '          If there is only one kid, confirm it. If multiple, ask.\n'
     + '  Step 2 — Once you know the kid, tell the user to tap the 📎 paperclip\n'
     + '          at the bottom of the chat to upload, and emit this action:\n\n'
-    + 'ACTION:{"action":"request_pdf_upload","kid_id":"<kid uuid>","kid_name":"<name>"}\n\n'
-    + '  Step 3 — The system will show live progress messages (Reading... Parsing...)\n'
-    + '          as the PDF is processed. You do NOT need to narrate progress.\n'
+    + 'ACTION:{"action":"request_pdf_upload","kid_name":"<exact name from roster>"}\n\n'
+    + '          Use the kid name EXACTLY as it appears in the roster above.\n'
+    + '          The frontend resolves the name to an ID — do NOT make up a UUID.\n'
+    + '  Step 3 — The system will show live progress messages (Reading... Parsing...).\n'
+    + '          Do NOT narrate progress yourself.\n'
     + '  Step 4 — When extraction finishes, a review modal opens automatically.\n'
-    + '          Do NOT emit any action for this — the frontend handles it.\n'
+    + '          Do NOT emit any action — the frontend handles it.\n'
     + '  Step 5 — After the user reviews + approves (or cancels), you will receive\n'
     + '          a system message telling you what happened. React conversationally:\n'
     + '          - On success: celebrate and ask if there are more schedules.\n'
@@ -161,7 +163,6 @@ function isIcalUrl(url) {
   return /^(https?|webcal):\/\/.+/i.test(url.trim());
 }
 
-// Map ingestion status -> human-friendly chat bubble text + icon.
 function statusToBubble(ing) {
   if (!ing) return null;
   const detail = ing.status_detail || ing.status;
@@ -200,11 +201,10 @@ export default function SetupAgent({ onSourceAdded }) {
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // --- PDF ingestion state ---
   const { ingestion, uploading, error: ingestionError, uploadPdf, approve, reject, reset: resetIngestion } = useIngestion();
-  const [pendingKid, setPendingKid] = useState(null); // { id, name } — which kid the next upload is for
+  const [pendingKid, setPendingKid] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const statusMsgIdxRef = useRef(null); // index of the in-place status bubble
+  const statusMsgIdxRef = useRef(null);
 
   useEffect(() => {
     api.kids.list().then(({ kids }) => setKids(kids)).catch(() => {});
@@ -214,8 +214,6 @@ export default function SetupAgent({ onSourceAdded }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  // Whenever ingestion status changes, update the in-chat status bubble
-  // (one bubble, updated in place — not a spam of messages).
   useEffect(() => {
     if (!ingestion) {
       statusMsgIdxRef.current = null;
@@ -228,17 +226,9 @@ export default function SetupAgent({ onSourceAdded }) {
       const next = [...prev];
       const idx = statusMsgIdxRef.current;
       if (idx != null && next[idx] && next[idx].role === 'system') {
-        next[idx] = {
-          ...next[idx],
-          content: bubble,
-          error: ingestion.status === 'failed',
-        };
+        next[idx] = { ...next[idx], content: bubble, error: ingestion.status === 'failed' };
       } else {
-        next.push({
-          role: 'system',
-          content: bubble,
-          error: ingestion.status === 'failed',
-        });
+        next.push({ role: 'system', content: bubble, error: ingestion.status === 'failed' });
         statusMsgIdxRef.current = next.length - 1;
       }
       return next;
@@ -280,7 +270,6 @@ export default function SetupAgent({ onSourceAdded }) {
     setLoading(true);
 
     try {
-      // Filter out system messages for the Anthropic API — those are UI-only.
       const apiMessages = newMessages
         .filter(m => m.role === 'user' || m.role === 'assistant')
         .map(m => ({ role: m.role, content: m.content }));
@@ -328,19 +317,23 @@ export default function SetupAgent({ onSourceAdded }) {
       return executeAddSource(action);
     }
     if (action.action === 'request_pdf_upload') {
-      // The model has pinned a kid; stash and open the file picker.
-      const kidId = action.kid_id;
-      const kidName = action.kid_name || kids.find(k => k.id === kidId)?.name || 'your kid';
-      if (!kidId) {
+      // Resolve kid by name against the real roster — never trust the model
+      // to produce a valid UUID. Same pattern as executeAddSource.
+      const kidName = (action.kid_name || '').trim();
+      const matched = kids.find(
+        k => k.name.toLowerCase() === kidName.toLowerCase(),
+      );
+      if (!matched) {
         setMessages(prev => [...prev, {
           role: 'system',
-          content: 'Something went wrong — I lost track of which kid this is for. Try again?',
+          content: kidName
+            ? 'I couldn\'t find a kid named "' + kidName + '" on your account. Which kid should I use?'
+            : 'Which kid is this schedule for?',
           error: true,
         }]);
         return;
       }
-      setPendingKid({ id: kidId, name: kidName });
-      // Small UX nudge if the user doesn't find the paperclip
+      setPendingKid({ id: matched.id, name: matched.name });
       setTimeout(() => fileInputRef.current?.click(), 100);
       return;
     }
@@ -373,11 +366,8 @@ export default function SetupAgent({ onSourceAdded }) {
     }
   }
 
-  // --- PDF upload handlers ---------------------------------------------------
-
   function openFilePicker() {
     if (!pendingKid && kids.length === 1) {
-      // Sensible default: single-kid accounts don't need to ask
       setPendingKid({ id: kids[0].id, name: kids[0].name });
     }
     fileInputRef.current?.click();
@@ -385,10 +375,9 @@ export default function SetupAgent({ onSourceAdded }) {
 
   async function onFileChosen(e) {
     const file = e.target.files?.[0];
-    e.target.value = ''; // allow re-selecting the same file
+    e.target.value = '';
     if (!file) return;
 
-    // If user tapped paperclip without agent context, ask for the kid
     if (!pendingKid) {
       if (kids.length === 1) {
         setPendingKid({ id: kids[0].id, name: kids[0].name });
@@ -403,8 +392,6 @@ export default function SetupAgent({ onSourceAdded }) {
     }
 
     const targetKid = pendingKid || { id: kids[0].id, name: kids[0].name };
-
-    // Reset any prior status bubble so this upload gets a fresh one
     statusMsgIdxRef.current = null;
 
     try {
@@ -423,10 +410,7 @@ export default function SetupAgent({ onSourceAdded }) {
       const result = await approve(editedEvents, sourceName);
       setShowReviewModal(false);
 
-      // Refresh sources so the dashboard picks up the new one
       if (onSourceAdded) {
-        // We don't have the full source object, but triggering a refresh
-        // is the common intent; callers typically re-fetch on this callback.
         onSourceAdded({ id: result.sourceId, name: sourceName, app: 'pdf_upload' });
       }
 
@@ -452,9 +436,7 @@ export default function SetupAgent({ onSourceAdded }) {
 
   async function handleReject() {
     setShowReviewModal(false);
-    try {
-      await reject();
-    } catch {}
+    try { await reject(); } catch {}
     const msg = 'No worries — I tossed that file. Want to try a different PDF, or would an iCal URL work instead?';
     setMessages(prev => [...prev, { role: 'assistant', content: msg, display: msg }]);
     setPendingKid(null);
@@ -620,7 +602,6 @@ export default function SetupAgent({ onSourceAdded }) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Hidden file input — triggered by paperclip or ACTION:request_pdf_upload */}
       <input
         ref={fileInputRef}
         type="file"
