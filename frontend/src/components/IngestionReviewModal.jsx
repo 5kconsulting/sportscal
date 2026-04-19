@@ -250,6 +250,33 @@ function EventRow({ index, event, selected, onToggle, onEdit }) {
   );
 }
 
+// --- date/time helpers -----------------------------------------------------
+// Native <input type="date"> uses YYYY-MM-DD in the user's local timezone.
+// Native <input type="time"> uses HH:MM in the user's local timezone.
+// We convert to/from ISO around them so the API payload stays ISO.
+
+function isoToDateParts(iso) {
+  if (!iso) return { date: '', time: '' };
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return { date: '', time: '' };
+  // Format in LOCAL time (what the input expects)
+  const pad = (n) => String(n).padStart(2, '0');
+  return {
+    date: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()),
+    time: pad(d.getHours()) + ':' + pad(d.getMinutes()),
+  };
+}
+
+function datePartsToIso(date, time, allDay) {
+  if (!date) return null;
+  if (allDay) {
+    // All-day events: date at local midnight, then to ISO
+    return new Date(date + 'T00:00:00').toISOString();
+  }
+  if (!time) return null;
+  return new Date(date + 'T' + time + ':00').toISOString();
+}
+
 function EditDrawer({ event, onSave, onClose }) {
   const [local, setLocal] = useState(event);
   useEffect(() => setLocal(event), [event]);
@@ -257,6 +284,39 @@ function EditDrawer({ event, onSave, onClose }) {
   if (!event) return null;
 
   const update = (k, v) => setLocal((prev) => ({ ...prev, [k]: v }));
+
+  const startParts = isoToDateParts(local.starts_at);
+  const endParts = isoToDateParts(local.ends_at);
+
+  const onStartDate = (val) => {
+    const iso = datePartsToIso(val, startParts.time || '00:00', local.all_day);
+    update('starts_at', iso);
+  };
+  const onStartTime = (val) => {
+    const iso = datePartsToIso(startParts.date, val, false);
+    update('starts_at', iso);
+  };
+  const onEndDate = (val) => {
+    if (!val) { update('ends_at', null); return; }
+    const iso = datePartsToIso(val, endParts.time || startParts.time || '00:00', local.all_day);
+    update('ends_at', iso);
+  };
+  const onEndTime = (val) => {
+    if (!val) { update('ends_at', null); return; }
+    const iso = datePartsToIso(endParts.date || startParts.date, val, false);
+    update('ends_at', iso);
+  };
+
+  const onAllDayToggle = (checked) => {
+    update('all_day', checked);
+    // If flipping to all-day, normalize time portion to midnight
+    if (checked && startParts.date) {
+      update('starts_at', datePartsToIso(startParts.date, '00:00', true));
+      if (endParts.date) {
+        update('ends_at', datePartsToIso(endParts.date, '00:00', true));
+      }
+    }
+  };
 
   return (
     <div style={S.drawer}>
@@ -273,24 +333,48 @@ function EditDrawer({ event, onSave, onClose }) {
       </label>
 
       <label style={S.drawerLabel}>
-        Starts at (ISO)
+        Start date
         <input
-          type="text"
+          type="date"
           style={S.drawerInput}
-          value={local.starts_at || ''}
-          onChange={(e) => update('starts_at', e.target.value)}
+          value={startParts.date}
+          onChange={(e) => onStartDate(e.target.value)}
         />
       </label>
 
+      {!local.all_day && (
+        <label style={S.drawerLabel}>
+          Start time
+          <input
+            type="time"
+            style={S.drawerInput}
+            value={startParts.time}
+            onChange={(e) => onStartTime(e.target.value)}
+          />
+        </label>
+      )}
+
       <label style={S.drawerLabel}>
-        Ends at (ISO, optional)
+        End date (optional)
         <input
-          type="text"
+          type="date"
           style={S.drawerInput}
-          value={local.ends_at || ''}
-          onChange={(e) => update('ends_at', e.target.value || null)}
+          value={endParts.date}
+          onChange={(e) => onEndDate(e.target.value)}
         />
       </label>
+
+      {!local.all_day && (
+        <label style={S.drawerLabel}>
+          End time (optional)
+          <input
+            type="time"
+            style={S.drawerInput}
+            value={endParts.time}
+            onChange={(e) => onEndTime(e.target.value)}
+          />
+        </label>
+      )}
 
       <label style={S.drawerLabel}>
         Location
@@ -306,7 +390,7 @@ function EditDrawer({ event, onSave, onClose }) {
         <input
           type="checkbox"
           checked={!!local.all_day}
-          onChange={(e) => update('all_day', e.target.checked)}
+          onChange={(e) => onAllDayToggle(e.target.checked)}
           style={{ marginRight: 8 }}
         />
         All-day event
