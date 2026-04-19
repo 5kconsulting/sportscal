@@ -31,6 +31,7 @@ import emailVerificationRoutes from './routes/emailVerification.js';
 import contactsRoutes         from './routes/contacts.js';
 import logisticsRoutes        from './routes/logistics.js';
 import overridesRoutes        from './routes/overrides.js';
+import ingestionsRoutes       from './routes/ingestions.js';
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -76,19 +77,20 @@ app.use(express.json({ limit: '64kb' }));
 // ============================================================
 // Routes
 // ============================================================
-app.use('/api/auth',       authRoutes);
-app.use('/api/auth',       passwordResetRoutes);
-app.use('/api/auth',       emailVerificationRoutes);
-app.use('/api/kids',       kidsRoutes);
-app.use('/api/sources',    sourcesRoutes);
-app.use('/api/events',     eventsRoutes);
-app.use('/api/manual',     manualRoutes);
-app.use('/api/billing',    billingRoutes);
-app.use('/api/admin',      adminRoutes);
-app.use('/api/contacts',   contactsRoutes);
-app.use('/api/logistics',  logisticsRoutes);
-app.use('/api/overrides',  overridesRoutes);
-app.use('/feed',           calendarRoutes); // public: /feed/:token.ics
+app.use('/api/auth',        authRoutes);
+app.use('/api/auth',        passwordResetRoutes);
+app.use('/api/auth',        emailVerificationRoutes);
+app.use('/api/kids',        kidsRoutes);
+app.use('/api/sources',     sourcesRoutes);
+app.use('/api/events',      eventsRoutes);
+app.use('/api/manual',      manualRoutes);
+app.use('/api/billing',     billingRoutes);
+app.use('/api/admin',       adminRoutes);
+app.use('/api/contacts',    contactsRoutes);
+app.use('/api/logistics',   logisticsRoutes);
+app.use('/api/overrides',   overridesRoutes);
+app.use('/api/ingestions',  ingestionsRoutes);
+app.use('/feed',            calendarRoutes); // public: /feed/:token.ics
 
 // ============================================================
 // Health check (used by Railway / Render / Docker)
