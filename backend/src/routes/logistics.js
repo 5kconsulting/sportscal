@@ -119,7 +119,10 @@ router.post('/:eventId', requireAuth, async (req, res) => {
       const confirmUrl = `${APP_URL}/api/logistics/respond/${token}/confirmed`;
       const declineUrl = `${APP_URL}/api/logistics/respond/${token}/declined`;
 
-      const smsBody = `Hi ${contact.name.split(' ')[0]}! Can you ${action} ${kidName} on ${eventDate} at ${eventTime}${event.location ? ` at ${event.location}` : ''}?${note ? ` "${note}"` : ''}\n\nYes: ${confirmUrl}\nNo: ${declineUrl}`;
+      // A2P 10DLC requires every outbound marketing/transactional SMS to
+      // include opt-out instructions and the rates disclosure. Append them
+      // to every message so campaign compliance is never in question.
+      const smsBody = `Hi ${contact.name.split(' ')[0]}! Can you ${action} ${kidName} on ${eventDate} at ${eventTime}${event.location ? ` at ${event.location}` : ''}?${note ? ` "${note}"` : ''}\n\nYes: ${confirmUrl}\nNo: ${declineUrl}\n\nReply STOP to opt out, HELP for help. Msg&data rates may apply.`;
 
       if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
         try {

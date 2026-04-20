@@ -254,6 +254,7 @@ function RideContacts() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing]   = useState(null);
   const [form, setForm]         = useState({ name: '', email: '', phone: '' });
+  const [consent, setConsent]   = useState(false);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
 
@@ -267,6 +268,7 @@ function RideContacts() {
   function openAdd() {
     setEditing(null);
     setForm({ name: '', email: '', phone: '' });
+    setConsent(false);
     setError('');
     setShowForm(true);
   }
@@ -274,12 +276,19 @@ function RideContacts() {
   function openEdit(contact) {
     setEditing(contact);
     setForm({ name: contact.name, email: contact.email || '', phone: contact.phone || '' });
+    // When editing, the consent was already captured at creation time.
+    setConsent(true);
     setError('');
     setShowForm(true);
   }
 
   async function handleSave(e) {
     e.preventDefault();
+    const needsConsent = !!(form.email || form.phone);
+    if (needsConsent && !consent) {
+      setError('Please confirm you have the contact\u2019s permission to message them.');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -387,13 +396,27 @@ function RideContacts() {
               </div>
 
               {(form.email || form.phone) && (
-                <div style={{
-                  fontSize: 12, color: 'var(--slate)', lineHeight: 1.6,
+                <label style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer',
+                  fontSize: 12, color: 'var(--slate)', lineHeight: 1.55,
                   background: 'var(--off-white)', borderRadius: 8,
-                  padding: '10px 12px', border: '1px solid var(--border)',
+                  padding: '12px 14px', border: '1px solid var(--border)',
                 }}>
-                  By adding this contact's email or phone number, you confirm that you have their permission to send them ride request messages via SportsCal. Each message includes a clear option to decline.
-                </div>
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={e => setConsent(e.target.checked)}
+                    style={{ marginTop: 2, flexShrink: 0, accentColor: 'var(--accent)', width: 15, height: 15 }}
+                  />
+                  <span>
+                    I confirm I have this contact&rsquo;s permission to receive ride coordination
+                    messages from SportsCal at the email or phone number above.
+                    Messages are only sent when I assign them to a specific pickup or dropoff.
+                    Recipients can reply <strong>STOP</strong> anytime to opt out, or <strong>HELP</strong> for support.
+                    Message and data rates may apply. See our{' '}
+                    <a href="/privacy" target="_blank" style={{ color: 'var(--accent-dim)' }}>Privacy Policy</a>.
+                  </span>
+                </label>
               )}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="submit" className="btn btn-primary" disabled={saving} style={{ flex: 1, justifyContent: 'center' }}>
