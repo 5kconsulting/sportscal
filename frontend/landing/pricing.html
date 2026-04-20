@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pricing — SportsCal | Youth Sports Calendar App | Free & $5/mo</title>
-  <meta name="description" content="SportsCal is free to start — no credit card needed. Upgrade to Premium for $5/month to sync up to 8 family members and 24 sports sources including TeamSnap, GameChanger, and more." />
+  <title>Pricing — SportsCal | Youth Sports Calendar App | Free & $10/mo or $100/yr</title>
+  <meta name="description" content="SportsCal starts free with no credit card. Upgrade to Premium for $10/month or $100/year (2 months free) for multi-kid support, ride coordination, PDF schedule upload, and sync with TeamSnap, GameChanger, SportsEngine, and more." />
   <link rel="canonical" href="https://www.sportscalapp.com/pricing" />
   <meta name="robots" content="index, follow" />
   <meta name="keywords" content="sports calendar app pricing, youth sports app, TeamSnap alternative, family calendar app" />
@@ -61,7 +61,23 @@
       display: flex; align-items: center; justify-content: center;
       gap: 12px; margin-bottom: 48px;
     }
-    .toggle-label { font-size: 14px; font-weight: 500; color: var(--slate); }
+    .toggle-label { font-size: 14px; font-weight: 500; color: var(--slate); cursor: pointer; transition: color 0.15s; }
+    .toggle-label.active { color: var(--navy); }
+    .toggle-switch {
+      position: relative; width: 52px; height: 28px;
+      background: var(--border); border-radius: 100px;
+      border: none; cursor: pointer; padding: 0;
+      transition: background 0.2s ease;
+    }
+    .toggle-switch.on { background: var(--accent); }
+    .toggle-switch::after {
+      content: ''; position: absolute;
+      top: 3px; left: 3px; width: 22px; height: 22px;
+      background: var(--white); border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      transition: transform 0.2s ease;
+    }
+    .toggle-switch.on::after { transform: translateX(24px); }
     .badge-save {
       background: var(--accent); color: var(--navy);
       font-size: 11px; font-weight: 700; padding: 3px 8px;
@@ -153,17 +169,26 @@
 
   <div class="hero">
     <h1>Simple pricing for<br /><span>busy sports families.</span></h1>
-    <p>Free forever for one kid. $5/month for everything else.</p>
+    <p>Start free, no credit card. Upgrade for $10/month or $100/year when you need more.</p>
   </div>
 
   <div class="pricing-wrap">
+
+    <!-- Billing interval toggle -->
+    <div class="toggle-wrap">
+      <span class="toggle-label" id="label-monthly">Monthly</span>
+      <button type="button" class="toggle-switch on" id="billing-toggle" aria-label="Toggle billing interval"></button>
+      <span class="toggle-label active" id="label-annual">Annual</span>
+      <span class="badge-save">2 months free</span>
+    </div>
+
     <div class="pricing-grid">
 
       <!-- Free -->
       <div class="pricing-card">
         <p class="plan-name">Free</p>
         <p class="plan-price">$0</p>
-        <p class="plan-desc">One kid, one team. No credit card needed.</p>
+        <p class="plan-desc">Try it out with up to 2 kids and 2 sources. No credit card needed.</p>
         <ul class="plan-features">
           <li>2 family members</li>
           <li>2 calendar sources</li>
@@ -172,6 +197,8 @@
           <li>Google Maps directions</li>
           <li class="no">Weekly email digest</li>
           <li class="no">Event reminders</li>
+          <li class="no">Ride coordination</li>
+          <li class="no">PDF schedule upload</li>
         </ul>
         <a href="https://www.sportscalapp.com/signup" class="plan-cta plan-cta-ghost">
           Get started free
@@ -182,8 +209,8 @@
       <div class="pricing-card featured">
         <div class="pricing-badge">Most popular</div>
         <p class="plan-name">Premium</p>
-        <p class="plan-price">$5 <span>/ month</span></p>
-        <p class="plan-desc">Multiple kids, multiple teams. The whole family covered.</p>
+        <p class="plan-price" id="price-amount">$100 <span id="price-unit">/ year</span></p>
+        <p class="plan-desc" id="price-sub">Just $8.33/month, billed annually. Multiple kids, multiple teams.</p>
         <ul class="plan-features">
           <li>8 family members</li>
           <li>24 calendar sources</li>
@@ -192,8 +219,10 @@
           <li>Google Maps directions</li>
           <li>Weekly email digest</li>
           <li>Day-before reminders</li>
+          <li>Ride coordination (ask a grandparent to pick up, etc.)</li>
+          <li>PDF schedule upload</li>
         </ul>
-        <a href="https://www.sportscalapp.com/signup" class="plan-cta plan-cta-primary">
+        <a href="https://www.sportscalapp.com/signup?interval=year" class="plan-cta plan-cta-primary" id="premium-cta">
           Start free — upgrade anytime
         </a>
       </div>
@@ -215,14 +244,15 @@
       <tbody>
         <tr><td>Family members</td><td>2</td><td class="highlight">8</td></tr>
         <tr><td>Calendar sources</td><td>2</td><td class="highlight">24</td></tr>
-        <tr><td>TeamSnap, GameChanger, PlayMetrics</td><td class="check">✓</td><td class="check highlight">✓</td></tr>
-        <tr><td>TeamSideline, BYGA, custom iCal</td><td class="check">✓</td><td class="check highlight">✓</td></tr>
+        <tr><td>Works with every major youth sports app</td><td class="check">✓</td><td class="check highlight">✓</td></tr>
         <tr><td>Live iCal feed (Apple, Google, Outlook)</td><td class="check">✓</td><td class="check highlight">✓</td></tr>
         <tr><td>Manual event creation</td><td class="check">✓</td><td class="check highlight">✓</td></tr>
         <tr><td>Google Maps directions</td><td class="check">✓</td><td class="check highlight">✓</td></tr>
         <tr><td>Weekly email digest</td><td class="dash">–</td><td class="check highlight">✓</td></tr>
         <tr><td>Day-before reminders</td><td class="dash">–</td><td class="check highlight">✓</td></tr>
-        <tr><td>Price</td><td>Free</td><td class="highlight">$5 / month</td></tr>
+        <tr><td>Ride coordination (pickup/dropoff requests)</td><td class="dash">–</td><td class="check highlight">✓</td></tr>
+        <tr><td>PDF schedule upload</td><td class="dash">–</td><td class="check highlight">✓</td></tr>
+        <tr><td>Price</td><td>Free</td><td class="highlight">$10/mo or $100/yr</td></tr>
       </tbody>
     </table>
   </div>
@@ -238,7 +268,7 @@
 
     <div class="faq-item">
       <p class="faq-q">What sports apps does SportsCal work with?</p>
-      <p class="faq-a">TeamSnap, GameChanger, PlayMetrics, TeamSideline, BYGA, and any app that provides an iCal feed URL. If your app has an "export calendar" or "subscribe" option, SportsCal can pull from it.</p>
+      <p class="faq-a">TeamSnap, GameChanger, PlayMetrics, TeamSideline, SportsEngine, Byga, LeagueApps, Demosphere, TeamReach, 360Player, SportsYou, BAND, RankOne, and any app that provides an iCal feed URL. Premium users can also upload a PDF schedule and we'll extract the events for you — handy for school sports and leagues that don't use an app.</p>
     </div>
 
     <div class="faq-item">
@@ -249,6 +279,16 @@
     <div class="faq-item">
       <p class="faq-q">How often does the calendar update?</p>
       <p class="faq-a">SportsCal checks your sources every 2 hours and updates your feed automatically. You can also trigger a manual sync anytime from the Sources page.</p>
+    </div>
+
+    <div class="faq-item">
+      <p class="faq-q">How does ride coordination work?</p>
+      <p class="faq-a">Tap any event and assign a pickup or dropoff person from your contacts. SportsCal texts or emails them a simple "Can you pick up Levi at Tigard HS on Thursday at 4pm?" with confirm / decline buttons. Their response flows back to you — no more phone tag with grandparents or swapping carpools in a group chat.</p>
+    </div>
+
+    <div class="faq-item">
+      <p class="faq-q">What's the difference between monthly and annual?</p>
+      <p class="faq-a">Same features either way. Annual is $100/year (works out to $8.33/month) — two months free compared to paying monthly. You can switch between the two anytime from the billing portal.</p>
     </div>
 
     <div class="faq-item">
@@ -269,4 +309,52 @@
   </div>
 
   <footer>
-    <p>© 2026 SportsCal · <a href="/
+    <p>© 2026 SportsCal · <a href="/landing/terms.html">Terms</a> · <a href="/landing/privacy.html">Privacy</a></p>
+  </footer>
+
+  <script>
+    // Billing interval toggle — swaps prices, labels, and signup CTA target.
+    // Pricing page is static (part of /landing/), so this is vanilla JS.
+    (function () {
+      var toggle    = document.getElementById('billing-toggle');
+      var labelMo   = document.getElementById('label-monthly');
+      var labelYr   = document.getElementById('label-annual');
+      var priceAmt  = document.getElementById('price-amount');
+      var priceUnit = document.getElementById('price-unit');
+      var priceSub  = document.getElementById('price-sub');
+      var cta       = document.getElementById('premium-cta');
+
+      if (!toggle) return; // guard against partial markup
+
+      // on  = annual (default)
+      // off = monthly
+      function render(isAnnual) {
+        if (isAnnual) {
+          toggle.classList.add('on');
+          labelYr.classList.add('active');
+          labelMo.classList.remove('active');
+          priceAmt.firstChild.nodeValue = '$100 ';
+          priceUnit.textContent = '/ year';
+          priceSub.textContent = 'Just $8.33/month, billed annually. Multiple kids, multiple teams.';
+          cta.href = 'https://www.sportscalapp.com/signup?interval=year';
+        } else {
+          toggle.classList.remove('on');
+          labelMo.classList.add('active');
+          labelYr.classList.remove('active');
+          priceAmt.firstChild.nodeValue = '$10 ';
+          priceUnit.textContent = '/ month';
+          priceSub.textContent = 'Billed monthly. Multiple kids, multiple teams.';
+          cta.href = 'https://www.sportscalapp.com/signup?interval=month';
+        }
+      }
+
+      toggle.addEventListener('click', function () {
+        render(!toggle.classList.contains('on'));
+      });
+      labelMo.addEventListener('click', function () { render(false); });
+      labelYr.addEventListener('click', function () { render(true); });
+    })();
+  </script>
+
+</body>
+</html>
