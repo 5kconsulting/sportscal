@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.90.0",
-    "multer": "^2.1.1"
-  }
-}
