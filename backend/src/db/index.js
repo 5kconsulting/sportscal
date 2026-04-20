@@ -380,6 +380,13 @@ export async function getKidsForSource(sourceId) {
 
 // --- Events ---
 
+// "Currently visible" events: those that haven't ended yet and start within
+// the window. An event's effective end is:
+//   - ends_at if set,
+//   - midnight+24h for all-day events,
+//   - starts_at + 2 hours otherwise.
+// This keeps long events (track meets, tournaments) visible during the event,
+// not just before it starts.
 export async function getUpcomingEvents(userId, { days = 30, kidId } = {}) {
   const params = [userId, days];
   const kidFilter = kidId
@@ -396,7 +403,12 @@ export async function getUpcomingEvents(userId, { days = 30, kidId } = {}) {
      FROM events e
      JOIN sources s ON s.id = e.source_id
      WHERE e.user_id = $1
-       AND e.starts_at BETWEEN NOW() AND NOW() + ($2 || ' days')::INTERVAL
+       AND CASE
+             WHEN e.ends_at IS NOT NULL THEN e.ends_at
+             WHEN e.all_day            THEN e.starts_at + INTERVAL '1 day'
+             ELSE                            e.starts_at + INTERVAL '2 hours'
+           END >= NOW()
+       AND e.starts_at <= NOW() + ($2 || ' days')::INTERVAL
        ${kidFilter}
      ORDER BY e.starts_at`,
     params

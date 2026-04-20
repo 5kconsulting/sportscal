@@ -52,7 +52,14 @@ router.get('/', async (req, res) => {
      LEFT JOIN kid_sources ks ON ks.source_id = e.source_id
      LEFT JOIN kids k ON k.id = ks.kid_id
      WHERE e.user_id = $1
-       AND e.starts_at BETWEEN NOW() AND NOW() + ($2 || ' days')::INTERVAL
+       -- Keep events visible through their effective end. ends_at if set,
+       -- or starts_at+24h for all-day, or starts_at+2h for untimed events.
+       AND CASE
+             WHEN e.ends_at IS NOT NULL THEN e.ends_at
+             WHEN e.all_day            THEN e.starts_at + INTERVAL '1 day'
+             ELSE                            e.starts_at + INTERVAL '2 hours'
+           END >= NOW()
+       AND e.starts_at <= NOW() + ($2 || ' days')::INTERVAL
        ${whereClause}
      GROUP BY e.id, s.name, s.app
      ORDER BY e.starts_at`,
