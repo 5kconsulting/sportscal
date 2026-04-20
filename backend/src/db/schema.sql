@@ -54,11 +54,19 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin           BOOLEAN NOT NULL D
 ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified     BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_source    TEXT;
+-- 'month' or 'year' — set by the Stripe webhook when a subscription activates.
+-- NULL for free users and legacy users who haven't re-subscribed since we
+-- started tracking this. Nullable because it's derived data from Stripe.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS billing_interval   TEXT;
 
 -- CHECK constraints (drop-and-recreate so edits are declarative)
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_plan_check;
 ALTER TABLE users ADD  CONSTRAINT users_plan_check
   CHECK (plan IN ('free', 'premium'));
+
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_billing_interval_check;
+ALTER TABLE users ADD  CONSTRAINT users_billing_interval_check
+  CHECK (billing_interval IS NULL OR billing_interval IN ('month', 'year'));
 
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_digest_day_check;
 ALTER TABLE users ADD  CONSTRAINT users_digest_day_check
