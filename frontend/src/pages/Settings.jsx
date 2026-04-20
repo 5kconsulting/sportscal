@@ -62,7 +62,9 @@ export default function Settings() {
 
   const [billing, setBilling] = useState(false);
 
-  async function handleUpgrade() {
+  async function handleUpgrade(interval) {
+    // interval is 'month' or 'year' — defaults to 'year' (the encouraged choice)
+    const chosen = interval === 'month' ? 'month' : 'year';
     setBilling(true);
     try {
       const res = await fetch('/api/billing/checkout', {
@@ -71,6 +73,7 @@ export default function Settings() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('sc_token')}`,
         },
+        body: JSON.stringify({ interval: chosen }),
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
@@ -80,6 +83,19 @@ export default function Settings() {
       setBilling(false);
     }
   }
+
+  // If the user arrived from pricing → signup with a chosen interval, kick
+  // off their checkout automatically once they land on Settings. Only fires
+  // for free users (premium users don't need to see this).
+  useEffect(() => {
+    if (!user || user.plan !== 'free') return;
+    const intended = localStorage.getItem('sc_intended_interval');
+    if (intended === 'month' || intended === 'year') {
+      localStorage.removeItem('sc_intended_interval');
+      handleUpgrade(intended);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   async function handlePortal() {
     setBilling(true);
@@ -248,10 +264,16 @@ export default function Settings() {
               </div>
             </div>
             {user?.plan === 'free' ? (
-              <button type="button" className="btn btn-primary btn-sm"
-                onClick={handleUpgrade} disabled={billing}>
-                {billing ? '…' : 'Upgrade — $5/mo'}
-              </button>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-ghost btn-sm"
+                  onClick={() => handleUpgrade('month')} disabled={billing}>
+                  {billing ? '…' : '$10 / mo'}
+                </button>
+                <button type="button" className="btn btn-primary btn-sm"
+                  onClick={() => handleUpgrade('year')} disabled={billing}>
+                  {billing ? '…' : '$100 / yr · 2 months free'}
+                </button>
+              </div>
             ) : (
               <button type="button" className="btn btn-ghost btn-sm"
                 onClick={handlePortal} disabled={billing}>

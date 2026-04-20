@@ -8,6 +8,7 @@ export default function Signup() {
   const navigate      = useNavigate();
   const [searchParams] = useSearchParams();
   const referralSource = searchParams.get('ref') || null;
+  const intendedInterval = searchParams.get('interval'); // 'month' or 'year' from pricing page
   const [form, setForm]   = useState({ name: '', email: '', password: '' });
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
@@ -20,6 +21,12 @@ export default function Signup() {
     setLoading(true);
     try {
       await signup(form.name, form.email, form.password, referralSource);
+      // Remember which pricing interval they came from — Settings reads this
+      // on mount and auto-triggers the upgrade flow so they don't have to
+      // reselect monthly/annual.
+      if (intendedInterval === 'month' || intendedInterval === 'year') {
+        localStorage.setItem('sc_intended_interval', intendedInterval);
+      }
       const params = new URLSearchParams(window.location.search);
       navigate(params.get('next') || '/dashboard');
     } catch (err) {
