@@ -739,7 +739,7 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {} }) {
 
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--navy)', marginBottom: 3,
+        <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 3,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       textDecoration: allNotGoing ? 'line-through' : 'none',
                       color: allNotGoing ? 'var(--slate)' : 'var(--navy)' }}>
