@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { AddEventModal } from '../components/AddEventModal.jsx';
 
 function UpgradeBanner() {
   const [loading, setLoading] = useState(false);
@@ -64,6 +65,7 @@ const APP_OPTIONS = [
   { value: 'custom',        label: 'Custom iCal',   fetchType: 'ical' },
 ];
 
+// Per-app setup walkthroughs. One key per app — duplicates removed.
 const APP_INSTRUCTIONS = {
   teamsnap: {
     label: 'TeamSnap',
@@ -81,6 +83,24 @@ const APP_INSTRUCTIONS = {
       'Click on your team → Schedule tab.',
       'Click "Export" in the top right → "Export to iCal".',
       'Copy the URL from the dialog that appears.',
+    ],
+  },
+  teamsnapone: {
+    label: 'TeamSnap ONE',
+    steps: [
+      'Log in to your TeamSnap ONE account at go.teamsnap.com or in the app.',
+      'Click on your team or organization.',
+      'Go to the Schedule tab.',
+      'Click Settings → Sync Calendar / Export.',
+      'Copy the calendar link provided.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'TeamSnap ONE is TeamSnap\'s club and league platform — the iCal export works the same way as standard TeamSnap.',
+    webSteps: [
+      'Go to go.teamsnap.com and sign in.',
+      'Select your team → Schedule tab.',
+      'Click Settings → Sync Calendar / Export.',
+      'Copy the calendar link and paste it below.',
     ],
   },
   gamechanger: {
@@ -133,63 +153,6 @@ const APP_INSTRUCTIONS = {
       'Paste it in the iCal URL field below.',
     ],
     note: 'BYGA iCal links look like: http://yourclub.byga.net/cal/XXXXX.ics',
-  },
-  '360player': {
-    label: '360Player',
-    steps: [
-      'Open the 360Player app on your phone.',
-      'Tap the Calendar section at the bottom.',
-      'Tap the three lines (menu icon) in the top right corner.',
-      'Scroll down to find the calendar you want to share.',
-      'Tap the subscribe link for that calendar — this is your iCal URL.',
-      'Copy it and paste it in the iCal URL field below.',
-    ],
-    note: '360Player is popular for soccer, basketball, volleyball, and other club sports across Europe and the US.',
-  },
-  teamsnapone: {
-    label: 'TeamSnap ONE',
-    steps: [
-      'Log in to your TeamSnap ONE account at go.teamsnap.com or in the app.',
-      'Click on your team or organization.',
-      'Go to the Schedule tab.',
-      'Click Settings → Sync Calendar / Export.',
-      'Copy the calendar link provided.',
-      'Paste it in the iCal URL field below.',
-    ],
-    note: 'TeamSnap ONE is TeamSnap\'s club and league platform — the iCal export works the same way as standard TeamSnap.',
-    webSteps: [
-      'Go to go.teamsnap.com and sign in.',
-      'Select your team → Schedule tab.',
-      'Click Settings → Sync Calendar / Export.',
-      'Copy the calendar link and paste it below.',
-    ],
-  },
-  sportsyou: {
-    label: 'SportsYou',
-    steps: [
-      'Open the SportsYou app on your phone.',
-      'Tap Calendar in the bottom tray.',
-      'Tap the subscribe icon in the top right corner.',
-      'Tap the green "Copy Link" button.',
-      'Paste the copied URL in the iCal URL field below.',
-    ],
-    note: 'SportsYou is a free team communication platform popular with school and rec league coaches.',
-    webSteps: [
-      'Log in to your SportsYou account on the web.',
-      'In the left column, click the Calendar link.',
-      'Click the arrow next to the calendar you want → Subscribe to Team Calendar.',
-      'Copy the URL provided and paste it below.',
-    ],
-  },
-  custom: {
-    label: 'Custom iCal',
-    steps: [
-      'Any app that supports iCal export will have a "Subscribe to Calendar", "Export to iCal", or "iCal Feed" option.',
-      'Find that option in your app\'s schedule or calendar section.',
-      'Copy the URL — it usually starts with https:// or webcal://',
-      'Paste it in the iCal URL field below.',
-    ],
-    note: 'Both https:// and webcal:// URLs work — SportsCal handles both formats automatically.',
   },
   sportsengine: {
     label: 'SportsEngine',
@@ -257,46 +220,34 @@ const APP_INSTRUCTIONS = {
       'Copy that URL and paste it below.',
     ],
   },
-  teamsnapone: {
-    label: 'TeamSnap One',
-    steps: [
-      'Open the TeamSnap One app or go to go.teamsnap.com.',
-      'Tap on your team.',
-      'Tap the Schedule tab.',
-      'Tap Settings → Sync Calendar / Export.',
-      'Copy the calendar link provided.',
-      'Paste it in the iCal URL field below.',
-    ],
-    note: 'TeamSnap One uses the same iCal export flow as TeamSnap. Each team has its own feed URL.',
-    webSteps: [
-      'Log in at go.teamsnap.com.',
-      'Select your team → Schedule tab.',
-      'Click Settings → Sync Calendar / Export.',
-      'Copy the calendar link and paste it below.',
-    ],
-  },
   '360player': {
     label: '360Player',
     steps: [
       'Open the 360Player app on your phone.',
-      'Go to the Calendar section.',
+      'Tap the Calendar section at the bottom.',
       'Tap the three lines (menu icon) in the top right corner.',
       'Scroll down to find the calendar you want to share.',
-      'Copy the subscribe link provided for that calendar.',
-      'Paste it in the iCal URL field below.',
+      'Tap the subscribe link for that calendar — this is your iCal URL.',
+      'Copy it and paste it in the iCal URL field below.',
     ],
-    note: '360Player is popular for soccer academies and clubs. Each team calendar has its own subscribe link.',
+    note: '360Player is popular for soccer, basketball, volleyball, and other club sports across Europe and the US.',
   },
   sportsyou: {
-    label: 'sportsYou',
+    label: 'SportsYou',
     steps: [
-      'Open the sportsYou app on your phone.',
-      'Tap Calendar in the bottom navigation.',
+      'Open the SportsYou app on your phone.',
+      'Tap Calendar in the bottom tray.',
       'Tap the subscribe icon in the top right corner.',
-      'Tap the green Copy Link button.',
-      'Paste it in the iCal URL field below.',
+      'Tap the green "Copy Link" button.',
+      'Paste the copied URL in the iCal URL field below.',
     ],
-    note: 'sportsYou auto-syncs — any schedule changes in the app will update your SportsCal feed automatically.',
+    note: 'SportsYou is a free team communication platform popular with school and rec league coaches.',
+    webSteps: [
+      'Log in to your SportsYou account on the web.',
+      'In the left column, click the Calendar link.',
+      'Click the arrow next to the calendar you want → Subscribe to Team Calendar.',
+      'Copy the URL provided and paste it below.',
+    ],
   },
   band: {
     label: 'BAND',
@@ -319,6 +270,16 @@ const APP_INSTRUCTIONS = {
       'Paste it in the iCal URL field below.',
     ],
     note: 'RankOne is used by many school athletic programs. The iCal URL is usually found on the team schedule page. If you can\'t find it, ask your athletic director.',
+  },
+  custom: {
+    label: 'Custom iCal',
+    steps: [
+      'Any app that supports iCal export will have a "Subscribe to Calendar", "Export to iCal", or "iCal Feed" option.',
+      'Find that option in your app\'s schedule or calendar section.',
+      'Copy the URL — it usually starts with https:// or webcal://',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'Both https:// and webcal:// URLs work — SportsCal handles both formats automatically.',
   },
 };
 
@@ -379,14 +340,9 @@ function SourceHelpModal({ app, onClose }) {
           {/* GameChanger photo slideshow */}
           {app === 'gamechanger' && view === 'mobile' ? (
             <div>
-              {/* Photo */}
               <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', marginBottom: 12, background: 'var(--off-white)' }}>
-                <img
-                  src={GC_STEPS[gcStep].img}
-                  alt={`Step ${gcStep + 1}`}
-                  style={{ width: '100%', display: 'block', maxHeight: 420, objectFit: 'contain' }}
-                />
-                {/* Prev / Next overlay buttons */}
+                <img src={GC_STEPS[gcStep].img} alt={`Step ${gcStep + 1}`}
+                  style={{ width: '100%', display: 'block', maxHeight: 420, objectFit: 'contain' }} />
                 {gcStep > 0 && (
                   <button onClick={() => setGcStep(s => s - 1)} style={{
                     position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
@@ -403,7 +359,6 @@ function SourceHelpModal({ app, onClose }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>›</button>
                 )}
-                {/* Step badge */}
                 <div style={{
                   position: 'absolute', top: 10, left: 10,
                   background: 'var(--accent)', color: 'var(--navy)',
@@ -413,7 +368,6 @@ function SourceHelpModal({ app, onClose }) {
                 }}>{gcStep + 1}</div>
               </div>
 
-              {/* Caption */}
               <div style={{
                 fontSize: 14, fontWeight: 500, color: 'var(--navy)',
                 textAlign: 'center', marginBottom: 12, minHeight: 40,
@@ -422,7 +376,6 @@ function SourceHelpModal({ app, onClose }) {
                 {GC_STEPS[gcStep].caption}
               </div>
 
-              {/* Dot indicators */}
               <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 16 }}>
                 {GC_STEPS.map((_, i) => (
                   <button key={i} onClick={() => setGcStep(i)} style={{
@@ -434,7 +387,6 @@ function SourceHelpModal({ app, onClose }) {
                 ))}
               </div>
 
-              {/* Prev/Next buttons */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
                 {gcStep > 0 && (
                   <button className="btn btn-ghost btn-sm" onClick={() => setGcStep(s => s - 1)} style={{ flex: 1 }}>
@@ -454,7 +406,6 @@ function SourceHelpModal({ app, onClose }) {
             </div>
           ) : (
             <>
-              {/* Standard steps */}
               <ol style={{ paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
                 {(view === 'web' && info.webSteps ? info.webSteps : info.steps).map((step, i) => (
                   <li key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -496,15 +447,29 @@ function SourceHelpModal({ app, onClose }) {
   );
 }
 
+// Classify a source into one of the three buckets we now render.
+//   automated   — pollable feeds (iCal/scrape)
+//   pdf         — PDF-ingested (fetch_type = 'manual', app = 'pdf_upload')
+//   manual_bin  — the hidden "__manual__" container holding user-typed events
+function classifySource(s) {
+  if (s.name === '__manual__') return 'manual_bin';
+  if (s.fetch_type === 'manual' || s.app === 'pdf_upload') return 'pdf';
+  return 'automated';
+}
+
 export default function Sources() {
   const { user } = useAuth();
-  const [sources, setSources]     = useState([]);
-  const [kids, setKids]           = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [showForm, setShowForm]   = useState(false);
+  const [sources, setSources]         = useState([]);
+  const [kids, setKids]               = useState([]);
+  const [manualEvents, setManualEvents] = useState([]);
+  const [manualExpanded, setManualExpanded] = useState(false);
+  const [loading, setLoading]         = useState(true);
+  const [showForm, setShowForm]       = useState(false);
   const [editingSource, setEditingSource] = useState(null);
-  const [refreshing, setRefreshing] = useState({});
-  const [error, setError]         = useState('');
+  const [refreshing, setRefreshing]   = useState({});
+  const [error, setError]             = useState('');
+  const [showAddEvent, setShowAddEvent] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
 
   useEffect(() => {
     Promise.all([api.sources.list(), api.kids.list()])
@@ -513,40 +478,69 @@ export default function Sources() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Lazy-load manual events only when the user expands that section
+  useEffect(() => {
+    if (!manualExpanded) return;
+    let cancelled = false;
+    api.manual.list()
+      .then(({ events }) => { if (!cancelled) setManualEvents(events || []); })
+      .catch(err => { if (!cancelled) setError(err.message); });
+    return () => { cancelled = true; };
+  }, [manualExpanded]);
+
+  // Bucket sources by classification for rendering
+  const automated = sources.filter(s => classifySource(s) === 'automated');
+  const pdfs      = sources.filter(s => classifySource(s) === 'pdf');
+
   async function handleRefresh(id) {
-  setRefreshing(r => ({ ...r, [id]: true }));
-  try {
-    await api.sources.refresh(id);
-    const originalSource = sources.find(s => s.id === id);
-    const originalFetchedAt = originalSource?.last_fetched_at;
-    let attempts = 0;
-    const poll = setInterval(async () => {
-      attempts++;
-      try {
-        const { sources: updated } = await api.sources.list();
-        const fresh = updated.find(s => s.id === id);
-        if (fresh && fresh.last_fetched_at !== originalFetchedAt) {
-          setSources(updated.filter(s => s.name !== '__manual__'));
+    setRefreshing(r => ({ ...r, [id]: true }));
+    try {
+      await api.sources.refresh(id);
+      const originalSource = sources.find(s => s.id === id);
+      const originalFetchedAt = originalSource?.last_fetched_at;
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        try {
+          const { sources: updated } = await api.sources.list();
+          const fresh = updated.find(s => s.id === id);
+          if (fresh && fresh.last_fetched_at !== originalFetchedAt) {
+            setSources(updated);
+            clearInterval(poll);
+            setRefreshing(r => ({ ...r, [id]: false }));
+            return;
+          }
+        } catch {}
+        if (attempts >= 15) {
           clearInterval(poll);
           setRefreshing(r => ({ ...r, [id]: false }));
-          return;
         }
-      } catch {}
-      if (attempts >= 15) {
-        clearInterval(poll);
-        setRefreshing(r => ({ ...r, [id]: false }));
-      }
-    }, 1500);
-  } catch (err) {
-    setError(err.message);
-    setRefreshing(r => ({ ...r, [id]: false }));
+      }, 1500);
+    } catch (err) {
+      setError(err.message);
+      setRefreshing(r => ({ ...r, [id]: false }));
+    }
   }
-}
 
   async function handleToggle(source) {
     try {
       const { source: updated } = await api.sources.update(source.id, { enabled: !source.enabled });
       setSources(s => s.map(x => x.id === source.id ? updated : x));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  // Restored: the previous file referenced handleDelete without defining it,
+  // so the Remove button was a no-op. This wires it to the sources API and
+  // updates local state on success.
+  async function handleDelete(id) {
+    const src = sources.find(s => s.id === id);
+    const label = src?.name || 'this source';
+    if (!window.confirm(`Remove ${label}? All events from this source will be deleted.`)) return;
+    try {
+      await api.sources.delete(id);
+      setSources(s => s.filter(x => x.id !== id));
     } catch (err) {
       setError(err.message);
     }
@@ -560,6 +554,29 @@ export default function Sources() {
   function handleCancelForm() {
     setShowForm(false);
     setEditingSource(null);
+  }
+
+  // Manual events ------------------------------------------------------
+
+  function handleEventSaved(event /*, count */) {
+    // For a new event the backend returns the first instance; for an edit it
+    // returns the updated row. We refetch the list rather than trying to
+    // reconcile, because recurring creates can add many rows at once.
+    setShowAddEvent(false);
+    setEditingEvent(null);
+    api.manual.list()
+      .then(({ events }) => setManualEvents(events || []))
+      .catch(err => setError(err.message));
+  }
+
+  async function handleEventDelete(event) {
+    if (!window.confirm(`Delete "${event.display_title || event.raw_title}"?`)) return;
+    try {
+      await api.manual.delete(event.id);
+      setManualEvents(es => es.filter(x => x.id !== event.id));
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   return (
@@ -608,33 +625,127 @@ export default function Sources() {
         />
       )}
 
+      {/* Add / edit manual event modal — shared with Dashboard */}
+      {showAddEvent && (
+        <AddEventModal
+          kids={kids}
+          onSave={handleEventSaved}
+          onCancel={() => setShowAddEvent(false)}
+        />
+      )}
+      {editingEvent && (
+        <AddEventModal
+          kids={kids}
+          event={editingEvent}
+          onSave={handleEventSaved}
+          onCancel={() => setEditingEvent(null)}
+        />
+      )}
+
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
           <div className="spinner" style={{ width: 28, height: 28 }} />
         </div>
-      ) : sources.filter(s => s.name !== '__manual__').length === 0 && !showForm ? (
-        <div className="card" style={{ padding: '60px 40px', textAlign: 'center' }}>
-          <div style={{ fontSize: 40, marginBottom: 16 }}>🔗</div>
-          <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No sources yet</h3>
-          <p style={{ fontSize: 14, color: 'var(--slate)', marginBottom: 24, maxWidth: 320, margin: '0 auto 24px' }}>
-            Add a source to pull schedules from TeamSnap, GameChanger, PlayMetrics, and others.
-          </p>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>Add first source</button>
-        </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {sources.filter(s => s.name !== '__manual__').map(source => (
-            <SourceCard key={source.id}
-              source={source}
-              onRefresh={() => handleRefresh(source.id)}
-              onDelete={() => handleDelete(source.id)}
-              onToggle={() => handleToggle(source)}
-              onEdit={() => handleEdit(source)}
-              refreshing={refreshing[source.id]}
+        <>
+          {/* ---- Section: Automated feeds ---- */}
+          <SectionHeader
+            title="Automated feeds"
+            subtitle="iCal URLs that SportsCal polls and keeps in sync."
+            count={automated.length}
+          />
+          {automated.length === 0 ? (
+            <EmptyState
+              icon="🔗"
+              title="No feeds yet"
+              body="Add a source to pull schedules from TeamSnap, GameChanger, PlayMetrics, and others."
+              cta={!showForm && (
+                <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+                  Add first source
+                </button>
+              )}
             />
-          ))}
-        </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 36 }}>
+              {automated.map(source => (
+                <SourceCard key={source.id}
+                  source={source}
+                  onRefresh={() => handleRefresh(source.id)}
+                  onDelete={() => handleDelete(source.id)}
+                  onToggle={() => handleToggle(source)}
+                  onEdit={() => handleEdit(source)}
+                  refreshing={refreshing[source.id]}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* ---- Section: Uploaded PDFs ---- */}
+          <SectionHeader
+            title="Uploaded PDFs"
+            subtitle="Schedules extracted from PDF uploads. These don't auto-refresh."
+            count={pdfs.length}
+          />
+          {pdfs.length === 0 ? (
+            <EmptyState
+              icon="📄"
+              title="No PDF schedules"
+              body="Upload a schedule PDF through the setup agent and approved events will appear here."
+              cta={
+                <a href="/setup" className="btn btn-ghost">Go to setup agent →</a>
+              }
+            />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 36 }}>
+              {pdfs.map(source => (
+                <PdfSourceCard key={source.id}
+                  source={source}
+                  onDelete={() => handleDelete(source.id)}
+                  onToggle={() => handleToggle(source)}
+                  onEdit={() => handleEdit(source)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* ---- Section: Manual events ---- */}
+          <ManualEventsSection
+            expanded={manualExpanded}
+            onToggle={() => setManualExpanded(v => !v)}
+            events={manualEvents}
+            onAdd={() => setShowAddEvent(true)}
+            onEdit={setEditingEvent}
+            onDelete={handleEventDelete}
+          />
+        </>
       )}
+    </div>
+  );
+}
+
+function SectionHeader({ title, subtitle, count }) {
+  return (
+    <div style={{ marginBottom: 14, marginTop: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 2 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, letterSpacing: '-0.01em' }}>{title}</h2>
+        <span style={{ fontSize: 12, color: 'var(--slate-light)', fontWeight: 500 }}>
+          {count}
+        </span>
+      </div>
+      {subtitle && <p style={{ fontSize: 13, color: 'var(--slate)' }}>{subtitle}</p>}
+    </div>
+  );
+}
+
+function EmptyState({ icon, title, body, cta }) {
+  return (
+    <div className="card" style={{ padding: '32px 24px', textAlign: 'center', marginBottom: 36 }}>
+      <div style={{ fontSize: 28, marginBottom: 10 }}>{icon}</div>
+      <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{title}</h3>
+      <p style={{ fontSize: 13, color: 'var(--slate)', marginBottom: cta ? 18 : 0, maxWidth: 360, margin: cta ? '0 auto 18px' : '0 auto' }}>
+        {body}
+      </p>
+      {cta}
     </div>
   );
 }
@@ -649,7 +760,6 @@ function SourceCard({ source, onRefresh, onDelete, onToggle, onEdit, refreshing 
       opacity: source.enabled ? 1 : 0.6,
       transition: 'opacity 0.2s',
     }}>
-      {/* Top row: badge + name */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <div style={{
           padding: '3px 8px',
@@ -670,7 +780,6 @@ function SourceCard({ source, onRefresh, onDelete, onToggle, onEdit, refreshing 
         </div>
       </div>
 
-      {/* Kids */}
       {source.kids?.length > 0 && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
           {source.kids.map(kid => (
@@ -685,7 +794,6 @@ function SourceCard({ source, onRefresh, onDelete, onToggle, onEdit, refreshing 
         </div>
       )}
 
-      {/* Status */}
       <div style={{ fontSize: 12, color: hasError ? 'var(--red)' : 'var(--slate)', marginBottom: 12 }}>
         {hasError
           ? `⚠ ${source.last_fetch_error || 'Last fetch failed'}`
@@ -694,7 +802,6 @@ function SourceCard({ source, onRefresh, onDelete, onToggle, onEdit, refreshing 
             : 'Not yet synced'}
       </div>
 
-      {/* Actions */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         <button className="btn btn-ghost btn-sm" onClick={onRefresh}
           disabled={refreshing} style={{ minWidth: 64 }}>
@@ -710,10 +817,161 @@ function SourceCard({ source, onRefresh, onDelete, onToggle, onEdit, refreshing 
   );
 }
 
+// PDF sources don't refresh/pause — they are point-in-time ingestions.
+// "Replace PDF" is deferred to the next commit; for now edit+remove only.
+function PdfSourceCard({ source, onDelete, onEdit, onToggle }) {
+  return (
+    <div className="card" style={{
+      padding: '16px',
+      opacity: source.enabled ? 1 : 0.6,
+      transition: 'opacity 0.2s',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <div style={{
+          padding: '3px 8px',
+          background: 'var(--navy)',
+          color: 'var(--accent)',
+          borderRadius: 6,
+          fontSize: 10,
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          flexShrink: 0,
+        }}>
+          PDF
+        </div>
+        <div style={{ fontSize: 15, fontWeight: 500, flex: 1, minWidth: 0,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {source.name}
+        </div>
+      </div>
+
+      {source.kids?.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+          {source.kids.map(kid => (
+            <span key={kid.id} style={{
+              fontSize: 12, padding: '2px 8px', borderRadius: 20,
+              background: kid.color + '20', color: kid.color,
+              border: `1px solid ${kid.color}40`, fontWeight: 500,
+            }}>
+              {kid.name}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div style={{ fontSize: 12, color: 'var(--slate)', marginBottom: 12 }}>
+        {source.last_event_count
+          ? `${source.last_event_count} events from this PDF`
+          : 'Events ingested from PDF'}
+      </div>
+
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <button className="btn btn-ghost btn-sm" onClick={onEdit}>Edit</button>
+        <button className="btn btn-ghost btn-sm" onClick={onToggle}>
+          {source.enabled ? 'Pause' : 'Resume'}
+        </button>
+        <button className="btn btn-danger btn-sm" onClick={onDelete}>Remove</button>
+      </div>
+    </div>
+  );
+}
+
+function ManualEventsSection({ expanded, onToggle, events, onAdd, onEdit, onDelete }) {
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div
+        onClick={onToggle}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 16px', background: 'var(--white)',
+          border: '1px solid var(--border)', borderRadius: 12,
+          cursor: 'pointer', userSelect: 'none',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{
+            fontSize: 12, color: 'var(--slate)',
+            transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            transition: 'transform 0.15s',
+            display: 'inline-block',
+          }}>▶</span>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>Manual events</div>
+            <div style={{ fontSize: 12, color: 'var(--slate)' }}>
+              Events you've added by hand from Dashboard or here.
+            </div>
+          </div>
+        </div>
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={(e) => { e.stopPropagation(); onAdd(); }}
+        >
+          + Add event
+        </button>
+      </div>
+
+      {expanded && (
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {events.length === 0 ? (
+            <div className="card" style={{ padding: '24px', textAlign: 'center', color: 'var(--slate)', fontSize: 13 }}>
+              No manual events yet. Tap <strong>+ Add event</strong> to create one.
+            </div>
+          ) : (
+            events.map(ev => (
+              <ManualEventRow
+                key={ev.id}
+                event={ev}
+                onEdit={() => onEdit(ev)}
+                onDelete={() => onDelete(ev)}
+              />
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ManualEventRow({ event, onEdit, onDelete }) {
+  const d = new Date(event.starts_at);
+  const when = event.all_day
+    ? d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+    : d.toLocaleString(undefined, {
+        weekday: 'short', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit',
+      });
+
+  return (
+    <div className="card" style={{
+      padding: '12px 14px',
+      display: 'flex', alignItems: 'center', gap: 12,
+    }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 14, fontWeight: 500, color: 'var(--navy)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {event.display_title || event.raw_title}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--slate)', marginTop: 2 }}>
+          {when}{event.location ? ` · ${event.location}` : ''}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+        <button className="btn btn-ghost btn-sm" onClick={onEdit}>Edit</button>
+        <button className="btn btn-danger btn-sm" onClick={onDelete}>Remove</button>
+      </div>
+    </div>
+  );
+}
+
 function SourceForm({ kids, initial, onSave, onCancel }) {
   const isEditing = !!initial;
   const initialApp = initial?.app || 'teamsnap';
-  const appInfo = APP_OPTIONS.find(a => a.value === initialApp);
 
   const [app, setApp]         = useState(initialApp);
   const [name, setName]       = useState(initial?.name || '');
