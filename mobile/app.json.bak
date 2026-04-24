@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "SportsCal",
+    "slug": "sportscal",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "sportscal",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0f1629"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.fivekconsulting.sportscal"
+    },
+    "android": {
+      "package": "com.fivekconsulting.sportscal"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "apiUrl": "https://sportscal-production.up.railway.app"
+    }
+  }
+}

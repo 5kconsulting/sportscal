@@ -1,0 +1,19 @@
+node_modules/
+.expo/
+dist/
+web-build/
+
+# Native build artifacts (we're not in bare workflow, but just in case)
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# macOS
+.DS_Store
+
+# Env files
+.env*
+!.env.example
