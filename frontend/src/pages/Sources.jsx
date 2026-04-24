@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { AddEventModal } from '../components/AddEventModal.jsx';
+import { ReplacePdfButton } from '../components/ReplacePdfButton.jsx';
 
 function UpgradeBanner() {
   const [loading, setLoading] = useState(false);
@@ -700,9 +701,11 @@ export default function Sources() {
               {pdfs.map(source => (
                 <PdfSourceCard key={source.id}
                   source={source}
+                  kids={kids}
                   onDelete={() => handleDelete(source.id)}
                   onToggle={() => handleToggle(source)}
                   onEdit={() => handleEdit(source)}
+                  onReplaced={() => api.sources.list().then(({ sources }) => setSources(sources))}
                 />
               ))}
             </div>
@@ -819,7 +822,16 @@ function SourceCard({ source, onRefresh, onDelete, onToggle, onEdit, refreshing 
 
 // PDF sources don't refresh/pause — they are point-in-time ingestions.
 // "Replace PDF" is deferred to the next commit; for now edit+remove only.
-function PdfSourceCard({ source, onDelete, onEdit, onToggle }) {
+function PdfSourceCard({ source, kids, onDelete, onEdit, onToggle, onReplaced }) {
+  // Resolve the first kid on this source (name + id) so the Replace button
+  // can pass a kidId to the backend. Fall back to the first kid overall when
+  // the source has no kid assignments yet.
+  const firstSrcKid = Array.isArray(source.kids) && source.kids.length > 0 ? source.kids[0] : null;
+  const firstAnyKid = Array.isArray(kids) && kids.length > 0 ? kids[0] : null;
+  const firstKid = firstSrcKid || firstAnyKid;
+  const firstKidId = firstKid?.id || null;
+  const firstKidName = firstKid?.name || null;
+
   return (
     <div className="card" style={{
       padding: '16px',
@@ -867,6 +879,14 @@ function PdfSourceCard({ source, onDelete, onEdit, onToggle }) {
       </div>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {firstKidId && (
+          <ReplacePdfButton
+            source={source}
+            kidId={firstKidId}
+            kidName={firstKidName}
+            onReplaced={onReplaced}
+          />
+        )}
         <button className="btn btn-ghost btn-sm" onClick={onEdit}>Edit</button>
         <button className="btn btn-ghost btn-sm" onClick={onToggle}>
           {source.enabled ? 'Pause' : 'Resume'}

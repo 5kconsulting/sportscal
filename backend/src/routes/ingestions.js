@@ -3,8 +3,11 @@
 //
 // Endpoints:
 //   POST   /api/ingestions              — upload PDF, enqueue extraction
+//                                         optional sourceId: replace existing
 //   GET    /api/ingestions/:id          — poll status + extracted events
+//                                         includes replacing_source info if linked
 //   POST   /api/ingestions/:id/approve  — user confirms events, create source
+//                                         OR replace events on an existing source
 //   POST   /api/ingestions/:id/reject   — user discards
 //   GET    /api/ingestions              — list user's recent ingestions
 // ============================================================================
@@ -16,22 +19,19 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { query, queryOne } from '../db/index.js';
-import { requireAuth } from '../middleware/auth.js'; // adjust if your repo path differs
+import { requireAuth } from '../middleware/auth.js';
 import { connection } from '../workers/queue.js';
 
 const router = express.Router();
 
-// --- BullMQ producer (shares the connection used by workers) ----------------
 const pdfQueue = new Queue('pdf-ingestion', { connection });
 
-// --- storage config ---------------------------------------------------------
 const STORAGE_ROOT = process.env.INGESTION_STORAGE_ROOT || '/data/ingestions';
 
 async function ensureStorageDir() {
   await fs.mkdir(STORAGE_ROOT, { recursive: true });
 }
 
-// --- multer: memory storage so we can write with our own filename -----------
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -46,8 +46,6 @@ const upload = multer({
   },
 });
 
-// Wrap multer so its errors (bad MIME, file too big, etc.) return a clean
-// 400 to the client instead of bubbling up to the global 500 handler.
 function uploadMiddleware(req, res, next) {
   upload.single('file')(req, res, (err) => {
     if (err) {
@@ -61,8 +59,6 @@ function uploadMiddleware(req, res, next) {
   });
 }
 
-// Build events.content_hash the same way the iCal worker does.
-// Matches the schema comment: hash(raw_title + location + starts_at + ends_at)
 function computeContentHash(raw_title, location, starts_at, ends_at) {
   const h = crypto.createHash('sha256');
   h.update(String(raw_title || ''));
@@ -77,7 +73,11 @@ function computeContentHash(raw_title, location, starts_at, ends_at) {
 
 // ----------------------------------------------------------------------------
 // POST /api/ingestions
-// multipart/form-data: file (pdf), kidId (uuid)
+// multipart/form-data: file (pdf), kidId (uuid), sourceId? (uuid, optional)
+//
+// If sourceId is provided, this upload is marked to REPLACE that source's
+// events on approve rather than creating a new source. We set source_id on
+// the ingestion row at upload time so the approve flow can branch on it.
 // ----------------------------------------------------------------------------
 router.post('/', requireAuth, uploadMiddleware, async (req, res) => {
   try {
@@ -85,51 +85,71 @@ router.post('/', requireAuth, uploadMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const { kidId } = req.body;
+    const { kidId, sourceId } = req.body;
     if (!kidId) {
       return res.status(400).json({ error: 'kidId is required' });
     }
 
-    // Verify the kid belongs to this user
     const kid = await queryOne(
       `SELECT id FROM kids WHERE id = $1 AND user_id = $2`,
       [kidId, req.user.id],
     );
     if (!kid) {
-      console.warn(
-        '[POST /api/ingestions] Kid not found — kidId=%s userId=%s',
-        JSON.stringify(kidId),
-        JSON.stringify(req.user.id),
-      );
       return res.status(404).json({ error: 'Kid not found', kidId });
     }
 
-    // Write file to disk with a guaranteed-unique name
+    // If replacing, verify the source belongs to this user and is a
+    // manual/PDF source. We refuse to "replace" iCal feeds — that's a
+    // different operation with a different UX.
+    let replacingSource = null;
+    if (sourceId) {
+      replacingSource = await queryOne(
+        `SELECT id, name, fetch_type, app
+           FROM sources
+          WHERE id = $1 AND user_id = $2`,
+        [sourceId, req.user.id],
+      );
+      if (!replacingSource) {
+        return res.status(404).json({ error: 'Source not found', sourceId });
+      }
+      if (replacingSource.fetch_type !== 'manual') {
+        return res.status(422).json({
+          error: 'Only PDF-ingested sources can be replaced via this endpoint',
+          sourceFetchType: replacingSource.fetch_type,
+        });
+      }
+    }
+
     await ensureStorageDir();
     const ingestionId = crypto.randomUUID();
     const storagePath = path.join(STORAGE_ROOT, ingestionId + '.pdf');
     await fs.writeFile(storagePath, req.file.buffer);
 
-    // Create the ingestion row
+    // Note: source_id is set now (at upload time) if this is a replace.
+    // The original flow only sets source_id on approve; for replaces we
+    // need it earlier so GET /:id can report "replacing X" to the UI.
     const ingestion = await queryOne(
       `INSERT INTO ingestions (
-         id, user_id, kid_id, kind,
+         id, user_id, kid_id, source_id, kind,
          original_filename, original_mime, original_size,
          storage_path, status, status_detail
-       ) VALUES ($1, $2, $3, 'pdf', $4, $5, $6, $7, 'pending', 'Queued for processing')
-       RETURNING id, status, status_detail, created_at`,
+       ) VALUES ($1, $2, $3, $4, 'pdf', $5, $6, $7, $8, 'pending', $9)
+       RETURNING id, status, status_detail, source_id, created_at`,
       [
         ingestionId,
         req.user.id,
         kidId,
+        sourceId || null,
         req.file.originalname,
         req.file.mimetype,
         req.file.size,
         storagePath,
+        replacingSource
+          ? `Queued to replace "${replacingSource.name}"`
+          : 'Queued for processing',
       ],
     );
 
-    // Enqueue — hyphen-id pattern per BullMQ v5 rule
     await pdfQueue.add(
       'extract',
       { ingestionId },
@@ -142,7 +162,12 @@ router.post('/', requireAuth, uploadMiddleware, async (req, res) => {
       },
     );
 
-    res.status(201).json(ingestion);
+    res.status(201).json({
+      ...ingestion,
+      replacing_source: replacingSource
+        ? { id: replacingSource.id, name: replacingSource.name }
+        : null,
+    });
   } catch (err) {
     console.error('[POST /api/ingestions] error', err);
     res.status(500).json({ error: err.message || 'Upload failed' });
@@ -154,18 +179,28 @@ router.post('/', requireAuth, uploadMiddleware, async (req, res) => {
 // ----------------------------------------------------------------------------
 router.get('/:id', requireAuth, async (req, res) => {
   const ingestion = await queryOne(
-    `SELECT id, kid_id, kind, status, status_detail, extracted_events,
-            event_count, approved_count, extraction_error,
-            created_at, updated_at, reviewed_at
-       FROM ingestions
-      WHERE id = $1 AND user_id = $2`,
+    `SELECT i.id, i.kid_id, i.source_id, i.kind, i.status, i.status_detail,
+            i.extracted_events, i.event_count, i.approved_count,
+            i.extraction_error, i.created_at, i.updated_at, i.reviewed_at,
+            s.name AS replacing_source_name
+       FROM ingestions i
+       LEFT JOIN sources s ON s.id = i.source_id AND i.status IN ('pending','processing','ready_for_review','approving')
+      WHERE i.id = $1 AND i.user_id = $2`,
     [req.params.id, req.user.id],
   );
 
   if (!ingestion) {
     return res.status(404).json({ error: 'Ingestion not found' });
   }
-  res.json(ingestion);
+
+  // Shape replacing_source cleanly — non-null only when this ingestion is
+  // pre-approval and linked to an existing source (i.e. a pending replace).
+  const replacing_source = ingestion.replacing_source_name
+    ? { id: ingestion.source_id, name: ingestion.replacing_source_name }
+    : null;
+  delete ingestion.replacing_source_name;
+
+  res.json({ ...ingestion, replacing_source });
 });
 
 // ----------------------------------------------------------------------------
@@ -173,7 +208,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 // ----------------------------------------------------------------------------
 router.get('/', requireAuth, async (req, res) => {
   const rows = await query(
-    `SELECT id, kid_id, kind, status, status_detail, event_count,
+    `SELECT id, kid_id, source_id, kind, status, status_detail, event_count,
             approved_count, created_at, reviewed_at
        FROM ingestions
       WHERE user_id = $1
@@ -187,7 +222,15 @@ router.get('/', requireAuth, async (req, res) => {
 // ----------------------------------------------------------------------------
 // POST /api/ingestions/:id/approve
 // Body: { events: [...], sourceName?: string }
-// Takes the user's edited events array and creates a real source + events.
+//
+// If the ingestion has a source_id set AND the linked source still exists,
+// this is a SOFT REPLACE: we delete the source's existing events (the FK
+// cascade removes associated event_logistics and event_overrides) and
+// insert the new events against the same source_id. The source row itself
+// is preserved so any external references remain stable.
+//
+// Otherwise the flow is unchanged: create a new source, link the kid,
+// insert events.
 // ----------------------------------------------------------------------------
 router.post('/:id/approve', requireAuth, async (req, res) => {
   const { events, sourceName } = req.body;
@@ -206,6 +249,17 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
     return res.status(409).json({ error: 'Ingestion is not ready for review' });
   }
 
+  // Decide branch: replace if we have a source_id AND the source still exists.
+  // (If the user deleted the source between upload and approve, degrade to
+  // "create new" rather than failing — better than the approve 500ing.)
+  let replacingSource = null;
+  if (ingestion.source_id) {
+    replacingSource = await queryOne(
+      `SELECT id, name FROM sources WHERE id = $1 AND user_id = $2`,
+      [ingestion.source_id, req.user.id],
+    );
+  }
+
   try {
     await query('BEGIN');
     await query(
@@ -213,30 +267,60 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
       [ingestion.id],
     );
 
-    // 1) Create the source row.
-    //    fetch_type='manual' — PDF sources don't get periodically refreshed.
-    //    ical_url is intentionally NULL (no polling target).
-    const derivedName =
-      sourceName ||
-      ingestion.original_filename?.replace(/\.pdf$/i, '') ||
-      'Uploaded PDF schedule';
+    let source;
+    let eventsReplaced = 0;
 
-    const source = await queryOne(
-      `INSERT INTO sources (user_id, app, name, fetch_type, enabled)
-       VALUES ($1, 'pdf_upload', $2, 'manual', true)
-       RETURNING id`,
-      [req.user.id, derivedName],
-    );
+    if (replacingSource) {
+      // --- REPLACE branch ------------------------------------------------
+      // Count existing events before deletion (for the response + audit).
+      const { count: priorCount } = await queryOne(
+        `SELECT COUNT(*)::int AS count FROM events
+          WHERE source_id = $1 AND user_id = $2`,
+        [replacingSource.id, req.user.id],
+      );
+      eventsReplaced = priorCount;
 
-    // 2) Link the kid to this source
-    await query(
-      `INSERT INTO kid_sources (kid_id, source_id)
-       VALUES ($1, $2)
-       ON CONFLICT DO NOTHING`,
-      [ingestion.kid_id, source.id],
-    );
+      // Delete existing events. event_logistics and event_overrides have
+      // ON DELETE CASCADE on event_id, so they're removed automatically.
+      await query(
+        `DELETE FROM events WHERE source_id = $1 AND user_id = $2`,
+        [replacingSource.id, req.user.id],
+      );
 
-    // 3) Insert events — must provide content_hash (NOT NULL) and display_title
+      // Optionally rename the source if the user provided a new name.
+      if (sourceName && sourceName.trim() && sourceName.trim() !== replacingSource.name) {
+        await query(
+          `UPDATE sources SET name = $1 WHERE id = $2`,
+          [sourceName.trim(), replacingSource.id],
+        );
+      }
+
+      source = { id: replacingSource.id };
+    } else {
+      // --- CREATE branch (unchanged) -------------------------------------
+      const derivedName =
+        sourceName ||
+        ingestion.original_filename?.replace(/\.pdf$/i, '') ||
+        'Uploaded PDF schedule';
+
+      source = await queryOne(
+        `INSERT INTO sources (user_id, app, name, fetch_type, enabled)
+         VALUES ($1, 'pdf_upload', $2, 'manual', true)
+         RETURNING id`,
+        [req.user.id, derivedName],
+      );
+
+      // Link the kid to this new source. For replaces we keep the existing
+      // kid_sources mapping untouched — the user didn't signal a change of kid.
+      await query(
+        `INSERT INTO kid_sources (kid_id, source_id)
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [ingestion.kid_id, source.id],
+      );
+    }
+
+    // Insert events — identical for both branches.
     let inserted = 0;
     for (let i = 0; i < events.length; i++) {
       const ev = events[i];
@@ -278,20 +362,22 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
       inserted++;
     }
 
-    // 4) Mark ingestion approved
+    const detail = replacingSource
+      ? `Replaced ${eventsReplaced} events with ${inserted}`
+      : `Added ${inserted} events`;
+
     await query(
       `UPDATE ingestions
           SET status = 'approved',
               source_id = $1,
               approved_count = $2,
               reviewed_at = NOW(),
-              status_detail = 'Added ' || $2 || ' events',
+              status_detail = $3,
               updated_at = NOW()
-        WHERE id = $3`,
-      [source.id, inserted, ingestion.id],
+        WHERE id = $4`,
+      [source.id, inserted, detail, ingestion.id],
     );
 
-    // 5) Invalidate feed_cache so the next .ics fetch rebuilds with new events
     await query(`DELETE FROM feed_cache WHERE user_id = $1`, [req.user.id]);
 
     await query('COMMIT');
@@ -300,6 +386,8 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
       ok: true,
       sourceId: source.id,
       eventsInserted: inserted,
+      eventsReplaced, // 0 for the create branch, prior count for replace
+      isReplace: !!replacingSource,
     });
   } catch (err) {
     await query('ROLLBACK').catch(() => {});
@@ -318,7 +406,6 @@ router.post('/:id/reject', requireAuth, async (req, res) => {
   );
   if (!ingestion) return res.status(404).json({ error: 'Not found' });
 
-  // Best-effort file delete; DB row stays for the audit trail
   if (ingestion.storage_path) {
     await fs.unlink(ingestion.storage_path).catch(() => {});
   }

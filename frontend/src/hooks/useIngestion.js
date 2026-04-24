@@ -9,7 +9,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 const TERMINAL = new Set(['ready_for_review', 'approved', 'rejected', 'failed']);
 const POLL_MS = 1500;
 
-// Matches the pattern in lib/api.js — JWT in localStorage under 'sc_token'
 function authHeader() {
   const token = localStorage.getItem('sc_token');
   return token ? { Authorization: 'Bearer ' + token } : {};
@@ -44,7 +43,9 @@ export function useIngestion() {
     }
   }, [stopPolling]);
 
-  const uploadPdf = useCallback(async (file, kidId) => {
+  // Third param `sourceId` is optional. When provided, the ingestion is
+  // earmarked as a soft-replace of that existing source on approve.
+  const uploadPdf = useCallback(async (file, kidId, sourceId) => {
     setError(null);
     setUploading(true);
     stopPolling();
@@ -53,9 +54,8 @@ export function useIngestion() {
       const form = new FormData();
       form.append('file', file);
       form.append('kidId', kidId);
+      if (sourceId) form.append('sourceId', sourceId);
 
-      // IMPORTANT: do NOT set Content-Type here — the browser must set it
-      // to multipart/form-data with the correct boundary. Only send auth.
       const res = await fetch('/api/ingestions', {
         method: 'POST',
         headers: { ...authHeader() },
@@ -68,9 +68,7 @@ export function useIngestion() {
       const created = await res.json();
       setIngestion(created);
 
-      // Start polling
       pollRef.current = setInterval(() => pollOnce(created.id), POLL_MS);
-      // kick one immediate poll so UI doesn't wait 1.5s for first status
       pollOnce(created.id);
 
       return created;
@@ -97,7 +95,6 @@ export function useIngestion() {
       throw new Error(body.error || 'Approve failed');
     }
     const result = await res.json();
-    // Refresh our local copy
     pollOnce(ingestion.id);
     return result;
   }, [ingestion, pollOnce]);
