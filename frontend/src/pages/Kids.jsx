@@ -342,7 +342,7 @@ function RideContacts() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {contacts.map(c => (
-              <div key={c.id} className="card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div key={c.id} className="card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: '50%',
                   background: 'var(--navy)', border: '2px solid var(--navy-mid)',
@@ -351,9 +351,9 @@ function RideContacts() {
                 }}>
                   {c.name[0]}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 16, fontWeight: 500 }}>{c.name}</div>
-                  <div style={{ fontSize: 13, color: 'var(--slate)', marginTop: 2 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 16, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                  <div style={{ fontSize: 13, color: 'var(--slate)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {[c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info'}
                   </div>
                 </div>
