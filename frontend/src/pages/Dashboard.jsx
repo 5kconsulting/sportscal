@@ -4,8 +4,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.jsx';
 
-import { AddEventModal } from '../components/AddEventModal.jsx';
-
 export default function Dashboard() {
   const { user, updateUser }  = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1116,6 +1114,7 @@ function EmptyState() {
   );
 }
 
+function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) {
   const isEditing = !!existingEvent;
 
   function toLocalDatetime(iso) {
