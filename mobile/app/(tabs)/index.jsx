@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, FlatList, RefreshControl,
   ActivityIndicator, TouchableOpacity,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
 import { EventCard } from '../../components/EventCard';
@@ -10,6 +11,7 @@ import { EventCard } from '../../components/EventCard';
 export default function Calendar() {
   const { user } = useAuth();
   const [events, setEvents]       = useState([]);
+  const [overrides, setOverrides] = useState({}); // { [eventId]: { [kidId]: attending } }
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError]         = useState('');
@@ -17,14 +19,29 @@ export default function Calendar() {
   const load = useCallback(async () => {
     setError('');
     try {
-      const data = await api.get('/api/events?days=30');
-      setEvents(data.events || []);
+      const [eventsRes, overridesRes] = await Promise.all([
+        api.get('/api/events?days=30'),
+        api.get('/api/overrides'),
+      ]);
+      setEvents(eventsRes.events || []);
+      const map = {};
+      (overridesRes.overrides || []).forEach(o => {
+        if (!map[o.event_id]) map[o.event_id] = {};
+        map[o.event_id][o.kid_id] = o.attending;
+      });
+      setOverrides(map);
     } catch (err) {
       setError(err.message || 'Could not load events');
     }
   }, []);
 
   useEffect(() => { (async () => { await load(); setLoading(false); })(); }, [load]);
+
+  // Refetch when the screen regains focus (e.g. after closing the event modal)
+  // so attendance toggles show up without a pull-to-refresh.
+  useFocusEffect(
+    useCallback(() => { load(); }, [load])
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -96,7 +113,7 @@ export default function Calendar() {
         }
         renderItem={({ item }) => {
           if (item.type === 'header') return <DayHeader date={item.date} />;
-          return <EventCard event={item.event} />;
+          return <EventCard event={item.event} overrides={overrides[item.event.id] || {}} />;
         }}
       />
     </View>

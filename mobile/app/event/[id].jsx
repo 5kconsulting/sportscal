@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, Pressable,
+  ActivityIndicator, Alert, Pressable, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -14,19 +14,25 @@ export default function EventDetail() {
 
   const [event, setEvent]         = useState(null);
   const [logistics, setLogistics] = useState([]); // array of 0-2 rows
+  const [overrides, setOverrides] = useState({}); // { [kidId]: attending }
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState('');
   const [savingRole, setSavingRole] = useState(null); // 'pickup' | 'dropoff' | null
+  const [savingKidId, setSavingKidId] = useState(null);
 
   const load = useCallback(async () => {
     setError('');
     try {
-      const [eventRes, logRes] = await Promise.all([
+      const [eventRes, logRes, ovRes] = await Promise.all([
         api.get(`/api/events/${id}`),
         api.get(`/api/logistics/${id}`),
+        api.get(`/api/overrides/${id}`),
       ]);
       setEvent(eventRes.event);
       setLogistics(logRes.logistics || []);
+      const map = {};
+      (ovRes.overrides || []).forEach(o => { map[o.kid_id] = o.attending; });
+      setOverrides(map);
     } catch (err) {
       setError(err.message || 'Could not load event');
     } finally {
@@ -62,6 +68,24 @@ export default function EventDetail() {
       }
     });
     router.push(`/contacts/picker?session=${sessionId}&role=${role}`);
+  }
+
+  async function setKidAttendance(kidId, attending) {
+    const prev = overrides;
+    setOverrides(p => ({ ...p, [kidId]: attending }));
+    setSavingKidId(kidId);
+    try {
+      if (attending) {
+        await api.del(`/api/overrides/${id}/${kidId}`);
+      } else {
+        await api.post(`/api/overrides/${id}`, { kid_id: kidId, attending: false });
+      }
+    } catch (err) {
+      setOverrides(prev);
+      Alert.alert('Could not update', err.message || 'Please try again.');
+    } finally {
+      setSavingKidId(null);
+    }
   }
 
   function clearRole(role) {
@@ -140,18 +164,43 @@ export default function EventDetail() {
           ) : null}
         </View>
 
-        {/* Kids */}
+        {/* Kids — per-kid attendance toggle */}
         {kids.length > 0 && (
           <View style={s.section}>
             <Text style={s.sectionLabel}>Who's going</Text>
-            <View style={s.kidRow}>
-              {kids.map(k => (
-                <View key={k.id} style={s.kidChip}>
+            <Text style={s.sectionHint}>
+              Turn off to hide this event from a kid's calendar feed.
+            </Text>
+            {kids.map(k => {
+              const attending = overrides[k.id] !== false;
+              const saving = savingKidId === k.id;
+              return (
+                <View key={k.id} style={s.kidAttendRow}>
                   <View style={[s.kidDot, { backgroundColor: k.color || '#00d68f' }]} />
-                  <Text style={s.kidName}>{k.name}</Text>
+                  <Text
+                    style={[s.kidAttendName, !attending && s.kidAttendNameOff]}
+                    numberOfLines={1}
+                  >
+                    {k.name}
+                  </Text>
+                  {!attending && (
+                    <Text style={s.kidAttendTag}>Not going</Text>
+                  )}
+                  {saving ? (
+                    <ActivityIndicator color="#8896b0" style={{ marginLeft: 8 }} />
+                  ) : (
+                    <Switch
+                      value={attending}
+                      onValueChange={(v) => setKidAttendance(k.id, v)}
+                      trackColor={{ false: '#d9dfe9', true: '#00d68f' }}
+                      thumbColor="#ffffff"
+                      ios_backgroundColor="#d9dfe9"
+                      style={{ marginLeft: 8 }}
+                    />
+                  )}
                 </View>
-              ))}
-            </View>
+              );
+            })}
           </View>
         )}
 
@@ -293,14 +342,20 @@ const s = StyleSheet.create({
   },
   description: { fontSize: 14, color: '#4a5670', lineHeight: 21 },
 
-  kidRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  kidChip: {
+  sectionHint: { fontSize: 12, color: '#8896b0', marginTop: -4, marginBottom: 10, lineHeight: 16 },
+  kidDot:  { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
+  kidAttendRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e8ecf4',
-    borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6,
+    backgroundColor: '#ffffff', borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderWidth: 1, borderColor: '#e8ecf4', marginBottom: 8,
   },
-  kidDot:  { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-  kidName: { fontSize: 13, color: '#0f1629', fontWeight: '500' },
+  kidAttendName: { flex: 1, fontSize: 15, color: '#0f1629', fontWeight: '500' },
+  kidAttendNameOff: { color: '#8896b0', textDecorationLine: 'line-through' },
+  kidAttendTag: {
+    fontSize: 11, color: '#8896b0', fontWeight: '600',
+    textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 4,
+  },
 
   slot: {
     backgroundColor: '#ffffff', borderRadius: 12, padding: 14,
