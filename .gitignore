@@ -3,3 +3,8 @@ node_modules/
 *.log
 .DS_Store
 dist/
+
+# Backup files from refactor scripts
+frontend/src/pages/*.pre-fix
+frontend/src/pages/*.bak
+frontend/src/pages/*.fixbak
