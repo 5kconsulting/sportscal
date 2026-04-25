@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Linking,
+  KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../lib/auth';
 
 export default function Login() {
   const { login } = useAuth();
+  const router = useRouter();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [error, setError]       = useState('');
@@ -81,11 +83,11 @@ export default function Login() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => Linking.openURL('https://www.sportscalapp.com/signup')}
+              onPress={() => router.push('/signup')}
               style={{ marginTop: 18, alignSelf: 'center' }}
             >
               <Text style={s.link}>
-                Don{'\u2019'}t have an account? <Text style={s.linkStrong}>Sign up on the web</Text>
+                Don{'\u2019'}t have an account? <Text style={s.linkStrong}>Create one</Text>
               </Text>
             </TouchableOpacity>
           </View>

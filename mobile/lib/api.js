@@ -29,7 +29,10 @@ async function request(method, path, body) {
     if (res.status === 401 && _token && _onUnauthorized) {
       try { await _onUnauthorized(); } catch {}
     }
-    const err = new Error(data.error || ('HTTP ' + res.status));
+    const errMsg = data.error
+      || data.errors?.[0]?.msg
+      || ('HTTP ' + res.status);
+    const err = new Error(errMsg);
     err.status = res.status;
     throw err;
   }

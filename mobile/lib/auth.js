@@ -33,6 +33,16 @@ export function AuthProvider({ children }) {
     setUser(user);
   }
 
+  async function signup(name, email, password) {
+    const { token, user } = await api.post('/api/auth/signup', {
+      name, email, password,
+      referral_source: 'ios_app',
+    });
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    api.setToken(token);
+    setUser(user);
+  }
+
   async function logout() {
     await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
     api.setToken(null);
@@ -49,7 +59,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );
