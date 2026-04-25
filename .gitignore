@@ -8,3 +8,9 @@ dist/
 frontend/src/pages/*.pre-fix
 frontend/src/pages/*.bak
 frontend/src/pages/*.fixbak
+
+# App Store upload artifacts — generated, uploaded via App Store Connect
+mobile/screenshots/
+
+# Claude Code local config (preview launch.json, etc.)
+.claude/
