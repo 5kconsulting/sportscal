@@ -6,10 +6,7 @@
     "orientation": "portrait",
     "scheme": "sportscal",
     "userInterfaceStyle": "light",
-    "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#0f1629"
-    },
+    "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.fivekconsulting.sportscal"
@@ -22,7 +19,16 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0f1629"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false
