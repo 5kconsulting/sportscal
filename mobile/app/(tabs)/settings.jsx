@@ -1,11 +1,61 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Linking, Share } from 'react-native';
 import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
 
+const FEED_HOST = 'www.sportscalapp.com';
+
 export default function Settings() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const [deleting, setDeleting] = useState(false);
+  const [rotating, setRotating] = useState(false);
+
+  const httpsFeedUrl  = user?.feed_token ? `https://${FEED_HOST}/feed/${user.feed_token}.ics` : '';
+  const webcalFeedUrl = user?.feed_token ? `webcal://${FEED_HOST}/feed/${user.feed_token}.ics`  : '';
+
+  function subscribeInCalendar() {
+    if (!webcalFeedUrl) return;
+    Linking.openURL(webcalFeedUrl).catch(() =>
+      Alert.alert('Could not open Calendar', 'Try the Share link option instead.')
+    );
+  }
+
+  async function shareFeedLink() {
+    if (!httpsFeedUrl) return;
+    try {
+      await Share.share({
+        url:     httpsFeedUrl,
+        message: httpsFeedUrl,
+      });
+    } catch {
+      // user dismissed — no-op
+    }
+  }
+
+  function handleResetFeed() {
+    Alert.alert(
+      'Reset calendar link?',
+      'Your current subscribed calendars will stop updating until you re-subscribe with the new link.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            setRotating(true);
+            try {
+              const { feed_token } = await api.post('/api/auth/rotate-feed-token');
+              updateUser({ feed_token });
+            } catch (err) {
+              Alert.alert('Could not reset', err.message || 'Please try again.');
+            } finally {
+              setRotating(false);
+            }
+          },
+        },
+      ],
+    );
+  }
 
   function handleLogout() {
     Alert.alert(
@@ -69,6 +119,42 @@ export default function Settings() {
         </Text>
       </View>
 
+      <View style={s.section}>
+        <Text style={s.label}>Calendar feed</Text>
+        <Text style={s.feedHelp}>
+          Subscribe once and your phone calendar stays in sync automatically.
+        </Text>
+
+        <TouchableOpacity
+          style={s.feedPrimaryBtn}
+          onPress={subscribeInCalendar}
+          activeOpacity={0.8}
+          disabled={!webcalFeedUrl}
+        >
+          <Text style={s.feedPrimaryText}>Subscribe in Apple Calendar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={s.feedSecondaryBtn}
+          onPress={shareFeedLink}
+          activeOpacity={0.7}
+          disabled={!httpsFeedUrl}
+        >
+          <Text style={s.feedSecondaryText}>Share link (Google, Outlook…)</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={s.feedResetBtn}
+          onPress={handleResetFeed}
+          disabled={rotating}
+          activeOpacity={0.7}
+        >
+          {rotating
+            ? <ActivityIndicator color="#8896b0" />
+            : <Text style={s.feedResetText}>Reset link</Text>}
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
         <Text style={s.logoutText}>Sign out</Text>
       </TouchableOpacity>
@@ -98,6 +184,20 @@ const s = StyleSheet.create({
   label:    { fontSize: 11, color: '#8896b0', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 },
   value:    { fontSize: 16, fontWeight: '600', color: '#0f1629' },
   sub:      { fontSize: 13, color: '#8896b0', marginTop: 2 },
+  feedHelp: { fontSize: 13, color: '#4a5670', lineHeight: 18, marginBottom: 12 },
+  feedPrimaryBtn: {
+    backgroundColor: '#00d68f', borderRadius: 10,
+    paddingVertical: 13, alignItems: 'center',
+  },
+  feedPrimaryText: { color: '#0f1629', fontSize: 15, fontWeight: '600' },
+  feedSecondaryBtn: {
+    borderWidth: 1, borderColor: '#e8ecf4', borderRadius: 10,
+    paddingVertical: 12, alignItems: 'center', marginTop: 8,
+    backgroundColor: '#ffffff',
+  },
+  feedSecondaryText: { color: '#0f1629', fontSize: 14, fontWeight: '500' },
+  feedResetBtn: { paddingVertical: 10, alignItems: 'center', marginTop: 4 },
+  feedResetText: { color: '#8896b0', fontSize: 12, fontWeight: '500', textDecorationLine: 'underline' },
   logoutBtn:{
     borderWidth: 1, borderColor: '#ff6b6b', borderRadius: 10,
     paddingVertical: 14, alignItems: 'center', marginTop: 8, backgroundColor: '#ffffff',

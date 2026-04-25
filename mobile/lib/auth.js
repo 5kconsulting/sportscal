@@ -43,6 +43,10 @@ export function AuthProvider({ children }) {
     setUser(user);
   }
 
+  function updateUser(patch) {
+    setUser(prev => prev ? { ...prev, ...patch } : prev);
+  }
+
   async function logout() {
     await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
     api.setToken(null);
@@ -59,7 +63,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
