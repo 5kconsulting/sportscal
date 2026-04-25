@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, Pressable, Switch,
+  ActivityIndicator, Alert, Pressable, Switch, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -157,7 +157,18 @@ export default function EventDetail() {
           <Text style={s.meta}>{dateLabel}</Text>
           <Text style={s.meta}>{timeLabel}</Text>
           {event.location ? (
-            <Text style={[s.meta, { marginTop: 8 }]}>📍 {event.location}</Text>
+            <Pressable
+              onPress={() => {
+                const url = `http://maps.apple.com/?daddr=${encodeURIComponent(event.location)}`;
+                Linking.openURL(url).catch(() =>
+                  Alert.alert('Could not open Maps', 'Please try again.')
+                );
+              }}
+              hitSlop={8}
+              style={({ pressed }) => [{ marginTop: 8, opacity: pressed ? 0.6 : 1 }]}
+            >
+              <Text style={[s.meta, s.locationLink]}>📍 {event.location}</Text>
+            </Pressable>
           ) : null}
           {event.source_name ? (
             <Text style={s.source}>from {event.source_name}</Text>
@@ -333,6 +344,7 @@ const s = StyleSheet.create({
   },
   title: { fontSize: 22, fontWeight: '700', color: '#0f1629', letterSpacing: -0.3, marginBottom: 8 },
   meta:  { fontSize: 14, color: '#4a5670', marginTop: 2 },
+  locationLink: { color: '#00b377', textDecorationLine: 'underline' },
   source:{ fontSize: 12, color: '#8896b0', marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
 
   section: { paddingHorizontal: 20, paddingTop: 24 },
