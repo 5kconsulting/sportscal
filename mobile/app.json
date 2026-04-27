@@ -34,7 +34,12 @@
       "typedRoutes": false
     },
     "extra": {
-      "apiUrl": "https://sportscal-production.up.railway.app"
-    }
+      "apiUrl": "https://sportscal-production.up.railway.app",
+      "router": {},
+      "eas": {
+        "projectId": "40370800-083e-405d-b0db-cde4569ef7a0"
+      }
+    },
+    "owner": "5kconsulting"
   }
 }
