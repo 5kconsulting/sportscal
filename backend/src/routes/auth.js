@@ -39,6 +39,7 @@ router.post('/signup',
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
     body('name').trim().notEmpty().withMessage('Name is required'),
+    body('sms_consent').optional().isBoolean(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -46,7 +47,7 @@ router.post('/signup',
       return res.status(422).json({ errors: errors.array() });
     }
 
-    const { email, password, name, referral_source } = req.body;
+    const { email, password, name, referral_source, sms_consent } = req.body;
 
     const existing = await getUserByEmail(email);
     if (existing) {
@@ -54,7 +55,16 @@ router.post('/signup',
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const user = await createUser({ email, passwordHash, name, referralSource: referral_source?.trim().slice(0, 100) || null });
+    // Capture SMS consent at the moment of agreement: timestamp + IP.
+    // This is the parent's direct consent record for A2P 10DLC.
+    const smsConsented = sms_consent === true || sms_consent === 'true';
+    const consentIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || null;
+    const user = await createUser({
+      email, passwordHash, name,
+      referralSource: referral_source?.trim().slice(0, 100) || null,
+      smsConsentAt: smsConsented ? new Date() : null,
+      smsConsentIp: smsConsented ? consentIp : null,
+    });
 
     // Send welcome + verification emails (non-blocking)
     if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 're_xxxxxxxxxxxx') {

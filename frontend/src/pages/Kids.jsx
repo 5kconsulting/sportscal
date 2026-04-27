@@ -254,9 +254,9 @@ function RideContacts() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing]   = useState(null);
   const [form, setForm]         = useState({ name: '', email: '', phone: '' });
-  const [consent, setConsent]   = useState(false);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
+  const [resendingId, setResendingId] = useState(null);
 
   useEffect(() => {
     api.contacts.list()
@@ -268,7 +268,6 @@ function RideContacts() {
   function openAdd() {
     setEditing(null);
     setForm({ name: '', email: '', phone: '' });
-    setConsent(false);
     setError('');
     setShowForm(true);
   }
@@ -276,19 +275,12 @@ function RideContacts() {
   function openEdit(contact) {
     setEditing(contact);
     setForm({ name: contact.name, email: contact.email || '', phone: contact.phone || '' });
-    // When editing, the consent was already captured at creation time.
-    setConsent(true);
     setError('');
     setShowForm(true);
   }
 
   async function handleSave(e) {
     e.preventDefault();
-    const needsConsent = !!(form.email || form.phone);
-    if (needsConsent && !consent) {
-      setError('Please confirm you have the contact\u2019s permission to message them.');
-      return;
-    }
     setSaving(true);
     setError('');
     try {
@@ -311,6 +303,21 @@ function RideContacts() {
     if (!confirm('Remove this contact?')) return;
     await api.contacts.delete(id);
     setContacts(c => c.filter(x => x.id !== id));
+  }
+
+  async function handleResendOptIn(id) {
+    setResendingId(id);
+    try {
+      await api.contacts.sendOptIn(id);
+      // Optimistic \u2014 show the parent we sent something. Actual status
+      // remains 'pending' until the contact replies YES.
+      setContacts(c => c.map(x => x.id === id ? { ...x, opt_in_sent_at: new Date().toISOString() } : x));
+      alert('Opt-in text sent. Waiting for them to reply YES.');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setResendingId(null);
+    }
   }
 
   return (
@@ -341,28 +348,61 @@ function RideContacts() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {contacts.map(c => (
-              <div key={c.id} className="card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: '50%',
-                  background: 'var(--navy)', border: '2px solid var(--navy-mid)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 16, fontWeight: 700, color: 'var(--accent)', flexShrink: 0,
-                }}>
-                  {c.name[0]}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 16, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                  <div style={{ fontSize: 13, color: 'var(--slate)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {[c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info'}
+            {contacts.map(c => {
+              const status = c.sms_consent_status || 'pending';
+              const hasPhone = !!c.phone;
+              const pillColor =
+                status === 'confirmed' ? '#00b377'
+                : status === 'declined' ? '#ef4444'
+                : '#f59e0b'; // pending
+              const pillLabel =
+                status === 'confirmed' ? 'SMS opted in'
+                : status === 'declined' ? 'SMS opted out'
+                : 'SMS pending';
+              return (
+                <div key={c.id} className="card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: '50%',
+                    background: 'var(--navy)', border: '2px solid var(--navy-mid)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 16, fontWeight: 700, color: 'var(--accent)', flexShrink: 0,
+                  }}>
+                    {c.name[0]}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 16, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                    <div style={{ fontSize: 13, color: 'var(--slate)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {[c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info'}
+                    </div>
+                    {hasPhone && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                        <span style={{
+                          display: 'inline-block', width: 6, height: 6, borderRadius: 3,
+                          background: pillColor,
+                        }} />
+                        <span style={{ fontSize: 11, color: pillColor, fontWeight: 600, letterSpacing: 0.3 }}>
+                          {pillLabel.toUpperCase()}
+                        </span>
+                        {status === 'pending' && (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => handleResendOptIn(c.id)}
+                            disabled={resendingId === c.id}
+                            style={{ fontSize: 11, padding: '2px 8px', marginLeft: 4 }}
+                          >
+                            {resendingId === c.id ? 'Sending…' : 'Resend opt-in'}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                    <button className="btn btn-ghost btn-sm" onClick={() => openEdit(c)}>Edit</button>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c.id)}>Remove</button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                  <button className="btn btn-ghost btn-sm" onClick={() => openEdit(c)}>Edit</button>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c.id)}>Remove</button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -395,28 +435,17 @@ function RideContacts() {
                   value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
 
-              {(form.email || form.phone) && (
-                <label style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer',
+              {form.phone && !editing && (
+                <div style={{
                   fontSize: 12, color: 'var(--slate)', lineHeight: 1.55,
                   background: 'var(--off-white)', borderRadius: 8,
                   padding: '12px 14px', border: '1px solid var(--border)',
                 }}>
-                  <input
-                    type="checkbox"
-                    checked={consent}
-                    onChange={e => setConsent(e.target.checked)}
-                    style={{ marginTop: 2, flexShrink: 0, accentColor: 'var(--accent)', width: 15, height: 15 }}
-                  />
-                  <span>
-                    I confirm I have this contact&rsquo;s permission to receive ride coordination
-                    messages from SportsCal at the email or phone number above.
-                    Messages are only sent when I assign them to a specific pickup or dropoff.
-                    Recipients can reply <strong>STOP</strong> anytime to opt out, or <strong>HELP</strong> for support.
-                    Message and data rates may apply. See our{' '}
-                    <a href="/privacy" target="_blank" style={{ color: 'var(--accent-dim)' }}>Privacy Policy</a>.
-                  </span>
-                </label>
+                  When you save, SportsCal will text this number once asking them to reply
+                  <strong> YES</strong> to receive ride coordination messages. Until they reply
+                  YES, we won&rsquo;t send them anything. They can reply <strong>STOP</strong>
+                  any time to opt out. Msg&amp;data rates may apply.
+                </div>
               )}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="submit" className="btn btn-primary" disabled={saving} style={{ flex: 1, justifyContent: 'center' }}>

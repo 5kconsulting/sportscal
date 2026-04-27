@@ -146,12 +146,19 @@ export async function getUserByFeedToken(token) {
   );
 }
 
-export async function createUser({ email, passwordHash, name, referralSource = null }) {
+export async function createUser({
+  email, passwordHash, name,
+  referralSource = null,
+  smsConsentAt = null, smsConsentIp = null,
+}) {
   return queryOne(
-    `INSERT INTO users (email, password_hash, name, referral_source)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO users (
+       email, password_hash, name,
+       referral_source, sms_consent_at, sms_consent_ip
+     )
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
-    [email, passwordHash, name, referralSource]
+    [email, passwordHash, name, referralSource, smsConsentAt, smsConsentIp]
   );
 }
 

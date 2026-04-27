@@ -117,19 +117,21 @@
   <p>SportsCal does not use tracking cookies. To keep you signed in we store your authentication token in your browser's localStorage on the web, or the iOS Keychain in our mobile app. No advertising cookies, no third-party trackers.</p>
 
   <h2>9. SMS Messaging</h2>
-  <p>SportsCal's Ride Coordination feature allows Premium subscribers to send SMS pickup and dropoff requests to contacts (family members, coaches, neighbors) they have added to their account.</p>
+  <p>SportsCal sends SMS messages to two distinct groups, each with their own direct consent.</p>
 
-  <p><strong>How consent is collected.</strong> When a SportsCal user adds a contact to their account and assigns that contact to a pickup or dropoff for an event, SportsCal sends an SMS from a Twilio number on the user's behalf. By adding a phone number to their contacts and assigning it to an event, the SportsCal user represents that they have obtained the contact's consent to receive these messages. Users are prompted to confirm this consent before the first message is sent to a given contact.</p>
+  <p><strong>Account holders (parents).</strong> When you sign up at sportscalapp.com/signup, you are presented with a separate, unchecked SMS consent checkbox in addition to the Terms of Service checkbox. Checking that box records your consent to receive SMS notifications about your own account, including ride coordination confirmations sent on your behalf. Consent is optional &mdash; you can use SportsCal without it &mdash; and you can revoke it at any time by replying STOP to any message. Your consent timestamp and IP address are recorded against your account.</p>
 
-  <p><strong>Message content.</strong> Messages are limited to pickup/dropoff coordination for specific events (example: "Can you pick up Levi from Tigard HS on Thursday at 4pm? Reply YES or NO."). SportsCal does not send marketing, promotional, or other unsolicited messages to contacts.</p>
+  <p><strong>Ride contacts (people you add).</strong> When you add a contact with a phone number, SportsCal sends that contact exactly one SMS asking them to opt in directly. The message reads, in substance: "[Your first name] added you as a ride contact on SportsCal &mdash; a youth sports calendar app. Reply YES to receive occasional ride coordination texts (typically 1&ndash;4/week), or STOP to opt out. Msg&amp;data rates may apply." The contact must reply <strong>YES</strong> from their own phone before SportsCal will send any further messages to that number. Their YES reply is the contact&rsquo;s direct consent of record, stored with timestamp and the originating phone number. If the contact does not reply, or replies STOP, SportsCal will not text them. Account holders cannot consent on a contact&rsquo;s behalf.</p>
 
-  <p><strong>Message frequency.</strong> Message frequency varies based on the SportsCal user's activity, typically ranging from zero to a few messages per week per contact.</p>
+  <p><strong>Message content.</strong> After consent, messages to contacts are limited to pickup/dropoff coordination for specific events (example: "Can you pick up Levi from Tigard HS on Thursday at 4pm? Reply YES or NO."). SportsCal does not send marketing, promotional, or other unsolicited messages.</p>
 
-  <p><strong>Opt-out.</strong> Recipients may opt out at any time by replying <strong>STOP</strong> to any message. Reply <strong>HELP</strong> for support. Once a recipient opts out, SportsCal will not send further messages to that number unless the recipient later opts back in.</p>
+  <p><strong>Message frequency.</strong> Message frequency varies based on the SportsCal account holder&rsquo;s activity, typically ranging from zero to a few messages per week per contact.</p>
 
-  <p><strong>Message and data rates.</strong> Message and data rates may apply based on the recipient's mobile carrier plan. SportsCal does not charge recipients for these messages.</p>
+  <p><strong>Opt-out and help.</strong> Recipients may opt out at any time by replying <strong>STOP</strong> to any message. Reply <strong>HELP</strong> for support. Opt-outs are honored immediately and recorded against the recipient&rsquo;s phone number; SportsCal will not send further messages to that number unless the recipient later opts back in.</p>
 
-  <p><strong>Phone number handling.</strong> Mobile phone numbers are collected solely for the purpose of sending ride coordination messages initiated by the SportsCal account holder. <strong>Mobile phone numbers and SMS consent are not shared with third parties or affiliates for marketing or promotional purposes.</strong> Numbers are shared only with Twilio, our SMS delivery provider, as necessary to deliver messages.</p>
+  <p><strong>Message and data rates.</strong> Message and data rates may apply based on the recipient&rsquo;s mobile carrier plan. SportsCal does not charge recipients for these messages.</p>
+
+  <p><strong>Phone number handling.</strong> Mobile phone numbers are collected solely for the purpose of the consent flow described above and the ride coordination messages initiated by the SportsCal account holder once the contact has opted in. <strong>Mobile phone numbers and SMS consent are not shared with third parties or affiliates for marketing or promotional purposes.</strong> Numbers are shared only with Twilio, our SMS delivery provider, as necessary to deliver messages.</p>
 
   <h2>10. Changes to This Policy</h2>
   <p>We may update this Privacy Policy from time to time. We will notify you of material changes by email or by posting a notice in the Service. Continued use after changes take effect constitutes your acceptance of the updated policy.</p>

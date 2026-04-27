@@ -75,10 +75,11 @@ export const api = {
     portal:   () => post('/billing/portal'),
   },
   contacts: {
-    list:   ()          => get('/contacts'),
-    create: (data)      => post('/contacts', data),
-    update: (id, data)  => patch(`/contacts/${id}`, data),
-    delete: (id)        => del(`/contacts/${id}`),
+    list:      ()          => get('/contacts'),
+    create:    (data)      => post('/contacts', data),
+    update:    (id, data)  => patch(`/contacts/${id}`, data),
+    delete:    (id)        => del(`/contacts/${id}`),
+    sendOptIn: (id)        => post(`/contacts/${id}/send-opt-in`),
   },
   logistics: {
     get:    (eventId)        => get(`/logistics/${eventId}`),

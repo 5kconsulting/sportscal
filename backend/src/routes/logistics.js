@@ -61,9 +61,25 @@ router.post('/:eventId', requireAuth, async (req, res) => {
     const user_plan = (await queryOne(`SELECT plan FROM users WHERE id = $1`, [req.user.id]))?.plan;
     const isPremium = user_plan === 'premium';
 
-    // Notifications (email/SMS) are premium only
-    const sendEmail = isPremium && (notify === 'email' || notify === 'both') && contact.email;
-    const sendSms   = isPremium && (notify === 'sms'   || notify === 'both') && contact.phone;
+    // Notifications (email/SMS) are premium only.
+    const wantsEmail = (notify === 'email' || notify === 'both');
+    const wantsSms   = (notify === 'sms'   || notify === 'both');
+
+    // SMS additionally requires that the contact has actively opted in
+    // by replying YES to the confirmation message (A2P 10DLC double
+    // opt-in). Pending or declined contacts are silently skipped here;
+    // the response includes sms_skipped_reason so the UI can prompt the
+    // user to use the native Messages app instead.
+    let smsSkippedReason = null;
+    if (wantsSms) {
+      if (!isPremium)                                  smsSkippedReason = 'not_premium';
+      else if (!contact.phone)                         smsSkippedReason = 'no_phone';
+      else if (contact.sms_consent_status === 'pending')  smsSkippedReason = 'consent_pending';
+      else if (contact.sms_consent_status === 'declined') smsSkippedReason = 'consent_declined';
+    }
+
+    const sendEmail = isPremium && wantsEmail && contact.email;
+    const sendSms   = isPremium && wantsSms   && contact.phone && contact.sms_consent_status === 'confirmed';
     const status = (sendEmail || sendSms) ? 'requested' : 'assigned';
 
     // Upsert — replace existing assignment for this role
@@ -142,7 +158,10 @@ router.post('/:eventId', requireAuth, async (req, res) => {
       }
     }
 
-    res.status(201).json({ logistics: { ...logistics, contact_name: contact.name, contact_email: contact.email } });
+    res.status(201).json({
+      logistics: { ...logistics, contact_name: contact.name, contact_email: contact.email },
+      sms_skipped_reason: smsSkippedReason,
+    });
   } catch (err) {
     console.error('[logistics] post error:', err.message);
     res.status(500).json({ error: err.message });

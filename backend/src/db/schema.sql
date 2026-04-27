@@ -59,6 +59,13 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_source    TEXT;
 -- started tracking this. Nullable because it's derived data from Stripe.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS billing_interval   TEXT;
 
+-- A2P 10DLC requires direct, recorded SMS consent from the account holder.
+-- Captured at signup via a public consent checkbox. NULL for accounts
+-- created before this column existed; we'll backfill via a one-time
+-- consent prompt on next login if SMS use is needed.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS sms_consent_at      TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS sms_consent_ip      TEXT;
+
 -- CHECK constraints (drop-and-recreate so edits are declarative)
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_plan_check;
 ALTER TABLE users ADD  CONSTRAINT users_plan_check
@@ -106,6 +113,39 @@ CREATE TABLE IF NOT EXISTS contacts (
   phone      TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- SMS consent (A2P 10DLC double opt-in).
+-- Status moves pending -> confirmed (reply YES) or pending -> declined
+-- (reply STOP, or admin/parent removes consent). We never SMS a contact
+-- whose status is not 'confirmed'.
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS sms_consent_status  TEXT NOT NULL DEFAULT 'pending';
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS sms_consent_at      TIMESTAMPTZ;
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS sms_consent_method  TEXT;          -- 'reply_yes' | 'reply_stop' | etc
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS sms_consent_phone   TEXT;          -- which SportsCal Twilio number captured the consent
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS opt_in_token        TEXT;          -- short opaque token for webhook correlation if ever needed
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS opt_in_sent_at      TIMESTAMPTZ;   -- last time we sent the opt-in confirmation SMS
+
+ALTER TABLE contacts DROP CONSTRAINT IF EXISTS contacts_sms_consent_status_check;
+ALTER TABLE contacts ADD  CONSTRAINT contacts_sms_consent_status_check
+  CHECK (sms_consent_status IN ('pending', 'confirmed', 'declined'));
+
+-- Webhook lookup is by phone number — index for fast E.164 lookups.
+CREATE INDEX IF NOT EXISTS contacts_phone_idx ON contacts(phone) WHERE phone IS NOT NULL;
+
+-- One-time backfill: normalize legacy phones to E.164 so the
+-- inbound webhook (which receives From in E.164) can match. Only
+-- touches rows that aren't already E.164. Safe to re-run.
+UPDATE contacts
+   SET phone = CASE
+     WHEN length(regexp_replace(phone, '\D', '', 'g')) = 10
+       THEN '+1' || regexp_replace(phone, '\D', '', 'g')
+     WHEN length(regexp_replace(phone, '\D', '', 'g')) = 11
+      AND substring(regexp_replace(phone, '\D', '', 'g') FROM 1 FOR 1) = '1'
+       THEN '+'  || regexp_replace(phone, '\D', '', 'g')
+     ELSE phone
+   END
+ WHERE phone IS NOT NULL
+   AND phone !~ '^\+';
 
 -- ============================================================
 -- SOURCES

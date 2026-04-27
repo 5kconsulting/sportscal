@@ -32,6 +32,7 @@ import contactsRoutes         from './routes/contacts.js';
 import logisticsRoutes        from './routes/logistics.js';
 import overridesRoutes        from './routes/overrides.js';
 import ingestionsRoutes       from './routes/ingestions.js';
+import twilioRoutes           from './routes/twilio.js';
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -90,6 +91,7 @@ app.use('/api/contacts',    contactsRoutes);
 app.use('/api/logistics',   logisticsRoutes);
 app.use('/api/overrides',   overridesRoutes);
 app.use('/api/ingestions',  ingestionsRoutes);
+app.use('/api/twilio',      twilioRoutes);   // public: Twilio inbound webhook (signature-verified)
 app.use('/feed',            calendarRoutes); // public: /feed/:token.ics
 
 // ============================================================

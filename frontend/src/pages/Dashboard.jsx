@@ -911,11 +911,35 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
     if (!form.contact_id) return;
     setSaving('assign');
     try {
-      const { logistics: updated } = await api.logistics.assign(event.id, { ...form, notify: form.notify });
+      const resp = await api.logistics.assign(event.id, { ...form, notify: form.notify });
+      const updated = resp.logistics;
       onUpdate(prev => {
         const filtered = prev.filter(l => l.role !== form.role);
         return [...filtered, updated];
       });
+
+      // SMS was requested but suppressed because the contact hasn't
+      // opted in yet (or has opted out). Offer the native Messages app
+      // as a fallback so the parent can still text them through their
+      // own phone — that's outside our A2P 10DLC consent obligations.
+      if (resp.sms_skipped_reason === 'consent_pending' || resp.sms_skipped_reason === 'consent_declined') {
+        const contact = contacts.find(c => c.id === form.contact_id);
+        const reason = resp.sms_skipped_reason === 'consent_pending'
+          ? `${contact?.name || 'This contact'} hasn't confirmed SMS yet (they need to reply YES to our opt-in text).`
+          : `${contact?.name || 'This contact'} has opted out of SportsCal texts.`;
+        const action = `Open Messages now to text them yourself?`;
+        if (contact?.phone && window.confirm(`${reason}\n\n${action}`)) {
+          const action_word = form.role === 'pickup' ? 'pick up' : 'drop off';
+          const kid = (event.display_title || '').split('—')[0].trim();
+          const eventDate = new Date(event.starts_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+          const eventTime = new Date(event.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          const body = encodeURIComponent(
+            `Hi ${contact.name.split(' ')[0]} — can you ${action_word} ${kid} on ${eventDate} at ${eventTime}${event.location ? ' at ' + event.location : ''}? Thanks!`
+          );
+          window.location.href = `sms:${contact.phone}?&body=${body}`;
+        }
+      }
+
       setForm(f => ({ ...f, contact_id: '', note: '', send_request: false, notify: 'none' }));
     } catch (err) {
       alert(err.message);
