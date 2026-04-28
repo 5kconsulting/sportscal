@@ -82,6 +82,7 @@ export const api = {
     sendOptIn: (id)        => post(`/contacts/${id}/send-opt-in`),
   },
   logistics: {
+    list:   ()               => get(`/logistics`),
     get:    (eventId)        => get(`/logistics/${eventId}`),
     assign: (eventId, data)  => post(`/logistics/${eventId}`, data),
     remove: (eventId, role)  => del(`/logistics/${eventId}/${role}`),

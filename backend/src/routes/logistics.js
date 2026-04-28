@@ -10,8 +10,29 @@ const FROM    = `${process.env.EMAIL_FROM_NAME || 'SportsCal'} <${process.env.EM
 const APP_URL = process.env.FRONTEND_URL || 'https://www.sportscalapp.com';
 
 // ============================================================
+// GET /api/logistics
+// Bulk: every logistics row for the current user (Dashboard uses
+// this to render pickup/dropoff inline on each event card without
+// needing to open the modal first).
+// ============================================================
+router.get('/', requireAuth, async (req, res) => {
+  try {
+    const rows = await query(
+      `SELECT el.*, c.name AS contact_name, c.email AS contact_email, c.phone AS contact_phone
+       FROM event_logistics el
+       JOIN contacts c ON c.id = el.contact_id
+       WHERE el.user_id = $1`,
+      [req.user.id]
+    );
+    res.json({ logistics: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
 // GET /api/logistics/:eventId
-// Get logistics for an event
+// Get logistics for a single event
 // ============================================================
 router.get('/:eventId', requireAuth, async (req, res) => {
   try {

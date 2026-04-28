@@ -29,6 +29,7 @@ export default function Dashboard() {
   }, []);
 
   const [allOverrides, setAllOverrides] = useState({});
+  const [allLogistics, setAllLogistics] = useState({});
 
   useEffect(() => {
     Promise.all([
@@ -36,18 +37,26 @@ export default function Dashboard() {
       api.kids.list(),
       api.sources.list(),
       api.overrides.getAll(),
+      api.logistics.list(),
     ])
-      .then(([{ events }, { kids }, { sources }, { overrides }]) => {
+      .then(([{ events }, { kids }, { sources }, { overrides }, { logistics }]) => {
         setEvents(events);
         setKids(kids);
         setSources(sources);
         // Build map: eventId -> { kidId -> attending }
-        const map = {};
+        const overridesMap = {};
         (overrides || []).forEach(o => {
-          if (!map[o.event_id]) map[o.event_id] = {};
-          map[o.event_id][o.kid_id] = o.attending;
+          if (!overridesMap[o.event_id]) overridesMap[o.event_id] = {};
+          overridesMap[o.event_id][o.kid_id] = o.attending;
         });
-        setAllOverrides(map);
+        setAllOverrides(overridesMap);
+        // Build map: eventId -> [logistics rows]
+        const logisticsMap = {};
+        (logistics || []).forEach(l => {
+          if (!logisticsMap[l.event_id]) logisticsMap[l.event_id] = [];
+          logisticsMap[l.event_id].push(l);
+        });
+        setAllLogistics(logisticsMap);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -225,7 +234,7 @@ export default function Dashboard() {
           {Object.entries(grouped).map(([day, dayEvents]) => (
             <DayGroup key={day} day={day} events={dayEvents}
               onEdit={setEditingEvent} onDelete={handleEventDeleted}
-              eventOverrides={allOverrides} />
+              eventOverrides={allOverrides} eventLogistics={allLogistics} />
           ))}
         </div>
       )}
@@ -601,7 +610,7 @@ function SubscribeGuide({ feedUrl, onClose }) {
   );
 }
 
-function DayGroup({ day, events, onEdit, onDelete, eventOverrides = {} }) {
+function DayGroup({ day, events, onEdit, onDelete, eventOverrides = {}, eventLogistics = {} }) {
   const isToday = day === formatDay(new Date());
 
   return (
@@ -622,13 +631,22 @@ function DayGroup({ day, events, onEdit, onDelete, eventOverrides = {} }) {
         </span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {events.map(event => <EventCard key={event.id} event={event} onEdit={onEdit} onDelete={onDelete} eventOverrides={eventOverrides?.[event.id] || {}} />)}
+        {events.map(event => (
+          <EventCard
+            key={event.id}
+            event={event}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            eventOverrides={eventOverrides?.[event.id] || {}}
+            initialLogistics={eventLogistics?.[event.id] || []}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-function EventCard({ event, onEdit, onDelete, eventOverrides = {} }) {
+function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogistics = [] }) {
   const kidColor = event.kids?.[0]?.color || '#6366f1';
   const startsAt = new Date(event.starts_at);
   const endsAt   = event.ends_at ? new Date(event.ends_at) : null;
@@ -636,13 +654,20 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {} }) {
   const [deleting, setDeleting] = useState(false);
   const [showLogistics, setShowLogistics] = useState(false);
   const [showAttendance, setShowAttendance] = useState(false);
-  const [logistics, setLogistics] = useState([]);
+  const [logistics, setLogistics] = useState(initialLogistics);
   const [overrides, setOverrides] = useState(eventOverrides);
 
   // Sync overrides when the parent loads them asynchronously
   useEffect(() => {
     setOverrides(eventOverrides);
   }, [eventOverrides]);
+
+  // Sync logistics when the parent's bulk fetch completes (or refreshes
+  // after a mutation in some other tab). The modal mutates this state
+  // directly via onUpdate so we don't clobber its in-flight changes.
+  useEffect(() => {
+    setLogistics(initialLogistics);
+  }, [initialLogistics]);
 
   // Compute attendance status from overrides
   const notGoingKids = event.kids?.filter(k => overrides[k.id] === false) || [];
