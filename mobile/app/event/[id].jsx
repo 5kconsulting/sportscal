@@ -2,15 +2,19 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, Pressable, Switch, Linking,
+  ActionSheetIOS,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api } from '../../lib/api';
 import { selectionStore } from '../../lib/selectionStore';
+import { useAuth } from '../../lib/auth';
 
 export default function EventDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
+  const isPremium = user?.plan === 'premium';
 
   const [event, setEvent]         = useState(null);
   const [logistics, setLogistics] = useState([]); // array of 0-2 rows
@@ -46,21 +50,117 @@ export default function EventDetail() {
     return logistics.find(l => l.role === role) || null;
   }
 
+  // Native iOS action sheet asking how to notify a freshly picked contact.
+  // Options shown depend on what the contact has: email, confirmed-SMS phone,
+  // or only-pending phone (Messages-app fallback). Free users skip the sheet
+  // entirely and get the existing direct-assign behavior — backend silently
+  // won't send notifications for free plans anyway.
+  function chooseNotify(contact, role) {
+    if (!isPremium) return Promise.resolve('none');
+
+    const hasEmail        = !!contact.email;
+    const hasConfirmedSms = !!contact.phone && contact.sms_consent_status === 'confirmed';
+    const hasPendingPhone = !!contact.phone && !hasConfirmedSms;
+    const firstName       = (contact.name || 'them').split(' ')[0];
+
+    const options = ['Just assign'];
+    const actions = ['none'];
+    if (hasEmail)        { options.push(`Email ${firstName}`);                       actions.push('email'); }
+    if (hasConfirmedSms) { options.push(`Text ${firstName}`);                        actions.push('sms'); }
+    if (hasPendingPhone) { options.push(`Open Messages to text ${firstName}`);       actions.push('manual_sms'); }
+    options.push('Cancel');
+
+    return new Promise((resolve) => {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: `Assign ${contact.name} as ${role}?`,
+          message: hasPendingPhone
+            ? `${firstName} hasn't confirmed SMS yet. You can still text them yourself from your Messages app.`
+            : undefined,
+          options,
+          cancelButtonIndex: options.length - 1,
+        },
+        (idx) => {
+          if (idx === options.length - 1) resolve(null);
+          else resolve(actions[idx]);
+        },
+      );
+    });
+  }
+
+  // Open the native Messages app pre-filled with the request, including
+  // the same Yes/No tap-links that the Twilio path embeds. Token comes
+  // from the logistics row we just created — when the contact taps Yes,
+  // it hits GET /api/logistics/respond/:token/confirmed (public, no auth)
+  // and the parent gets an email confirmation. Same plumbing as email
+  // and Twilio paths, just routed through the parent's own Messages app.
+  function openMessagesFallback(contact, role, token) {
+    if (!contact?.phone || !event) return;
+    const action_word = role === 'pickup' ? 'pick up' : 'drop off';
+    const kid = (event.display_title || '').split('—')[0].trim();
+    const startsAt = new Date(event.starts_at);
+    const dateStr = startsAt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    const timeStr = event.all_day
+      ? ''
+      : ' at ' + startsAt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    const baseUrl = 'https://www.sportscalapp.com/api/logistics/respond';
+    const confirmUrl = token ? `${baseUrl}/${token}/confirmed` : null;
+    const declineUrl = token ? `${baseUrl}/${token}/declined` : null;
+    const lines = [
+      `Hi ${contact.name.split(' ')[0]} — can you ${action_word} ${kid} on ${dateStr}${timeStr}${event.location ? ' at ' + event.location : ''}?`,
+    ];
+    if (confirmUrl && declineUrl) {
+      lines.push('', `Yes: ${confirmUrl}`, `No: ${declineUrl}`);
+    } else {
+      lines.push('', 'Thanks!');
+    }
+    const body = encodeURIComponent(lines.join('\n'));
+    Linking.openURL(`sms:${contact.phone}?&body=${body}`).catch(() => {
+      Alert.alert('Could not open Messages', 'Please try again.');
+    });
+  }
+
   function openPicker(role) {
     const sessionId = selectionStore.createSession(async (contact) => {
       if (!contact) return;
+
+      const choice = await chooseNotify(contact, role);
+      if (choice === null) return; // user hit Cancel on the sheet
+
+      // 'manual_sms' opens Messages directly and still records the
+      // assignment server-side (with notify='none' so we don't ALSO try
+      // to send through Twilio).
+      const isManualSms = choice === 'manual_sms';
+      const notify = isManualSms ? 'none' : choice;
+
       setSavingRole(role);
       try {
-        const { logistics: updated } = await api.post(`/api/logistics/${id}`, {
+        const resp = await api.post(`/api/logistics/${id}`, {
           contact_id: contact.id,
           role,
-          notify: 'none', // mobile M2: assign only, no notifications
+          notify,
         });
         setLogistics(prev => {
           const others = prev.filter(l => l.role !== role);
-          // Backend returns a single row with contact_name merged in
-          return [...others, updated];
+          return [...others, resp.logistics];
         });
+
+        if (isManualSms) {
+          openMessagesFallback(contact, role, resp.logistics?.token);
+        } else if (resp.sms_skipped_reason === 'consent_pending' || resp.sms_skipped_reason === 'consent_declined') {
+          // Race: contact lost consent between picker load and assign.
+          const why = resp.sms_skipped_reason === 'consent_pending'
+            ? `${contact.name} hasn't confirmed SMS yet.`
+            : `${contact.name} has opted out of SportsCal texts.`;
+          Alert.alert(
+            'Text not sent',
+            `${why} Open Messages to text them yourself?`,
+            [
+              { text: 'Skip', style: 'cancel' },
+              { text: 'Open Messages', onPress: () => openMessagesFallback(contact, role, resp.logistics?.token) },
+            ],
+          );
+        }
       } catch (err) {
         Alert.alert('Could not assign', err.message || 'Please try again.');
       } finally {

@@ -922,6 +922,11 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
       // opted in yet (or has opted out). Offer the native Messages app
       // as a fallback so the parent can still text them through their
       // own phone — that's outside our A2P 10DLC consent obligations.
+      // The pre-filled body includes the same Yes/No tap-links the
+      // Twilio path uses, so the contact can confirm/decline without
+      // a free-text reply (which would land in the parent's inbox, not
+      // ours). Tapping a link hits the public token endpoint and
+      // updates the row + emails the parent.
       if (resp.sms_skipped_reason === 'consent_pending' || resp.sms_skipped_reason === 'consent_declined') {
         const contact = contacts.find(c => c.id === form.contact_id);
         const reason = resp.sms_skipped_reason === 'consent_pending'
@@ -933,9 +938,17 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
           const kid = (event.display_title || '').split('—')[0].trim();
           const eventDate = new Date(event.starts_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
           const eventTime = new Date(event.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-          const body = encodeURIComponent(
-            `Hi ${contact.name.split(' ')[0]} — can you ${action_word} ${kid} on ${eventDate} at ${eventTime}${event.location ? ' at ' + event.location : ''}? Thanks!`
-          );
+          const baseUrl = `${window.location.origin}/api/logistics/respond`;
+          const token = updated?.token;
+          const lines = [
+            `Hi ${contact.name.split(' ')[0]} — can you ${action_word} ${kid} on ${eventDate} at ${eventTime}${event.location ? ' at ' + event.location : ''}?`,
+          ];
+          if (token) {
+            lines.push('', `Yes: ${baseUrl}/${token}/confirmed`, `No: ${baseUrl}/${token}/declined`);
+          } else {
+            lines.push('', 'Thanks!');
+          }
+          const body = encodeURIComponent(lines.join('\n'));
           window.location.href = `sms:${contact.phone}?&body=${body}`;
         }
       }
