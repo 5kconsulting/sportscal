@@ -932,7 +932,14 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
         const reason = resp.sms_skipped_reason === 'consent_pending'
           ? `${contact?.name || 'This contact'} hasn't confirmed SMS yet (they need to reply YES to our opt-in text).`
           : `${contact?.name || 'This contact'} has opted out of SportsCal texts.`;
-        const action = `Open Messages now to text them yourself?`;
+        // sms: deep links work natively on Mac, iOS, Android. Windows/Linux
+        // desktop typically don't have anything registered for sms:, so we
+        // fall back to copy-to-clipboard there. UA detection is brittle
+        // generally but reliable enough for sms: support specifically.
+        const supportsSmsLink = /Mac|iPhone|iPad|iPod|Android/.test(navigator.userAgent);
+        const action = supportsSmsLink
+          ? `Open Messages now to text them yourself?`
+          : `Copy the request text to your clipboard?`;
         if (contact?.phone && window.confirm(`${reason}\n\n${action}`)) {
           const action_word = form.role === 'pickup' ? 'pick up' : 'drop off';
           const kid = (event.display_title || '').split('—')[0].trim();
@@ -948,8 +955,19 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
           } else {
             lines.push('', 'Thanks!');
           }
-          const body = encodeURIComponent(lines.join('\n'));
-          window.location.href = `sms:${contact.phone}?&body=${body}`;
+          const plain = lines.join('\n');
+          if (supportsSmsLink) {
+            window.location.href = `sms:${contact.phone}?&body=${encodeURIComponent(plain)}`;
+          } else {
+            try {
+              await navigator.clipboard.writeText(plain);
+              alert(`Copied — paste it into your messaging app and send to ${contact.name} at ${contact.phone}.`);
+            } catch {
+              // Clipboard API can fail in insecure contexts. Show the
+              // text in a prompt so the user can manually copy it.
+              window.prompt(`Copy and send to ${contact.name} at ${contact.phone}:`, plain);
+            }
+          }
         }
       }
 
@@ -1096,19 +1114,29 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
                           </label>
                         )}
                         {hasPhone && (
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 6,
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
                             fontSize: 13, padding: '6px 12px', borderRadius: 8,
-                            background: 'var(--off-white)', color: 'var(--slate)',
-                            border: '1px solid var(--border)', opacity: 0.6, cursor: 'not-allowed' }}>
-                            💬 Text <span style={{ fontSize: 11, marginLeft: 2 }}>(coming soon)</span>
+                            background: form.notify === 'sms' ? 'var(--navy)' : 'var(--off-white)',
+                            color: form.notify === 'sms' ? 'var(--white)' : 'var(--slate)',
+                            border: '1px solid var(--border)', transition: 'all 0.15s' }}>
+                            <input type="radio" name="notify" value="sms"
+                              checked={form.notify === 'sms'}
+                              onChange={() => setForm(f => ({ ...f, notify: 'sms', send_request: true }))}
+                              style={{ display: 'none' }} />
+                            💬 Text
                           </label>
                         )}
                         {hasEmail && hasPhone && (
-                          <label style={{ display: 'flex', alignItems: 'center', gap: 6,
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
                             fontSize: 13, padding: '6px 12px', borderRadius: 8,
-                            background: 'var(--off-white)', color: 'var(--slate)',
-                            border: '1px solid var(--border)', opacity: 0.6, cursor: 'not-allowed' }}>
-                            📧 + 💬 Both <span style={{ fontSize: 11, marginLeft: 2 }}>(coming soon)</span>
+                            background: form.notify === 'both' ? 'var(--navy)' : 'var(--off-white)',
+                            color: form.notify === 'both' ? 'var(--white)' : 'var(--slate)',
+                            border: '1px solid var(--border)', transition: 'all 0.15s' }}>
+                            <input type="radio" name="notify" value="both"
+                              checked={form.notify === 'both'}
+                              onChange={() => setForm(f => ({ ...f, notify: 'both', send_request: true }))}
+                              style={{ display: 'none' }} />
+                            📧 + 💬 Both
                           </label>
                         )}
                       </div>
