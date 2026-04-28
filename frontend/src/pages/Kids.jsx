@@ -73,6 +73,33 @@ export default function Kids() {
     }
   }
 
+  async function shareKidSchedule(kid) {
+    if (!kid?.feed_token) {
+      alert('This kid is missing a feed token — try reloading the page.');
+      return;
+    }
+    // webcal:// is what makes Apple/Google Calendar prompt to
+    // subscribe rather than just download the .ics. iMessage
+    // tappifies the URL the same way it would an https:// link.
+    const webcalUrl = `webcal://www.sportscalapp.com/feed/kid/${kid.feed_token}.ics`;
+    const body = `Subscribe to your SportsCal schedule, ${kid.name}: ${webcalUrl}`;
+    // sms: deep link works on Mac (iCloud Messages), iOS, Android.
+    // Windows/Linux desktop typically have nothing registered for
+    // sms:, so we fall back to copy-to-clipboard there. Same UA
+    // detection pattern as the logistics fallback.
+    const supportsSmsLink = /Mac|iPhone|iPad|iPod|Android/.test(navigator.userAgent);
+    if (supportsSmsLink) {
+      window.location.href = `sms:?&body=${encodeURIComponent(body)}`;
+    } else {
+      try {
+        await navigator.clipboard.writeText(webcalUrl);
+        alert(`Copied ${kid.name}'s calendar link. Send it to their device however you'd like — when they tap it, their calendar app will offer to subscribe.`);
+      } catch {
+        window.prompt(`${kid.name}'s calendar link — send this to their device:`, webcalUrl);
+      }
+    }
+  }
+
   async function handleDelete(id) {
     if (!confirm('Remove this family member? Their events will also be removed.')) return;
     try {
@@ -156,7 +183,10 @@ export default function Kids() {
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 16, fontWeight: 500 }}>{kid.name}</div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => shareKidSchedule(kid)} title="Send the calendar subscription link to this kid's device">
+                  📅 Share schedule
+                </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => {
                   setEditingId(kid.id);
                   setShowForm(true);
