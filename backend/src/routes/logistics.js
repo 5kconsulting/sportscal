@@ -2,7 +2,7 @@ import { Router } from 'express';
 import crypto from 'crypto';
 import { Resend } from 'resend';
 import { requireAuth } from '../middleware/auth.js';
-import { query, queryOne } from '../db/index.js';
+import { query, queryOne, withTransaction } from '../db/index.js';
 
 const router = Router();
 const resend  = new Resend(process.env.RESEND_API_KEY);
@@ -186,6 +186,269 @@ router.post('/:eventId', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[logistics] post error:', err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// POST /api/logistics/:eventId/team-request
+//
+// Create a "first parent to confirm wins" ride request directed at
+// every member of a team. We don't send the SMS server-side — we
+// return the per-parent links + assembled body so the parent's
+// own iMessage app sends the group text from their own phone
+// number (no Twilio, no A2P regime, no per-message fee).
+//
+// Body: { team_id, role }
+// Response: { offers, sms_body, phones }
+// ============================================================
+router.post('/:eventId/team-request', requireAuth, async (req, res) => {
+  try {
+    const { team_id, role } = req.body;
+    if (!['dropoff', 'pickup'].includes(role)) {
+      return res.status(422).json({ error: 'Role must be dropoff or pickup' });
+    }
+    if (!team_id) return res.status(422).json({ error: 'team_id is required' });
+
+    const event = await queryOne(
+      `SELECT * FROM events WHERE id = $1 AND user_id = $2`,
+      [req.params.eventId, req.user.id]
+    );
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    // Pull team members with phone numbers — parents without a
+    // phone can't receive a group SMS so we silently skip them.
+    const members = await query(
+      `SELECT c.id, c.name, c.phone, c.email
+         FROM team_members tm
+         JOIN contacts c ON c.id = tm.contact_id
+         JOIN teams t    ON t.id = tm.team_id
+        WHERE t.id = $1
+          AND t.user_id = $2
+          AND c.phone IS NOT NULL`,
+      [team_id, req.user.id]
+    );
+    if (!members.length) {
+      return res.status(422).json({
+        error: 'No team members with phone numbers — add contacts with phones to this team first.',
+      });
+    }
+
+    // First, supersede any still-pending offers for the same
+    // event/role. A parent re-requesting overrides the previous
+    // outstanding offer set rather than creating a parallel one.
+    // Done in a transaction with the new inserts so a tap on a
+    // newly-superseded link can't sneak through.
+    const offers = await withTransaction(async (client) => {
+      await client.query(
+        `UPDATE event_logistics_offers
+            SET status = 'superseded', resolved_at = NOW()
+          WHERE event_id = $1 AND role = $2 AND status = 'pending'`,
+        [req.params.eventId, role]
+      );
+
+      const rows = [];
+      for (const m of members) {
+        const token = crypto.randomBytes(24).toString('hex');
+        const { rows: [offer] } = await client.query(
+          `INSERT INTO event_logistics_offers
+             (user_id, event_id, team_id, contact_id, role, token)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING id, contact_id, token`,
+          [req.user.id, req.params.eventId, team_id, m.id, role, token]
+        );
+        rows.push({ ...offer, contact_name: m.name, contact_phone: m.phone });
+      }
+      return rows;
+    });
+
+    // Build the SMS body. iMessage will tap-link each URL; the
+    // blank line between parents prevents the URLs visually
+    // running together.
+    const action_word = role === 'pickup' ? 'pick up' : 'drop off';
+    const kid = (event.display_title || '').split('—')[0].trim();
+    const eventDate = new Date(event.starts_at).toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric',
+    });
+    const eventTime = event.all_day
+      ? ''
+      : ' at ' + new Date(event.starts_at).toLocaleTimeString('en-US', {
+          hour: 'numeric', minute: '2-digit',
+        });
+    const baseUrl = `${APP_URL}/api/logistics/offer`;
+    const lines = [
+      `Hey team — can someone ${action_word} ${kid} on ${eventDate}${eventTime}${event.location ? ' at ' + event.location : ''}? First yes wins:`,
+    ];
+    offers.forEach((o, i) => {
+      // Blank line before each parent's link so iMessage renders
+      // them as separate tappable URLs rather than running them
+      // together as one wrapped block.
+      lines.push('', `${o.contact_name}: ${baseUrl}/${o.token}/confirmed`);
+    });
+
+    res.status(201).json({
+      offers,
+      sms_body: lines.join('\n'),
+      phones: members.map(m => m.phone),
+    });
+  } catch (err) {
+    console.error('[logistics] team-request error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// GET /api/logistics/offer/:token/:action
+//
+// Public claim endpoint for team ride requests. First parent to
+// confirm wins; sibling pending offers atomically flip to
+// 'superseded' in the same transaction. Subsequent taps on
+// already-superseded tokens get a friendly "already claimed"
+// page rather than a 500.
+// ============================================================
+router.get('/offer/:token/:action', async (req, res) => {
+  try {
+    const { token, action } = req.params;
+    if (!['confirmed', 'declined'].includes(action)) {
+      return res.redirect(`${APP_URL}/?error=invalid`);
+    }
+
+    const result = await withTransaction(async (client) => {
+      // Atomic conditional update — only flips status if it's
+      // still pending, so the second tapper sees zero rows.
+      const updateSql = action === 'confirmed'
+        ? `UPDATE event_logistics_offers
+              SET status = 'confirmed', resolved_at = NOW()
+            WHERE token = $1 AND status = 'pending'
+            RETURNING id, user_id, event_id, role, contact_id, team_id`
+        : `UPDATE event_logistics_offers
+              SET status = 'declined', resolved_at = NOW()
+            WHERE token = $1 AND status = 'pending'
+            RETURNING id, user_id, event_id, role, contact_id, team_id`;
+      const { rows: [winning] } = await client.query(updateSql, [token]);
+      if (!winning) {
+        // Look up the offer's current state so we can give a
+        // helpful "already claimed by Linda" page.
+        const { rows: [stale] } = await client.query(
+          `SELECT o.status, o.event_id, o.role,
+                  (
+                    SELECT json_build_object('name', c.name)
+                      FROM event_logistics_offers o2
+                      JOIN contacts c ON c.id = o2.contact_id
+                     WHERE o2.event_id = o.event_id
+                       AND o2.role = o.role
+                       AND o2.status = 'confirmed'
+                     LIMIT 1
+                  ) AS winner
+             FROM event_logistics_offers o
+            WHERE o.token = $1`,
+          [token]
+        );
+        return { stale };
+      }
+
+      if (action === 'confirmed') {
+        // Supersede every other pending offer for this event/role
+        // — only one parent can claim each role.
+        await client.query(
+          `UPDATE event_logistics_offers
+              SET status = 'superseded', resolved_at = NOW()
+            WHERE event_id = $1 AND role = $2
+              AND status = 'pending' AND id <> $3`,
+          [winning.event_id, winning.role, winning.id]
+        );
+        // Mirror the winning offer into the canonical
+        // event_logistics row so existing dashboard surfaces
+        // (per-event card pickup/dropoff line) just work.
+        await client.query(
+          `INSERT INTO event_logistics
+             (user_id, event_id, contact_id, role, status, token)
+           VALUES ($1, $2, $3, $4, 'confirmed', $5)
+           ON CONFLICT (event_id, role) DO UPDATE SET
+             contact_id = EXCLUDED.contact_id,
+             status     = EXCLUDED.status,
+             token      = EXCLUDED.token`,
+          [winning.user_id, winning.event_id, winning.contact_id, winning.role, token]
+        );
+      }
+      return { winning };
+    });
+
+    // Stale path: this token was already resolved (someone else
+    // got there first, or this offer was rescinded by a
+    // superseding request).
+    if (result.stale) {
+      const winnerName = result.stale.winner?.name;
+      const msg = winnerName ? `claimed-by-${encodeURIComponent(winnerName)}` : 'already-claimed';
+      return res.redirect(`${APP_URL}/logistics-response?status=${msg}`);
+    }
+
+    // Confirmed: notify the parent + send a calendar invite to
+    // the winning contact. Reuses the same email helpers the
+    // single-contact flow uses.
+    const winning = result.winning;
+    const detail = await queryOne(
+      `SELECT c.name AS contact_name, c.email AS contact_email,
+              e.display_title, e.starts_at, e.ends_at, e.location,
+              u.name AS parent_name, u.email AS parent_email
+         FROM contacts c, events e, users u
+        WHERE c.id = $1 AND e.id = $2 AND u.id = $3`,
+      [winning.contact_id, winning.event_id, winning.user_id]
+    );
+
+    if (detail) {
+      const eventDate = new Date(detail.starts_at).toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Los_Angeles',
+      });
+      const eventTime = new Date(detail.starts_at).toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles',
+      });
+
+      // Notify parent (always, regardless of action)
+      if (detail.parent_email) {
+        const subject = action === 'confirmed'
+          ? `${detail.contact_name} has confirmed the ${winning.role} for ${eventDate}`
+          : `${detail.contact_name} has declined the ${winning.role} for ${eventDate}`;
+        await resend.emails.send({
+          from: FROM,
+          to: detail.parent_email,
+          subject,
+          html: buildResponseEmail({
+            logistics: { ...detail, role: winning.role },
+            action,
+            eventDate,
+            eventTime,
+          }),
+          text: `${detail.contact_name} has ${action} the ${winning.role} for ${detail.display_title} on ${eventDate} at ${eventTime}.`,
+        }).catch(err => console.error('[logistics] team-claim notify error:', err.message));
+      }
+
+      // Calendar invite to confirmed contact
+      if (action === 'confirmed' && detail.contact_email) {
+        const action_label = winning.role === 'pickup' ? 'Pick up' : 'Drop off';
+        const icsContent = buildIcs({
+          logistics: { id: winning.id, ...detail, role: winning.role },
+          eventDate, eventTime,
+        });
+        await resend.emails.send({
+          from: FROM,
+          to: detail.contact_email,
+          subject: `📅 Calendar invite: ${action_label} for ${eventDate}`,
+          html: buildConfirmCalendarEmail({
+            logistics: { ...detail, role: winning.role },
+            eventDate, eventTime,
+          }),
+          text: `Hi ${detail.contact_name.split(' ')[0]}, here's a calendar invite for the ${winning.role} on ${eventDate} at ${eventTime}${detail.location ? ` at ${detail.location}` : ''}.`,
+          attachments: [{ filename: 'ride.ics', content: Buffer.from(icsContent).toString('base64') }],
+        }).catch(err => console.error('[logistics] team-claim ics error:', err.message));
+      }
+    }
+
+    const msg = action === 'confirmed' ? 'confirmed' : 'declined';
+    const name = encodeURIComponent(detail?.contact_name || 'You');
+    res.redirect(`${APP_URL}/logistics-response?status=${msg}&name=${name}`);
+  } catch (err) {
+    console.error('[logistics] offer respond error:', err.message);
+    res.redirect(`${APP_URL}/?error=server`);
   }
 });
 
