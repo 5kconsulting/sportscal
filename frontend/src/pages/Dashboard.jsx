@@ -918,18 +918,64 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
   const { user } = useAuth();
   const isPremium = user?.plan === 'premium';
   const [contacts, setContacts] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [loadingContacts, setLoadingContacts] = useState(true);
   const [saving, setSaving] = useState('');
+  const [mode, setMode] = useState('contact'); // 'contact' | 'team'
   const [form, setForm] = useState({ role: 'dropoff', contact_id: '', send_request: false, notify: 'none', note: '' });
+  const [teamForm, setTeamForm] = useState({ role: 'pickup', team_id: '' });
 
   const dropoff = logistics.find(l => l.role === 'dropoff');
   const pickup  = logistics.find(l => l.role === 'pickup');
 
   useEffect(() => {
-    api.contacts.list()
-      .then(({ contacts }) => setContacts(contacts))
+    Promise.all([api.contacts.list(), api.teams.list()])
+      .then(([{ contacts }, { teams }]) => {
+        setContacts(contacts);
+        setTeams(teams || []);
+      })
+      .catch(() => {})
       .finally(() => setLoadingContacts(false));
   }, []);
+
+  // Build the SMS body + group recipient list from the team-request
+  // response, then trigger sms: (or clipboard fallback on Windows).
+  // Same UA detection as the single-contact Messages fallback so
+  // behavior is consistent.
+  async function handleTeamRequest(e) {
+    e.preventDefault();
+    if (!teamForm.team_id) return;
+    setSaving('team-request');
+    try {
+      const resp = await api.logistics.teamRequest(event.id, {
+        team_id: teamForm.team_id,
+        role: teamForm.role,
+      });
+      const phones = (resp.phones || []).join(',');
+      const body = encodeURIComponent(resp.sms_body || '');
+      const supportsSmsLink = /Mac|iPhone|iPad|iPod|Android/.test(navigator.userAgent);
+      if (supportsSmsLink) {
+        window.location.href = `sms:${phones}?&body=${body}`;
+      } else {
+        try {
+          await navigator.clipboard.writeText(resp.sms_body);
+          alert(
+            `Copied — paste this into a group iMessage to ${(resp.offers || []).length} parents.\n\n` +
+            `Numbers: ${phones.replace(/,/g, ', ')}`
+          );
+        } catch {
+          window.prompt('Copy and send to the team:', resp.sms_body);
+        }
+      }
+      // Reset the form after firing — the offer rows are server-side
+      // and visible via the regular logistics flow once anyone confirms.
+      setTeamForm({ role: 'pickup', team_id: '' });
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving('');
+    }
+  }
 
   async function handleAssign(e) {
     e.preventDefault();
@@ -1070,8 +1116,78 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
               {logistics.length > 0 ? 'Add another' : 'Assign someone'}
             </p>
 
+            {/* Mode tabs — only render when there's at least one team
+                to switch into; otherwise the single-contact form is the
+                only option and the tabs would be confusing. */}
+            {teams.length > 0 && (
+              <div style={{
+                display: 'flex', gap: 4, marginBottom: 12,
+                padding: 3, background: 'var(--off-white)',
+                borderRadius: 8, border: '1px solid var(--border)',
+              }}>
+                {[
+                  { value: 'contact', label: '👤 Pick a contact' },
+                  { value: 'team',    label: '👥 Ask a team' },
+                ].map(opt => (
+                  <button key={opt.value} type="button"
+                    onClick={() => setMode(opt.value)}
+                    style={{
+                      flex: 1, padding: '8px 12px', borderRadius: 6,
+                      fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                      border: 'none',
+                      background: mode === opt.value ? 'var(--white)' : 'transparent',
+                      color:      mode === opt.value ? 'var(--navy)'  : 'var(--slate)',
+                      boxShadow:  mode === opt.value ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      transition: 'all 0.15s',
+                    }}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {loadingContacts ? (
               <div className="spinner" style={{ width: 16, height: 16 }} />
+            ) : mode === 'team' ? (
+              <form onSubmit={handleTeamRequest} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <select className="input" value={teamForm.role}
+                    onChange={e => setTeamForm(f => ({ ...f, role: e.target.value }))}
+                    style={{ flex: 1 }}>
+                    <option value="pickup">🏠 Pick-up</option>
+                    <option value="dropoff">🚗 Drop-off</option>
+                  </select>
+                  <select className="input" value={teamForm.team_id}
+                    onChange={e => setTeamForm(f => ({ ...f, team_id: e.target.value }))}
+                    style={{ flex: 1 }}>
+                    <option value="">Select team…</option>
+                    {teams.map(t => {
+                      const count = (t.members || []).filter(m => m.phone).length;
+                      const total = (t.members || []).length;
+                      const label = count === total
+                        ? `${t.name} (${total})`
+                        : `${t.name} (${count}/${total})`;
+                      return <option key={t.id} value={t.id}>{label}</option>;
+                    })}
+                  </select>
+                </div>
+                <div style={{
+                  fontSize: 12, color: 'var(--slate)', lineHeight: 1.5,
+                  background: 'var(--off-white)', borderRadius: 8,
+                  padding: '10px 12px', border: '1px solid var(--border)',
+                }}>
+                  Opens a group iMessage from your phone to every parent on the team
+                  with a unique tap-link per person. <strong>First parent to tap their
+                  link wins</strong> — the others are auto-locked out. No Twilio.
+                </div>
+                <button type="submit" className="btn btn-primary"
+                  disabled={!teamForm.team_id || saving === 'team-request'}
+                  style={{ justifyContent: 'center' }}>
+                  {saving === 'team-request'
+                    ? <span className="spinner" style={{ width: 14, height: 14 }} />
+                    : 'Open group iMessage →'}
+                </button>
+              </form>
             ) : contacts.length === 0 ? (
               <div style={{ fontSize: 14, color: 'var(--slate)', background: 'var(--off-white)', borderRadius: 8, padding: 16 }}>
                 No contacts yet. Add family and carpool contacts in <strong>Settings → Ride contacts</strong>.

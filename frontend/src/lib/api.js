@@ -90,10 +90,11 @@ export const api = {
     removeMember:   (id, contactId)            => del(`/teams/${id}/members/${contactId}`),
   },
   logistics: {
-    list:   ()               => get(`/logistics`),
-    get:    (eventId)        => get(`/logistics/${eventId}`),
-    assign: (eventId, data)  => post(`/logistics/${eventId}`, data),
-    remove: (eventId, role)  => del(`/logistics/${eventId}/${role}`),
+    list:        ()              => get(`/logistics`),
+    get:         (eventId)       => get(`/logistics/${eventId}`),
+    assign:      (eventId, data) => post(`/logistics/${eventId}`, data),
+    remove:      (eventId, role) => del(`/logistics/${eventId}/${role}`),
+    teamRequest: (eventId, data) => post(`/logistics/${eventId}/team-request`, data),
   },
   overrides: {
     getAll: ()                   => get(`/overrides`),
