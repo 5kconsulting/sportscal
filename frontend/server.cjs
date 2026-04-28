@@ -8,7 +8,10 @@ const API_URL = process.env.VITE_API_URL || 'https://sportscal-production.up.rai
 const apiProxy = createProxyMiddleware({
   target: API_URL,
   changeOrigin: true,
-  pathFilter: (path) => path.startsWith('/api/') || path.startsWith('/feed/'),
+  pathFilter: (path) =>
+    path.startsWith('/api/') ||
+    path.startsWith('/feed/') ||
+    path.startsWith('/r/'),     // team-request landing page (server-rendered)
   on: {
     proxyReq: (proxyReq, req) => {
       console.log('[proxy]', req.method, req.url, '->', API_URL + req.url);

@@ -215,6 +215,15 @@ router.post('/:eventId/team-request', requireAuth, async (req, res) => {
     );
     if (!event) return res.status(404).json({ error: 'Event not found' });
 
+    // Resolve the group name once so the SMS body can address it
+    // by whatever the user named it ("family", "block carpool",
+    // "Sam Soccer") rather than a hardcoded "team".
+    const team = await queryOne(
+      `SELECT name FROM teams WHERE id = $1 AND user_id = $2`,
+      [team_id, req.user.id]
+    );
+    if (!team) return res.status(404).json({ error: 'Group not found' });
+
     // Pull team members with phone numbers — parents without a
     // phone can't receive a group SMS so we silently skip them.
     const members = await query(
@@ -229,7 +238,7 @@ router.post('/:eventId/team-request', requireAuth, async (req, res) => {
     );
     if (!members.length) {
       return res.status(422).json({
-        error: 'No team members with phone numbers — add contacts with phones to this team first.',
+        error: 'No members with phone numbers — add a phone to at least one contact in this group first.',
       });
     }
 
@@ -280,8 +289,12 @@ router.post('/:eventId/team-request', requireAuth, async (req, res) => {
     // The token is just one of the per-parent ones; the landing page
     // resolves it to the batch and shows all pending offers.
     const requestUrl = `${APP_URL}/r/${offers[0].token}`;
+    // Use the user's chosen group name as the salutation. Lowercased
+    // because they often write proper-case ("Family") but in chat the
+    // lowercased form reads more naturally ("hey family").
+    const greeting = `Hey ${(team.name || 'team').toLowerCase()}`;
     const sms_body =
-      `Hey team — can someone ${action_word} ${kid} on ${eventDate}${eventTime}` +
+      `${greeting} — can someone ${action_word} ${kid} on ${eventDate}${eventTime}` +
       `${event.location ? ' at ' + event.location : ''}? First to claim wins:\n\n` +
       requestUrl;
 
@@ -290,6 +303,7 @@ router.post('/:eventId/team-request', requireAuth, async (req, res) => {
       sms_body,
       request_url: requestUrl,
       phones: members.map(m => m.phone),
+      team_name: team.name,
     });
   } catch (err) {
     console.error('[logistics] team-request error:', err.message);

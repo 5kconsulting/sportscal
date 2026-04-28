@@ -954,22 +954,30 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
       const phones = (resp.phones || []).join(',');
       const body = encodeURIComponent(resp.sms_body || '');
       const supportsSmsLink = /Mac|iPhone|iPad|iPod|Android/.test(navigator.userAgent);
+
+      // macOS Messages handles multi-recipient sms: URLs poorly —
+      // even with the documented `sms:N1,N2,N3?body=…` form it often
+      // only puts the first number on the recipient line. Always copy
+      // the phone list to clipboard alongside the sms: trigger so the
+      // user can paste any missing numbers into the To: field.
+      if (resp.phones?.length > 1) {
+        try { await navigator.clipboard.writeText(resp.phones.join(', ')); } catch {}
+      }
+
       if (supportsSmsLink) {
-        // sms:N1,N2,N3?body=... is the documented multi-recipient form.
-        // Earlier we had `?&body=` (vestigial from copying the
-        // single-contact path) which macOS Messages parses inconsistently
-        // — sometimes only the first phone makes it onto the recipient
-        // line, even though the URL contains all of them.
-        window.location.href = `sms:${phones}?body=${body}`;
+        // The `sms:?addresses=…&body=…` form is more reliable than
+        // `sms:N1,N2?body=…` on macOS — Messages on Mac actually
+        // honors the addresses parameter. iOS accepts both.
+        window.location.href = `sms:?addresses=${phones}&body=${body}`;
       } else {
         try {
           await navigator.clipboard.writeText(resp.sms_body);
           alert(
-            `Copied — paste this into a group iMessage to ${(resp.offers || []).length} parents.\n\n` +
+            `Copied — paste this into a group iMessage to ${(resp.offers || []).length} ${resp.team_name || 'group'} members.\n\n` +
             `Numbers: ${phones.replace(/,/g, ', ')}`
           );
         } catch {
-          window.prompt('Copy and send to the team:', resp.sms_body);
+          window.prompt('Copy and send to the group:', resp.sms_body);
         }
       }
       // Reset the form after firing — the offer rows are server-side
