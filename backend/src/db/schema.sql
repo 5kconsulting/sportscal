@@ -490,3 +490,91 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 
 CREATE INDEX IF NOT EXISTS prt_user_id_idx ON password_reset_tokens(user_id);
 CREATE INDEX IF NOT EXISTS prt_token_hash_idx ON password_reset_tokens(token_hash);
+
+-- ============================================================
+-- TEAMS
+-- A named group of ride contacts (typically other parents on
+-- the same youth sports team). Used to send group ride
+-- requests via iMessage where any one parent can claim the
+-- offer (see event_logistics_offers below).
+-- ============================================================
+CREATE TABLE IF NOT EXISTS teams (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS teams_user_id_idx ON teams(user_id);
+
+-- M:N teams <-> contacts. Composite primary key prevents the
+-- same contact from being added to a team twice.
+CREATE TABLE IF NOT EXISTS team_members (
+  team_id     UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  contact_id  UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+  added_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (team_id, contact_id)
+);
+CREATE INDEX IF NOT EXISTS team_members_contact_idx ON team_members(contact_id);
+
+-- ============================================================
+-- EVENT LOGISTICS OFFERS
+-- One row per parent who's been offered a ride request via a
+-- team group text. The first parent to tap their unique link
+-- and confirm wins; sibling rows for the same (event_id, role)
+-- auto-flip to 'superseded' in the same DB transaction so two
+-- near-simultaneous taps can't both succeed.
+--
+-- For single-contact requests this table is not used — the
+-- existing event_logistics row + token mechanism handles it.
+-- Offers are only created when the parent picks "Request from
+-- team" on an event.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS event_logistics_offers (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  event_id     UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  team_id      UUID REFERENCES teams(id) ON DELETE SET NULL,
+  contact_id   UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+  role         TEXT NOT NULL,
+  token        TEXT NOT NULL UNIQUE,
+  status       TEXT NOT NULL DEFAULT 'pending',
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  resolved_at  TIMESTAMPTZ
+);
+
+ALTER TABLE event_logistics_offers DROP CONSTRAINT IF EXISTS event_logistics_offers_role_check;
+ALTER TABLE event_logistics_offers ADD CONSTRAINT event_logistics_offers_role_check
+  CHECK (role IN ('pickup', 'dropoff'));
+
+ALTER TABLE event_logistics_offers DROP CONSTRAINT IF EXISTS event_logistics_offers_status_check;
+ALTER TABLE event_logistics_offers ADD CONSTRAINT event_logistics_offers_status_check
+  CHECK (status IN ('pending', 'confirmed', 'declined', 'superseded'));
+
+CREATE INDEX IF NOT EXISTS event_logistics_offers_event_role_pending_idx
+  ON event_logistics_offers(event_id, role)
+  WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS event_logistics_offers_user_idx
+  ON event_logistics_offers(user_id);
+
+-- ============================================================
+-- KIDS — per-kid calendar feed token
+-- Each kid gets a unique token so they can subscribe to JUST
+-- their own events via /feed/kid/<token>.ics on their own
+-- device — Apple Calendar, Google Calendar, etc. — without
+-- seeing siblings' or the parent's full family feed.
+-- ============================================================
+ALTER TABLE kids ADD COLUMN IF NOT EXISTS feed_token TEXT;
+
+-- Backfill: existing kids predate this column. Generate a
+-- random per-kid token for any NULL rows. Idempotent: re-runs
+-- only touch rows that are still NULL, so already-tokened kids
+-- keep their existing token across deploys.
+UPDATE kids
+   SET feed_token = encode(gen_random_bytes(24), 'hex')
+ WHERE feed_token IS NULL;
+
+-- Now NOT NULL is safe (every existing row has a value), and
+-- new INSERTs get a random token automatically via the default.
+ALTER TABLE kids ALTER COLUMN feed_token SET DEFAULT encode(gen_random_bytes(24), 'hex');
+ALTER TABLE kids ALTER COLUMN feed_token SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS kids_feed_token_unique_idx ON kids(feed_token);
