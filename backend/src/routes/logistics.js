@@ -274,20 +274,21 @@ router.post('/:eventId/team-request', requireAuth, async (req, res) => {
       : ' at ' + new Date(event.starts_at).toLocaleTimeString('en-US', {
           hour: 'numeric', minute: '2-digit',
         });
-    const baseUrl = `${APP_URL}/api/logistics/offer`;
-    const lines = [
-      `Hey team — can someone ${action_word} ${kid} on ${eventDate}${eventTime}${event.location ? ' at ' + event.location : ''}? First yes wins:`,
-    ];
-    offers.forEach((o, i) => {
-      // Blank line before each parent's link so iMessage renders
-      // them as separate tappable URLs rather than running them
-      // together as one wrapped block.
-      lines.push('', `${o.contact_name}: ${baseUrl}/${o.token}/confirmed`);
-    });
+    // Single short URL → landing page that lists every pending parent
+    // as a claim button. Scales cleanly to teams of any size since the
+    // SMS body stays one line of text + one URL no matter the count.
+    // The token is just one of the per-parent ones; the landing page
+    // resolves it to the batch and shows all pending offers.
+    const requestUrl = `${APP_URL}/r/${offers[0].token}`;
+    const sms_body =
+      `Hey team — can someone ${action_word} ${kid} on ${eventDate}${eventTime}` +
+      `${event.location ? ' at ' + event.location : ''}? First to claim wins:\n\n` +
+      requestUrl;
 
     res.status(201).json({
       offers,
-      sms_body: lines.join('\n'),
+      sms_body,
+      request_url: requestUrl,
       phones: members.map(m => m.phone),
     });
   } catch (err) {

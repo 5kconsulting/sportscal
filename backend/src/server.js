@@ -34,6 +34,7 @@ import overridesRoutes        from './routes/overrides.js';
 import ingestionsRoutes       from './routes/ingestions.js';
 import twilioRoutes           from './routes/twilio.js';
 import teamsRoutes            from './routes/teams.js';
+import respondRoutes          from './routes/respond.js';
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -95,6 +96,7 @@ app.use('/api/ingestions',  ingestionsRoutes);
 app.use('/api/teams',       teamsRoutes);
 app.use('/api/twilio',      twilioRoutes);   // public: Twilio inbound webhook (signature-verified)
 app.use('/feed',            calendarRoutes); // public: /feed/:token.ics
+app.use('/r',               respondRoutes);  // public: team-request landing page
 
 // ============================================================
 // Health check (used by Railway / Render / Docker)
