@@ -955,7 +955,12 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
       const body = encodeURIComponent(resp.sms_body || '');
       const supportsSmsLink = /Mac|iPhone|iPad|iPod|Android/.test(navigator.userAgent);
       if (supportsSmsLink) {
-        window.location.href = `sms:${phones}?&body=${body}`;
+        // sms:N1,N2,N3?body=... is the documented multi-recipient form.
+        // Earlier we had `?&body=` (vestigial from copying the
+        // single-contact path) which macOS Messages parses inconsistently
+        // — sometimes only the first phone makes it onto the recipient
+        // line, even though the URL contains all of them.
+        window.location.href = `sms:${phones}?body=${body}`;
       } else {
         try {
           await navigator.clipboard.writeText(resp.sms_body);
