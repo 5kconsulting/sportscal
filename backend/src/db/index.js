@@ -146,6 +146,18 @@ export async function getUserByFeedToken(token) {
   );
 }
 
+// Per-kid feed lookup. Returns the kid plus the parent's name so the
+// iCal feed can label itself "Caleb's SportsCal" without a second query.
+export async function getKidByFeedToken(token) {
+  return queryOne(
+    `SELECT k.*, u.name AS parent_name, u.timezone AS parent_timezone
+       FROM kids k
+       JOIN users u ON u.id = k.user_id
+      WHERE k.feed_token = $1`,
+    [token]
+  );
+}
+
 export async function createUser({
   email, passwordHash, name,
   referralSource = null,

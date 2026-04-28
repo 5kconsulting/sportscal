@@ -2,6 +2,7 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import {
   getUserByFeedToken,
+  getKidByFeedToken,
   getUpcomingEvents,
   getFeedCache,
   setFeedCache,
@@ -122,6 +123,135 @@ router.get('/:token.ics', feedLimiter, async (req, res) => {
     .set('Cache-Control', 'no-cache')
     .send(icalContent);
 });
+
+// ============================================================
+// GET /feed/kid/:token.ics
+//
+// Per-kid public feed. The kid's own device subscribes to this
+// URL — Apple Calendar, Google Calendar, whatever — and sees
+// only their events with logistics info ("Pickup: Linda")
+// embedded in each event's description.
+//
+// No caching for v1 — each request rebuilds. SportsCal's
+// per-kid event volume is small and most calendar apps poll on
+// the order of every few hours, so the load is negligible vs
+// the complexity of a separate kid-feed cache.
+// ============================================================
+router.get('/kid/:token.ics', feedLimiter, async (req, res) => {
+  const { token } = req.params;
+
+  const kid = await getKidByFeedToken(token);
+  if (!kid) {
+    return res.status(200)
+      .set('Content-Type', 'text/calendar; charset=utf-8')
+      .send(emptyCalendar());
+  }
+
+  // Filter events to just this kid via getUpcomingEvents' kidId
+  // option (which joins through kid_sources).
+  const events = await getUpcomingEvents(kid.user_id, { days: 90, kidId: kid.id });
+
+  // Apply this-kid attendance overrides only — if the kid is
+  // marked not-attending for an event, drop it entirely from
+  // their personal feed.
+  const overrides = await query(
+    `SELECT event_id, attending
+       FROM event_overrides
+      WHERE user_id = $1 AND kid_id = $2`,
+    [kid.user_id, kid.id]
+  );
+  const skipEventIds = new Set(
+    overrides.filter(o => !o.attending).map(o => o.event_id)
+  );
+
+  // Logistics info per event. We embed it in the iCal description
+  // so the kid sees "Pickup: Linda" right inside the calendar
+  // event without needing the SportsCal app.
+  const logistics = await query(
+    `SELECT el.event_id, el.role, el.status, c.name AS contact_name
+       FROM event_logistics el
+       JOIN contacts c ON c.id = el.contact_id
+      WHERE el.user_id = $1`,
+    [kid.user_id]
+  );
+  const logByEvent = {};
+  for (const l of logistics) {
+    (logByEvent[l.event_id] = logByEvent[l.event_id] || []).push(l);
+  }
+
+  const finalEvents = events
+    .filter(e => !skipEventIds.has(e.id))
+    .map(e => ({
+      ...e,
+      // Stuff the logistics summary into the description so it
+      // shows up natively in the kid's calendar app.
+      description: appendLogisticsToDescription(e.description, logByEvent[e.id]),
+    }));
+
+  const icalContent = buildKidIcal(kid, finalEvents);
+
+  res
+    .set('Content-Type', 'text/calendar; charset=utf-8')
+    .set('Content-Disposition', `attachment; filename="${kidSlug(kid.name)}.ics"`)
+    .set('Cache-Control', 'no-cache')
+    .send(icalContent);
+});
+
+function appendLogisticsToDescription(existing, log) {
+  if (!log?.length) return existing || '';
+  const statusLabel = (s) =>
+    s === 'confirmed' ? 'confirmed'
+    : s === 'declined' ? 'declined'
+    : s === 'requested' ? 'awaiting reply'
+    : 'assigned';
+  const lines = log
+    .sort((a, b) => a.role.localeCompare(b.role))
+    .map(l => {
+      const role = l.role === 'pickup' ? 'Pickup' : 'Dropoff';
+      return `${role}: ${l.contact_name} (${statusLabel(l.status)})`;
+    });
+  return [existing || '', '', ...lines].filter(Boolean).join('\n').trim();
+}
+
+function buildKidIcal(kid, events) {
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//SportsCal//Kid Schedule//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    `X-WR-CALNAME:${kid.name}'s SportsCal`,
+    `X-WR-CALDESC:${kid.name}'s schedule`,
+    'X-PUBLISHED-TTL:PT2H',
+  ];
+  for (const event of events) {
+    const startsAt = new Date(event.starts_at);
+    const endsAt   = event.ends_at ? new Date(event.ends_at) : addHour(startsAt);
+    const now      = new Date();
+    lines.push('BEGIN:VEVENT');
+    lines.push(`UID:kid-${kid.id}-${event.id}`);
+    lines.push(`SEQUENCE:0`);
+    lines.push(`DTSTAMP:${toICalDate(now)}Z`);
+    if (event.all_day) {
+      lines.push(`DTSTART;VALUE=DATE:${toICalDateOnly(startsAt)}`);
+      lines.push(`DTEND;VALUE=DATE:${toICalDateOnly(endsAt)}`);
+    } else {
+      lines.push(`DTSTART:${toICalDate(startsAt)}Z`);
+      lines.push(`DTEND:${toICalDate(endsAt)}Z`);
+    }
+    lines.push(`SUMMARY:${escapeIcal(event.display_title)}`);
+    if (event.location)    lines.push(`LOCATION:${escapeIcal(event.location)}`);
+    if (event.description) lines.push(`DESCRIPTION:${escapeIcal(event.description)}`);
+    if (kid.color)         lines.push(`X-APPLE-CALENDAR-COLOR:${kid.color.toUpperCase()}`);
+    lines.push('END:VEVENT');
+  }
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+function kidSlug(name) {
+  return (name || 'kid').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'kid';
+}
 
 // ============================================================
 // iCal builder
