@@ -271,7 +271,7 @@ function Teams() {
   }
 
   async function handleRename(team) {
-    const next = window.prompt('Rename team to:', team.name);
+    const next = window.prompt('Rename group to:', team.name);
     if (!next || !next.trim() || next.trim() === team.name) return;
     try {
       await api.teams.update(team.id, { name: next.trim() });
@@ -282,7 +282,7 @@ function Teams() {
   }
 
   async function handleDelete(team) {
-    if (!confirm(`Delete "${team.name}"? Members stay in your contacts.`)) return;
+    if (!confirm(`Delete the "${team.name}" group? Members stay in your contacts.`)) return;
     try {
       await api.teams.delete(team.id);
       await load();
@@ -346,14 +346,15 @@ function Teams() {
     <div style={{ marginTop: 40, paddingTop: 32, borderTop: '1px solid var(--border)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 4 }}>Teams</h2>
-          <p style={{ color: 'var(--slate)', fontSize: 14 }}>
-            Group your ride contacts so you can request a pickup from the whole team at once.
+          <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 4 }}>Teams and Groups</h2>
+          <p style={{ color: 'var(--slate)', fontSize: 14, lineHeight: 1.5 }}>
+            Make a group of people you can ask for rides all at once — your kid's team,
+            your family, the neighborhood carpool, anyone who could help.
           </p>
         </div>
         {!adding && (
           <button className="btn btn-primary" onClick={() => setAdding(true)} style={{ flexShrink: 0 }}>
-            + Add team
+            + Add group
           </button>
         )}
       </div>
@@ -363,8 +364,8 @@ function Teams() {
       {adding && (
         <form onSubmit={handleCreate} className="card" style={{ padding: 20, marginTop: 16 }}>
           <div className="field">
-            <label>Team name *</label>
-            <input className="input" type="text" placeholder="e.g. Sam's soccer team"
+            <label>Group name *</label>
+            <input className="input" type="text" placeholder="e.g. Sam's soccer team, Family, Block carpool"
               value={newName} onChange={e => setNewName(e.target.value)} required autoFocus />
           </div>
           {contacts.length > 0 && (
@@ -394,7 +395,7 @@ function Teams() {
           )}
           <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
             <button type="submit" className="btn btn-primary" disabled={saving} style={{ flex: 1, justifyContent: 'center' }}>
-              {saving ? <span className="spinner" style={{ width: 14, height: 14 }} /> : 'Create team'}
+              {saving ? <span className="spinner" style={{ width: 14, height: 14 }} /> : 'Create group'}
             </button>
             <button type="button" className="btn btn-ghost"
               onClick={() => { setAdding(false); setNewName(''); setNewMemberIds([]); setError(''); }}>
@@ -411,11 +412,13 @@ function Teams() {
           !adding && (
             <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>👥</div>
-              <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No teams yet</h3>
-              <p style={{ fontSize: 14, color: 'var(--slate)', marginBottom: 20, maxWidth: 320, margin: '0 auto 20px' }}>
-                A team is a group of parents you ride-share with. Once you've added one, you'll be able to send a single group request from any event.
+              <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No groups yet</h3>
+              <p style={{ fontSize: 14, color: 'var(--slate)', marginBottom: 20, maxWidth: 360, margin: '0 auto 20px', lineHeight: 1.5 }}>
+                A group is anyone you can ask for rides — Sam's soccer team, your family,
+                the carpool down the block. Once you've made one, you can ask everyone in
+                it at once from any event.
               </p>
-              <button className="btn btn-primary" onClick={() => setAdding(true)}>Add first team</button>
+              <button className="btn btn-primary" onClick={() => setAdding(true)}>Add first group</button>
             </div>
           )
         ) : (

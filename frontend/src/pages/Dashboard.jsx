@@ -1132,7 +1132,7 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
               }}>
                 {[
                   { value: 'contact', label: '👤 Pick a contact' },
-                  { value: 'team',    label: '👥 Ask a team' },
+                  { value: 'team',    label: '👥 Ask a group' },
                 ].map(opt => (
                   <button key={opt.value} type="button"
                     onClick={() => setMode(opt.value)}
@@ -1165,7 +1165,7 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
                   <select className="input" value={teamForm.team_id}
                     onChange={e => setTeamForm(f => ({ ...f, team_id: e.target.value }))}
                     style={{ flex: 1 }}>
-                    <option value="">Select team…</option>
+                    <option value="">Select group…</option>
                     {teams.map(t => {
                       const count = (t.members || []).filter(m => m.phone).length;
                       const total = (t.members || []).length;
@@ -1181,9 +1181,10 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
                   background: 'var(--off-white)', borderRadius: 8,
                   padding: '10px 12px', border: '1px solid var(--border)',
                 }}>
-                  Opens a group iMessage from your phone to every parent on the team
-                  with a unique tap-link per person. <strong>First parent to tap their
-                  link wins</strong> — the others are auto-locked out. No Twilio.
+                  Opens a group iMessage from your phone to everyone in the group with a
+                  single short link. They tap it, see the event, and pick their name to
+                  claim. <strong>First person to claim wins</strong> — the others are
+                  auto-locked out. No Twilio.
                 </div>
                 <button type="submit" className="btn btn-primary"
                   disabled={!teamForm.team_id || saving === 'team-request'}
