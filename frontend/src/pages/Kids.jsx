@@ -226,6 +226,10 @@ function Teams() {
   const [expanded, setExpanded] = useState(null);    // currently expanded team id
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
+  // Inline "new person" form state, keyed by team id so each team's
+  // expanded view has its own draft.
+  const [newMember, setNewMember] = useState({ teamId: null, name: '', email: '', phone: '' });
+  const [creatingMember, setCreatingMember] = useState(false);
 
   useEffect(() => { load(); }, []);
 
@@ -303,6 +307,32 @@ function Teams() {
       await load();
     } catch (err) {
       alert(err.message);
+    }
+  }
+
+  // Create a contact AND add to the team in one click. Two API
+  // calls (create contact, add to team) but feels like one action
+  // to the user. The contact also lands in Ride contacts since
+  // contacts are global per-user — that's intentional, no separate
+  // "team-only contact" concept yet.
+  async function handleCreateAndAddMember(team, e) {
+    e.preventDefault();
+    if (!newMember.name?.trim()) return;
+    if (newMember.teamId !== team.id) return; // sanity
+    setCreatingMember(true);
+    try {
+      const { contact } = await api.contacts.create({
+        name:  newMember.name.trim(),
+        email: newMember.email?.trim() || null,
+        phone: newMember.phone?.trim() || null,
+      });
+      await api.teams.addMembers(team.id, [contact.id]);
+      setNewMember({ teamId: null, name: '', email: '', phone: '' });
+      await load();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setCreatingMember(false);
     }
   }
 
@@ -417,7 +447,7 @@ function Teams() {
                     <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                       {memberCount === 0 ? (
                         <p style={{ fontSize: 13, color: 'var(--slate)', marginBottom: 12 }}>
-                          No members yet. Add ride contacts first, then assign them here.
+                          No members yet — add some below.
                         </p>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
@@ -439,26 +469,80 @@ function Teams() {
                         </div>
                       )}
 
-                      {candidates.length > 0 && (
-                        <div>
-                          <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--slate)', marginBottom: 6 }}>
-                            Add a member
-                          </div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                            {candidates.map(c => (
-                              <button key={c.id} type="button"
-                                onClick={() => handleAddExistingMembers(team, [c.id])}
-                                style={{
-                                  fontSize: 12, padding: '4px 10px', borderRadius: 999,
-                                  border: '1px solid var(--border)', cursor: 'pointer',
-                                  background: 'var(--off-white)', color: 'var(--navy)',
-                                }}>
-                                + {c.name}
+                      <div>
+                        {candidates.length > 0 && (
+                          <>
+                            <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--slate)', marginBottom: 6 }}>
+                              Add an existing contact
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                              {candidates.map(c => (
+                                <button key={c.id} type="button"
+                                  onClick={() => handleAddExistingMembers(team, [c.id])}
+                                  style={{
+                                    fontSize: 12, padding: '4px 10px', borderRadius: 999,
+                                    border: '1px solid var(--border)', cursor: 'pointer',
+                                    background: 'var(--off-white)', color: 'var(--navy)',
+                                  }}>
+                                  + {c.name}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Inline "new person" form — create contact +
+                            add to team in one go, no detour through
+                            Ride contacts. */}
+                        {newMember.teamId === team.id ? (
+                          <form onSubmit={(e) => handleCreateAndAddMember(team, e)}
+                            style={{
+                              background: 'var(--off-white)', border: '1px solid var(--border)',
+                              borderRadius: 8, padding: 12, display: 'flex',
+                              flexDirection: 'column', gap: 8,
+                            }}>
+                            <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--slate)' }}>
+                              New person
+                            </div>
+                            <input className="input" type="text" placeholder="Name *"
+                              value={newMember.name}
+                              onChange={e => setNewMember(m => ({ ...m, name: e.target.value }))}
+                              required autoFocus />
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <input className="input" type="tel" placeholder="Phone"
+                                value={newMember.phone}
+                                onChange={e => setNewMember(m => ({ ...m, phone: e.target.value }))}
+                                style={{ flex: 1 }} />
+                              <input className="input" type="email" placeholder="Email"
+                                value={newMember.email}
+                                onChange={e => setNewMember(m => ({ ...m, email: e.target.value }))}
+                                style={{ flex: 1 }} />
+                            </div>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button type="submit" className="btn btn-primary btn-sm"
+                                disabled={creatingMember || !newMember.name.trim()}
+                                style={{ flex: 1, justifyContent: 'center' }}>
+                                {creatingMember ? '…' : 'Add to team'}
                               </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                              <button type="button" className="btn btn-ghost btn-sm"
+                                onClick={() => setNewMember({ teamId: null, name: '', email: '', phone: '' })}>
+                                Cancel
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <button type="button"
+                            onClick={() => setNewMember({ teamId: team.id, name: '', email: '', phone: '' })}
+                            style={{
+                              fontSize: 13, padding: '8px 12px', borderRadius: 8,
+                              border: '1px dashed var(--border)', cursor: 'pointer',
+                              background: 'transparent', color: 'var(--slate)',
+                              width: '100%', textAlign: 'center', fontWeight: 500,
+                            }}>
+                            + Add a new person
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
