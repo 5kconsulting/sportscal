@@ -204,6 +204,269 @@ export default function Kids() {
 
       {/* Ride contacts */}
       <RideContacts />
+
+      {/* Teams (groups of contacts for bulk ride requests) */}
+      <Teams />
+    </div>
+  );
+}
+
+// ============================================================
+// Teams — named groups of ride contacts. Used by the "Request
+// from team" flow on the event modal which opens a group
+// iMessage with first-yes-wins tap links per parent.
+// ============================================================
+function Teams() {
+  const [teams, setTeams]       = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [adding, setAdding]     = useState(false);   // showing add-team form
+  const [newName, setNewName]   = useState('');
+  const [newMemberIds, setNewMemberIds] = useState([]);
+  const [expanded, setExpanded] = useState(null);    // currently expanded team id
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState('');
+
+  useEffect(() => { load(); }, []);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const [tRes, cRes] = await Promise.all([api.teams.list(), api.contacts.list()]);
+      setTeams(tRes.teams || []);
+      setContacts(cRes.contacts || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function toggleNewMember(id) {
+    setNewMemberIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  }
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    if (!newName.trim()) { setError('Team name is required'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await api.teams.create({ name: newName.trim(), contact_ids: newMemberIds });
+      setNewName('');
+      setNewMemberIds([]);
+      setAdding(false);
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRename(team) {
+    const next = window.prompt('Rename team to:', team.name);
+    if (!next || !next.trim() || next.trim() === team.name) return;
+    try {
+      await api.teams.update(team.id, { name: next.trim() });
+      await load();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function handleDelete(team) {
+    if (!confirm(`Delete "${team.name}"? Members stay in your contacts.`)) return;
+    try {
+      await api.teams.delete(team.id);
+      await load();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function handleRemoveMember(team, contactId) {
+    try {
+      await api.teams.removeMember(team.id, contactId);
+      await load();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function handleAddExistingMembers(team, contactIds) {
+    if (!contactIds.length) return;
+    try {
+      await api.teams.addMembers(team.id, contactIds);
+      await load();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  // Contacts not yet in the expanded team — selectable for the add-member picker
+  const expandedTeam = teams.find(t => t.id === expanded);
+  const candidates = expandedTeam
+    ? contacts.filter(c => !(expandedTeam.members || []).some(m => m.id === c.id))
+    : [];
+
+  return (
+    <div style={{ marginTop: 40, paddingTop: 32, borderTop: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div>
+          <h2 style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 4 }}>Teams</h2>
+          <p style={{ color: 'var(--slate)', fontSize: 14 }}>
+            Group your ride contacts so you can request a pickup from the whole team at once.
+          </p>
+        </div>
+        {!adding && (
+          <button className="btn btn-primary" onClick={() => setAdding(true)} style={{ flexShrink: 0 }}>
+            + Add team
+          </button>
+        )}
+      </div>
+
+      {error && <div className="error-msg" style={{ marginTop: 12 }}>{error}</div>}
+
+      {adding && (
+        <form onSubmit={handleCreate} className="card" style={{ padding: 20, marginTop: 16 }}>
+          <div className="field">
+            <label>Team name *</label>
+            <input className="input" type="text" placeholder="e.g. Sam's soccer team"
+              value={newName} onChange={e => setNewName(e.target.value)} required autoFocus />
+          </div>
+          {contacts.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--slate)', marginBottom: 8, display: 'block' }}>
+                Add members (optional, can do later)
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {contacts.map(c => {
+                  const on = newMemberIds.includes(c.id);
+                  return (
+                    <button key={c.id} type="button"
+                      onClick={() => toggleNewMember(c.id)}
+                      style={{
+                        fontSize: 13, padding: '6px 12px', borderRadius: 999,
+                        border: '1px solid var(--border)', cursor: 'pointer',
+                        background: on ? 'var(--navy)' : 'var(--off-white)',
+                        color: on ? 'var(--white)' : 'var(--navy)',
+                        transition: 'all 0.15s',
+                      }}>
+                      {on ? '✓ ' : ''}{c.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+            <button type="submit" className="btn btn-primary" disabled={saving} style={{ flex: 1, justifyContent: 'center' }}>
+              {saving ? <span className="spinner" style={{ width: 14, height: 14 }} /> : 'Create team'}
+            </button>
+            <button type="button" className="btn btn-ghost"
+              onClick={() => { setAdding(false); setNewName(''); setNewMemberIds([]); setError(''); }}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div style={{ marginTop: 20 }}>
+        {loading ? (
+          <div className="spinner" style={{ width: 20, height: 20 }} />
+        ) : teams.length === 0 ? (
+          !adding && (
+            <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>👥</div>
+              <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No teams yet</h3>
+              <p style={{ fontSize: 14, color: 'var(--slate)', marginBottom: 20, maxWidth: 320, margin: '0 auto 20px' }}>
+                A team is a group of parents you ride-share with. Once you've added one, you'll be able to send a single group request from any event.
+              </p>
+              <button className="btn btn-primary" onClick={() => setAdding(true)}>Add first team</button>
+            </div>
+          )
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {teams.map(team => {
+              const isOpen = expanded === team.id;
+              const memberCount = (team.members || []).length;
+              return (
+                <div key={team.id} className="card" style={{ padding: '16px 20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 16, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {team.name}
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--slate)', marginTop: 2 }}>
+                        {memberCount} {memberCount === 1 ? 'member' : 'members'}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setExpanded(isOpen ? null : team.id)}>
+                        {isOpen ? 'Hide' : 'Manage'}
+                      </button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => handleRename(team)}>Rename</button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(team)}>Delete</button>
+                    </div>
+                  </div>
+
+                  {isOpen && (
+                    <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                      {memberCount === 0 ? (
+                        <p style={{ fontSize: 13, color: 'var(--slate)', marginBottom: 12 }}>
+                          No members yet. Add ride contacts first, then assign them here.
+                        </p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                          {team.members.map(m => (
+                            <div key={m.id} style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                              padding: '8px 12px', background: 'var(--off-white)', borderRadius: 8,
+                              border: '1px solid var(--border)',
+                            }}>
+                              <div style={{ fontSize: 14 }}>
+                                <strong>{m.name}</strong>
+                                {m.phone && <span style={{ color: 'var(--slate)', marginLeft: 8 }}>{m.phone}</span>}
+                              </div>
+                              <button className="btn btn-ghost btn-sm" onClick={() => handleRemoveMember(team, m.id)}>
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {candidates.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--slate)', marginBottom: 6 }}>
+                            Add a member
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {candidates.map(c => (
+                              <button key={c.id} type="button"
+                                onClick={() => handleAddExistingMembers(team, [c.id])}
+                                style={{
+                                  fontSize: 12, padding: '4px 10px', borderRadius: 999,
+                                  border: '1px solid var(--border)', cursor: 'pointer',
+                                  background: 'var(--off-white)', color: 'var(--navy)',
+                                }}>
+                                + {c.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

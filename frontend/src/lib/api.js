@@ -81,6 +81,14 @@ export const api = {
     delete:    (id)        => del(`/contacts/${id}`),
     sendOptIn: (id)        => post(`/contacts/${id}/send-opt-in`),
   },
+  teams: {
+    list:           ()                         => get('/teams'),
+    create:         (data)                     => post('/teams', data),
+    update:         (id, data)                 => patch(`/teams/${id}`, data),
+    delete:         (id)                       => del(`/teams/${id}`),
+    addMembers:     (id, contact_ids)          => post(`/teams/${id}/members`, { contact_ids }),
+    removeMember:   (id, contactId)            => del(`/teams/${id}/members/${contactId}`),
+  },
   logistics: {
     list:   ()               => get(`/logistics`),
     get:    (eventId)        => get(`/logistics/${eventId}`),
