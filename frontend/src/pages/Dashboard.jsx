@@ -945,7 +945,9 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
             `Hi ${contact.name.split(' ')[0]} — can you ${action_word} ${kid} on ${eventDate} at ${eventTime}${event.location ? ' at ' + event.location : ''}?`,
           ];
           if (token) {
-            lines.push('', `Yes: ${baseUrl}/${token}/confirmed`, `No: ${baseUrl}/${token}/declined`);
+            // Blank line between the two URLs so iMessage renders them as
+            // two distinct tappable links instead of one continuous wrap.
+            lines.push('', `Yes: ${baseUrl}/${token}/confirmed`, '', `No: ${baseUrl}/${token}/declined`);
           } else {
             lines.push('', 'Thanks!');
           }

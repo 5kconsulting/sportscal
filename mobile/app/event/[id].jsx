@@ -110,7 +110,9 @@ export default function EventDetail() {
       `Hi ${contact.name.split(' ')[0]} — can you ${action_word} ${kid} on ${dateStr}${timeStr}${event.location ? ' at ' + event.location : ''}?`,
     ];
     if (confirmUrl && declineUrl) {
-      lines.push('', `Yes: ${confirmUrl}`, `No: ${declineUrl}`);
+      // Blank line between the two URLs so iMessage renders them as
+      // two distinct tappable links instead of one continuous wrap.
+      lines.push('', `Yes: ${confirmUrl}`, '', `No: ${declineUrl}`);
     } else {
       lines.push('', 'Thanks!');
     }
