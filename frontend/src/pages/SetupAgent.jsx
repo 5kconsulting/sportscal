@@ -65,6 +65,18 @@ const APP_INSTRUCTIONS = {
     label: 'TeamSnap ONE',
     steps: ['Log in at go.teamsnap.com or in the app.','Click on your team.','Go to the Schedule tab.','Click Settings → Sync Calendar / Export.','Copy the calendar link and paste it in the chat below.'],
   },
+  google_classroom: {
+    label: 'Google Classroom',
+    steps: [
+      'Open Google Calendar at calendar.google.com on a computer (signed in to your child\'s school Google account).',
+      'In the left sidebar under "My calendars," find the class — usually named after the course.',
+      'Hover over the class name and click the three dots → "Settings and sharing".',
+      'Scroll to "Integrate calendar".',
+      'Copy the "Secret address in iCal format" — the long URL ending in .ics.',
+      'Paste it in the chat below.',
+    ],
+    note: 'Each class has its own calendar — repeat for each class. Use the SECRET address; the public one only shows free/busy, not assignment titles.',
+  },
   custom: {
     label: 'Custom iCal',
     steps: ['Find the "Subscribe to Calendar", "Export to iCal", or "iCal Feed" option in your app.','Copy the URL — it starts with https:// or webcal://','Paste it in the chat below.'],

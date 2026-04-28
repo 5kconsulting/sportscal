@@ -195,6 +195,7 @@ ALTER TABLE sources ADD  CONSTRAINT sources_app_check
     'teamsideline', 'byga', 'sportsengine', 'teamreach',
     'leagueapps', 'demosphere', '360player', 'sportsyou',
     'band', 'rankone', 'custom',
+    'google_classroom',
     'pdf_upload', 'email_forward'
   ));
 

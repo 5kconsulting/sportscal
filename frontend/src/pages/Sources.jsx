@@ -62,8 +62,9 @@ const APP_OPTIONS = [
   { value: '360player',     label: '360Player',     fetchType: 'ical' },
   { value: 'sportsyou',     label: 'SportsYou',     fetchType: 'ical' },
   { value: 'band',          label: 'BAND',           fetchType: 'ical' },
-  { value: 'rankone',       label: 'RankOne',        fetchType: 'ical' },
-  { value: 'custom',        label: 'Custom iCal',   fetchType: 'ical' },
+  { value: 'rankone',         label: 'RankOne',          fetchType: 'ical' },
+  { value: 'google_classroom',label: 'Google Classroom', fetchType: 'ical' },
+  { value: 'custom',          label: 'Custom iCal',      fetchType: 'ical' },
 ];
 
 // Per-app setup walkthroughs. One key per app — duplicates removed.
@@ -271,6 +272,18 @@ const APP_INSTRUCTIONS = {
       'Paste it in the iCal URL field below.',
     ],
     note: 'RankOne is used by many school athletic programs. The iCal URL is usually found on the team schedule page. If you can\'t find it, ask your athletic director.',
+  },
+  google_classroom: {
+    label: 'Google Classroom',
+    steps: [
+      'Open Google Calendar at calendar.google.com on a computer, signed in to your child\'s school Google account.',
+      'In the left sidebar under "My calendars," find the class — it\'s usually named after the course.',
+      'Hover over the class name and click the three dots → "Settings and sharing".',
+      'Scroll down to "Integrate calendar".',
+      'Copy the "Secret address in iCal format" — the long URL ending in .ics.',
+      'Paste it in the iCal URL field below.',
+    ],
+    note: 'Each class has its own calendar — repeat for each class your kid is in. Use the SECRET address (the public address only shows free/busy times, not assignment titles or due dates).',
   },
   custom: {
     label: 'Custom iCal',
@@ -1009,7 +1022,7 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
-    const appLabels = { teamsnap:'TeamSnap', teamsnapone:'TeamSnap ONE', gamechanger:'GameChanger', playmetrics:'PlayMetrics', teamsideline:'TeamSideline', byga:'BYGA', sportsengine:'SportsEngine', teamreach:'TeamReach', leagueapps:'LeagueApps', demosphere:'Demosphere', '360player':'360Player', sportsyou:'SportsYou', band:'BAND', rankone:'RankOne', custom:'Custom' };
+    const appLabels = { teamsnap:'TeamSnap', teamsnapone:'TeamSnap ONE', gamechanger:'GameChanger', playmetrics:'PlayMetrics', teamsideline:'TeamSideline', byga:'BYGA', sportsengine:'SportsEngine', teamreach:'TeamReach', leagueapps:'LeagueApps', demosphere:'Demosphere', '360player':'360Player', sportsyou:'SportsYou', band:'BAND', rankone:'RankOne', google_classroom:'Google Classroom', custom:'Custom' };
     await onSave({
       name:       name || appLabels[app] || app,
       app,
