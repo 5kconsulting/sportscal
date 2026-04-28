@@ -22,6 +22,14 @@ export default function Signup() {
     setLoading(true);
     try {
       await signup(form.name, form.email, form.password, referralSource, smsConsent);
+
+      // Fire TikTok + Meta pixel CompleteRegistration. Wrapped in
+      // try/catch and optional-chaining so a missing pixel script
+      // (ad blockers, ITP, dev mode without internet) can never break
+      // signup. AAM hashes the email client-side before transmission.
+      try { window.ttq?.track?.('CompleteRegistration', { email: form.email }); } catch {}
+      try { window.fbq?.('track', 'CompleteRegistration', { content_name: 'signup' }); } catch {}
+
       // Remember which pricing interval they came from — Settings reads this
       // on mount and auto-triggers the upgrade flow so they don't have to
       // reselect monthly/annual.
