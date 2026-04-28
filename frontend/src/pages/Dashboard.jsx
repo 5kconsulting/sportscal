@@ -927,20 +927,14 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
       // a free-text reply (which would land in the parent's inbox, not
       // ours). Tapping a link hits the public token endpoint and
       // updates the row + emails the parent.
+      // Twilio path didn't actually send (A2P verification still pending,
+      // or contact never opted in). Route through the parent's own
+      // Messages app instead — no consent warning, no confirm prompt.
+      // This is the v1 launch design: SMS-via-parent's-iPhone is the
+      // primary path; Twilio is a post-launch addition.
       if (resp.sms_skipped_reason === 'consent_pending' || resp.sms_skipped_reason === 'consent_declined') {
         const contact = contacts.find(c => c.id === form.contact_id);
-        const reason = resp.sms_skipped_reason === 'consent_pending'
-          ? `${contact?.name || 'This contact'} hasn't confirmed SMS yet (they need to reply YES to our opt-in text).`
-          : `${contact?.name || 'This contact'} has opted out of SportsCal texts.`;
-        // sms: deep links work natively on Mac, iOS, Android. Windows/Linux
-        // desktop typically don't have anything registered for sms:, so we
-        // fall back to copy-to-clipboard there. UA detection is brittle
-        // generally but reliable enough for sms: support specifically.
-        const supportsSmsLink = /Mac|iPhone|iPad|iPod|Android/.test(navigator.userAgent);
-        const action = supportsSmsLink
-          ? `Open Messages now to text them yourself?`
-          : `Copy the request text to your clipboard?`;
-        if (contact?.phone && window.confirm(`${reason}\n\n${action}`)) {
+        if (contact?.phone) {
           const action_word = form.role === 'pickup' ? 'pick up' : 'drop off';
           const kid = (event.display_title || '').split('—')[0].trim();
           const eventDate = new Date(event.starts_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -956,6 +950,9 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
             lines.push('', 'Thanks!');
           }
           const plain = lines.join('\n');
+          // sms: deep links work on Mac/iOS/Android; Windows/Linux desktop
+          // don't register the scheme, so copy to clipboard instead.
+          const supportsSmsLink = /Mac|iPhone|iPad|iPod|Android/.test(navigator.userAgent);
           if (supportsSmsLink) {
             window.location.href = `sms:${contact.phone}?&body=${encodeURIComponent(plain)}`;
           } else {

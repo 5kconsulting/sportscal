@@ -145,21 +145,16 @@ export default function EventDetail() {
           return [...others, resp.logistics];
         });
 
-        if (isManualSms) {
+        // Whenever the Twilio path didn't actually send (because consent
+        // isn't confirmed or A2P verification is still pending), route
+        // through Messages directly — no consent-warning prompt. v1 ships
+        // SMS-via-parent's-iPhone as the primary path; Twilio is a
+        // post-launch addition.
+        const needsManualMessage = isManualSms
+          || resp.sms_skipped_reason === 'consent_pending'
+          || resp.sms_skipped_reason === 'consent_declined';
+        if (needsManualMessage) {
           openMessagesFallback(contact, role, resp.logistics?.token);
-        } else if (resp.sms_skipped_reason === 'consent_pending' || resp.sms_skipped_reason === 'consent_declined') {
-          // Race: contact lost consent between picker load and assign.
-          const why = resp.sms_skipped_reason === 'consent_pending'
-            ? `${contact.name} hasn't confirmed SMS yet.`
-            : `${contact.name} has opted out of SportsCal texts.`;
-          Alert.alert(
-            'Text not sent',
-            `${why} Open Messages to text them yourself?`,
-            [
-              { text: 'Skip', style: 'cancel' },
-              { text: 'Open Messages', onPress: () => openMessagesFallback(contact, role, resp.logistics?.token) },
-            ],
-          );
         }
       } catch (err) {
         Alert.alert('Could not assign', err.message || 'Please try again.');
