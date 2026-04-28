@@ -4,11 +4,22 @@ import { View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../lib/auth';
+import { requestTrackingPermission } from '../lib/analytics';
 
 function AuthGate() {
   const { user, loading } = useAuth();
   const segments = useSegments();
   const router   = useRouter();
+
+  // Once auth state has resolved, ask for App Tracking Transparency.
+  // Doing it here (rather than at app launch) means the prompt appears
+  // after the user has seen the brand splash + login screen, which
+  // satisfies Apple's "in context" expectation. requestTrackingPermission
+  // dedupes per-process, so this useEffect is safe to fire repeatedly.
+  useEffect(() => {
+    if (loading) return;
+    requestTrackingPermission();
+  }, [loading]);
 
   useEffect(() => {
     if (loading) return;

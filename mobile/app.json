@@ -9,7 +9,8 @@
     "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.fivekconsulting.sportscal"
+      "bundleIdentifier": "com.fivekconsulting.sportscal",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.fivekconsulting.sportscal"
@@ -27,6 +28,38 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#0f1629"
+        }
+      ],
+      "@react-native-firebase/app",
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "842222471603112",
+          "clientToken": "89f541b082b49038693c407e22425644",
+          "displayName": "SportsCal",
+          "scheme": "fb842222471603112",
+          "advertiserIDCollectionEnabled": false,
+          "autoLogAppEventsEnabled": false,
+          "isAutoInitEnabled": true
+        }
+      ],
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "This identifier helps us measure ads we run and improve SportsCal."
+        }
+      ],
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "extraPods": [
+              { "name": "GoogleUtilities", "modular_headers": true },
+              { "name": "FirebaseCoreInternal", "modular_headers": true },
+              { "name": "FirebaseCore", "modular_headers": true }
+            ]
+          }
         }
       ]
     ],

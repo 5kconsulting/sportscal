@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../lib/auth';
+import { trackLogin } from '../lib/analytics';
 
 export default function Login() {
   const { login } = useAuth();
@@ -24,6 +25,7 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email.trim(), password);
+      trackLogin('email');
       // Navigation handled by AuthGate
     } catch (err) {
       setError(err.message || 'Login failed');

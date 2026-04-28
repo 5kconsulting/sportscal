@@ -7,6 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../lib/auth';
+import { trackSignUp } from '../lib/analytics';
 
 export default function Signup() {
   const { signup } = useAuth();
@@ -35,6 +36,8 @@ export default function Signup() {
     setLoading(true);
     try {
       await signup(name.trim(), email.trim(), password);
+      // Fire-and-forget — analytics never blocks navigation.
+      trackSignUp('email');
       // AuthGate handles navigation to (tabs) once user is set
     } catch (err) {
       setError(err.message || 'Could not create account.');
