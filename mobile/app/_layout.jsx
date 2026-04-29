@@ -66,6 +66,14 @@ function AuthGate() {
         name="teams/[id]"
         options={{ presentation: 'modal', headerShown: false }}
       />
+      <Stack.Screen
+        name="kids/new"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
+      <Stack.Screen
+        name="kids/[id]"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
     </Stack>
   );
 }

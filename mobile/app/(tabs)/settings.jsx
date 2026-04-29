@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Linking, Share } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
 
@@ -8,6 +8,7 @@ const FEED_HOST = 'www.sportscalapp.com';
 
 export default function Settings() {
   const { user, logout, updateUser } = useAuth();
+  const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [kids, setKids] = useState([]);
@@ -192,22 +193,38 @@ export default function Settings() {
       </View>
 
       <View style={s.section}>
-        <Text style={s.label}>Kid calendars</Text>
-        <Text style={s.feedHelp}>
-          Each kid has their own subscription link — tap Share to send it
-          to their device. They'll see only their own events.
-        </Text>
+        <View style={s.kidsHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.label}>Kid calendars</Text>
+            <Text style={s.feedHelp}>
+              Each kid has their own subscription link — tap Share to send it
+              to their device. Tap a member to edit.
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={s.kidsAddBtn}
+            onPress={() => router.push('/kids/new')}
+            activeOpacity={0.7}
+          >
+            <Text style={s.kidsAddText}>+ Add</Text>
+          </TouchableOpacity>
+        </View>
 
         {kidsLoading ? (
           <ActivityIndicator color="#00d68f" style={{ marginTop: 8 }} />
         ) : kids.length === 0 ? (
           <Text style={s.kidsEmpty}>
-            No kids yet. Add one on sportscalapp.com (mobile editing coming soon).
+            No family members yet. Tap "+ Add" to add your first.
           </Text>
         ) : (
           <View style={{ gap: 8 }}>
             {kids.map(kid => (
-              <View key={kid.id} style={s.kidRow}>
+              <TouchableOpacity
+                key={kid.id}
+                style={s.kidRow}
+                onPress={() => router.push(`/kids/${kid.id}`)}
+                activeOpacity={0.6}
+              >
                 <View style={[s.kidAvatar, { backgroundColor: kid.color || '#6366f1' }]}>
                   <Text style={s.kidAvatarText}>{kid.name?.[0] || '?'}</Text>
                 </View>
@@ -220,7 +237,7 @@ export default function Settings() {
                 >
                   <Text style={s.kidShareText}>Share</Text>
                 </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         )}
@@ -269,6 +286,12 @@ const s = StyleSheet.create({
   feedSecondaryText: { color: '#0f1629', fontSize: 14, fontWeight: '500' },
   feedResetBtn: { paddingVertical: 10, alignItems: 'center', marginTop: 4 },
   feedResetText: { color: '#8896b0', fontSize: 12, fontWeight: '500', textDecorationLine: 'underline' },
+  kidsHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 4 },
+  kidsAddBtn: {
+    backgroundColor: '#00d68f', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 8,
+  },
+  kidsAddText: { color: '#0f1629', fontSize: 14, fontWeight: '600' },
   kidsEmpty: { fontSize: 13, color: '#8896b0', lineHeight: 18, marginTop: 4 },
   kidRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
