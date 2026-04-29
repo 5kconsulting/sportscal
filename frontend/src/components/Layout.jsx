@@ -6,6 +6,7 @@ import { VerificationBanner } from './VerificationBanner.jsx';
 const NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: GridIcon },
   { to: '/kids',      label: 'Family',    icon: UsersIcon },
+  { to: '/contacts',  label: 'Contacts',  icon: AddressBookIcon },
   { to: '/setup',     label: 'Setup',     icon: SparkleIcon },
   { to: '/sources',   label: 'Sources',   icon: LinkIcon },
   { to: '/settings',  label: 'Settings',  icon: GearIcon },
@@ -273,6 +274,17 @@ function UsersIcon({ color = 'currentColor' }) {
       <path d="M1 13c0-2.761 2.239-4 5-4s5 1.239 5 4" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
       <path d="M11 7.5c1.5 0 3 .9 3 3" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
       <circle cx="11" cy="4.5" r="2" stroke={color} strokeWidth="1.5"/>
+    </svg>
+  );
+}
+
+function AddressBookIcon({ color = 'currentColor' }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="2.5" y="2" width="11" height="12" rx="1.5" stroke={color} strokeWidth="1.5"/>
+      <circle cx="8" cy="7" r="1.5" stroke={color} strokeWidth="1.25"/>
+      <path d="M5.5 11.5c0-1.5 1.119-2.5 2.5-2.5s2.5 1 2.5 2.5" stroke={color} strokeWidth="1.25" strokeLinecap="round"/>
+      <path d="M1 5h1.5M1 8h1.5M1 11h1.5" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }

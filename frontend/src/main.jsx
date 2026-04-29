@@ -18,6 +18,7 @@ import Login           from './pages/Login.jsx';
 import Signup          from './pages/Signup.jsx';
 import Dashboard       from './pages/Dashboard.jsx';
 import Kids            from './pages/Kids.jsx';
+import Contacts        from './pages/Contacts.jsx';
 import Sources         from './pages/Sources.jsx';
 import Settings        from './pages/Settings.jsx';
 import ForgotPassword  from './pages/ForgotPassword.jsx';
@@ -75,6 +76,7 @@ createRoot(document.getElementById('root')).render(
           </Route>
           <Route path="/"              element={<RequireAuth><Layout /></RequireAuth>}>
             <Route path="kids"         element={<Kids />} />
+            <Route path="contacts"     element={<Contacts />} />
             <Route path="sources"      element={<Sources />} />
             <Route path="settings"     element={<Settings />} />
             <Route path="setup"        element={<SetupAgent onSourceAdded={() => {}} />} />  {/* ← add this */}
