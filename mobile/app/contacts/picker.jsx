@@ -7,10 +7,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api } from '../../lib/api';
 import { selectionStore } from '../../lib/selectionStore';
+import { chooseNotify } from '../../lib/notifyChoice';
+import { useAuth } from '../../lib/auth';
 
 export default function ContactPicker() {
   const { session, role } = useLocalSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
+  const isPremium = user?.plan === 'premium';
 
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -46,8 +50,19 @@ export default function ContactPicker() {
     };
   }, [session]);
 
-  function select(contact) {
-    if (session) selectionStore.resolve(String(session), contact);
+  // Run the notify chooser HERE (not on the opener) so the action sheet
+  // is presented while this picker modal is still active. Doing it on the
+  // opener after router.back() causes iOS to drop the sheet during the
+  // dismiss transition — it would flash for an instant and disappear
+  // before the user could tap.
+  async function select(contact) {
+    if (!session) {
+      router.back();
+      return;
+    }
+    const notify = await chooseNotify(contact, role, { isPremium });
+    if (notify === null) return; // user cancelled — keep picker open
+    selectionStore.resolve(String(session), { contact, notify });
     router.back();
   }
 

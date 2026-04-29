@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, Pressable, Switch, Linking,
-  ActionSheetIOS, InteractionManager,
+  ActionSheetIOS,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -50,43 +50,9 @@ export default function EventDetail() {
     return logistics.find(l => l.role === role) || null;
   }
 
-  // Native iOS action sheet asking how to notify a freshly picked contact.
-  // Options shown depend on what the contact has: email, confirmed-SMS phone,
-  // or only-pending phone (Messages-app fallback). Free users skip the sheet
-  // entirely and get the existing direct-assign behavior — backend silently
-  // won't send notifications for free plans anyway.
-  function chooseNotify(contact, role) {
-    if (!isPremium) return Promise.resolve('none');
-
-    const hasEmail        = !!contact.email;
-    const hasConfirmedSms = !!contact.phone && contact.sms_consent_status === 'confirmed';
-    const hasPendingPhone = !!contact.phone && !hasConfirmedSms;
-    const firstName       = (contact.name || 'them').split(' ')[0];
-
-    const options = ['Just assign'];
-    const actions = ['none'];
-    if (hasEmail)        { options.push(`Email ${firstName}`);                       actions.push('email'); }
-    if (hasConfirmedSms) { options.push(`Text ${firstName}`);                        actions.push('sms'); }
-    if (hasPendingPhone) { options.push(`Open Messages to text ${firstName}`);       actions.push('manual_sms'); }
-    options.push('Cancel');
-
-    return new Promise((resolve) => {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          title: `Assign ${contact.name} as ${role}?`,
-          message: hasPendingPhone
-            ? `${firstName} hasn't confirmed SMS yet. You can still text them yourself from your Messages app.`
-            : undefined,
-          options,
-          cancelButtonIndex: options.length - 1,
-        },
-        (idx) => {
-          if (idx === options.length - 1) resolve(null);
-          else resolve(actions[idx]);
-        },
-      );
-    });
-  }
+  // The "how should we notify them?" action sheet now lives in the picker
+  // itself (lib/notifyChoice.js) — see the long comment in openContactPicker
+  // below for why.
 
   // Open the native Messages app pre-filled with the request, including
   // the same Yes/No tap-links that the Twilio path embeds. Token comes
@@ -169,18 +135,16 @@ export default function EventDetail() {
   }
 
   function openContactPicker(role) {
-    const sessionId = selectionStore.createSession(async (contact) => {
-      if (!contact) return;
-
-      // Wait for the picker's dismissal animation to complete before
-      // presenting our action sheet. iOS silently drops a
-      // UIAlertController if it's presented while another modal is
-      // mid-pop — without this, premium users would tap a contact and
-      // see absolutely nothing happen (the await below would hang).
-      await new Promise(resolve => InteractionManager.runAfterInteractions(resolve));
-
-      const choice = await chooseNotify(contact, role);
-      if (choice === null) return; // user hit Cancel on the sheet
+    // The picker itself prompts the user for the notify choice (email /
+    // text / open-Messages / just-assign) before resolving, because that
+    // action sheet has to be presented while the picker is the active
+    // modal. Presenting it from here — after router.back() has started
+    // dismissing the picker — caused iOS to silently drop the sheet
+    // mid-animation, which manifested as "tap a contact, sheet flashes
+    // for a moment, then nothing happens." See lib/notifyChoice.js.
+    const sessionId = selectionStore.createSession(async (payload) => {
+      if (!payload || !payload.contact) return;
+      const { contact, notify: choice } = payload;
 
       // 'manual_sms' opens Messages directly and still records the
       // assignment server-side (with notify='none' so we don't ALSO try
