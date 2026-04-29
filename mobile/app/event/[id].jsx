@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, Pressable, Switch, Linking,
-  ActionSheetIOS,
+  ActionSheetIOS, InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -171,6 +171,13 @@ export default function EventDetail() {
   function openContactPicker(role) {
     const sessionId = selectionStore.createSession(async (contact) => {
       if (!contact) return;
+
+      // Wait for the picker's dismissal animation to complete before
+      // presenting our action sheet. iOS silently drops a
+      // UIAlertController if it's presented while another modal is
+      // mid-pop — without this, premium users would tap a contact and
+      // see absolutely nothing happen (the await below would hang).
+      await new Promise(resolve => InteractionManager.runAfterInteractions(resolve));
 
       const choice = await chooseNotify(contact, role);
       if (choice === null) return; // user hit Cancel on the sheet
