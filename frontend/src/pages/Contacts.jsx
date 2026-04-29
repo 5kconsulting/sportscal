@@ -61,7 +61,6 @@ function RideContacts() {
   const [form, setForm]         = useState({ name: '', email: '', phone: '' });
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
-  const [resendingId, setResendingId] = useState(null);
 
   useEffect(() => {
     api.contacts.list()
@@ -110,19 +109,6 @@ function RideContacts() {
     setContacts(c => c.filter(x => x.id !== id));
   }
 
-  async function handleResendOptIn(id) {
-    setResendingId(id);
-    try {
-      await api.contacts.sendOptIn(id);
-      setContacts(c => c.map(x => x.id === id ? { ...x, opt_in_sent_at: new Date().toISOString() } : x));
-      alert('Opt-in text sent. Waiting for them to reply YES.');
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setResendingId(null);
-    }
-  }
-
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -151,61 +137,28 @@ function RideContacts() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {contacts.map(c => {
-              const status = c.sms_consent_status || 'pending';
-              const hasPhone = !!c.phone;
-              const pillColor =
-                status === 'confirmed' ? '#00b377'
-                : status === 'declined' ? '#ef4444'
-                : '#f59e0b';
-              const pillLabel =
-                status === 'confirmed' ? 'SMS opted in'
-                : status === 'declined' ? 'SMS opted out'
-                : 'SMS pending';
-              return (
-                <div key={c.id} className="card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: '50%',
-                    background: 'var(--navy)', border: '2px solid var(--navy-mid)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 16, fontWeight: 700, color: 'var(--accent)', flexShrink: 0,
-                  }}>
-                    {c.name[0]}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                    <div style={{ fontSize: 13, color: 'var(--slate)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {[c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info'}
-                    </div>
-                    {hasPhone && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                        <span style={{
-                          display: 'inline-block', width: 6, height: 6, borderRadius: 3,
-                          background: pillColor,
-                        }} />
-                        <span style={{ fontSize: 11, color: pillColor, fontWeight: 600, letterSpacing: 0.3 }}>
-                          {pillLabel.toUpperCase()}
-                        </span>
-                        {status === 'pending' && (
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => handleResendOptIn(c.id)}
-                            disabled={resendingId === c.id}
-                            style={{ fontSize: 11, padding: '2px 8px', marginLeft: 4 }}
-                          >
-                            {resendingId === c.id ? 'Sending…' : 'Resend opt-in'}
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                    <button className="btn btn-ghost btn-sm" onClick={() => openEdit(c)}>Edit</button>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c.id)}>Remove</button>
+            {contacts.map(c => (
+              <div key={c.id} className="card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: '50%',
+                  background: 'var(--navy)', border: '2px solid var(--navy-mid)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 16, fontWeight: 700, color: 'var(--accent)', flexShrink: 0,
+                }}>
+                  {c.name[0]}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 16, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                  <div style={{ fontSize: 13, color: 'var(--slate)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {[c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info'}
                   </div>
                 </div>
-              );
-            })}
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => openEdit(c)}>Edit</button>
+                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c.id)}>Remove</button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -238,18 +191,6 @@ function RideContacts() {
                   value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
 
-              {form.phone && !editing && (
-                <div style={{
-                  fontSize: 12, color: 'var(--slate)', lineHeight: 1.55,
-                  background: 'var(--off-white)', borderRadius: 8,
-                  padding: '12px 14px', border: '1px solid var(--border)',
-                }}>
-                  When you save, SportsCal will text this number once asking them to reply
-                  <strong> YES</strong> to receive ride coordination messages. Until they reply
-                  YES, we won&rsquo;t send them anything. They can reply <strong>STOP</strong>
-                  any time to opt out. Msg&amp;data rates may apply.
-                </div>
-              )}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="submit" className="btn btn-primary" disabled={saving} style={{ flex: 1, justifyContent: 'center' }}>
                   {saving ? <span className="spinner" style={{ width: 14, height: 14 }} /> : 'Save'}

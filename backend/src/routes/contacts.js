@@ -10,6 +10,15 @@ router.use(requireAuth);
 // to avoid spamming someone who hasn't replied YES yet.
 const OPT_IN_RESEND_COOLDOWN_MS = 60 * 1000;
 
+// v1 ships ride coordination via the parent's own iMessage instead
+// of Twilio. The auto-opt-in SMS that used to fire whenever a contact
+// was created or had its phone updated is now gated behind an env
+// flag — default off so we don't quietly attempt failing Twilio
+// sends or surprise contacts with YES/STOP texts they didn't expect.
+// Set TWILIO_OPTIN_ENABLED=true to re-enable when A2P/TFN is verified
+// and the product is actually using Twilio for outbound SMS.
+const OPTIN_AUTO_ENABLED = process.env.TWILIO_OPTIN_ENABLED === 'true';
+
 // Fire-and-forget opt-in send. Errors are logged but never block the
 // HTTP response — the parent already has the contact in their list,
 // they can resend manually if delivery fails.
@@ -67,7 +76,7 @@ router.post('/', async (req, res) => {
       [req.user.id, name.trim(), email?.trim() || null, normalizedPhone]
     );
 
-    if (normalizedPhone) {
+    if (normalizedPhone && OPTIN_AUTO_ENABLED) {
       const parent = await queryOne(`SELECT name FROM users WHERE id = $1`, [req.user.id]);
       fireOptIn(contact, parent?.name);
     }
@@ -116,7 +125,7 @@ router.patch('/:id', async (req, res) => {
       );
     }
 
-    if (phoneChanged && normalizedPhone) {
+    if (phoneChanged && normalizedPhone && OPTIN_AUTO_ENABLED) {
       const parent = await queryOne(`SELECT name FROM users WHERE id = $1`, [req.user.id]);
       fireOptIn(contact, parent?.name);
     }
