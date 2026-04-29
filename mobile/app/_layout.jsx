@@ -74,6 +74,10 @@ function AuthGate() {
         name="kids/[id]"
         options={{ presentation: 'modal', headerShown: false }}
       />
+      <Stack.Screen
+        name="setup"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
     </Stack>
   );
 }

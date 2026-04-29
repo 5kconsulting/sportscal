@@ -156,6 +156,20 @@ export default function Settings() {
         </Text>
       </View>
 
+      <TouchableOpacity
+        style={s.setupBtn}
+        onPress={() => router.push('/setup')}
+        activeOpacity={0.8}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={s.setupTitle}>Setup helper</Text>
+          <Text style={s.setupSub}>
+            Add or update calendar sources by chatting with the helper.
+          </Text>
+        </View>
+        <Text style={s.setupChevron}>›</Text>
+      </TouchableOpacity>
+
       <View style={s.section}>
         <Text style={s.label}>Calendar feed</Text>
         <Text style={s.feedHelp}>
@@ -273,6 +287,14 @@ const s = StyleSheet.create({
   value:    { fontSize: 16, fontWeight: '600', color: '#0f1629' },
   sub:      { fontSize: 13, color: '#8896b0', marginTop: 2 },
   feedHelp: { fontSize: 13, color: '#4a5670', lineHeight: 18, marginBottom: 12 },
+  setupBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#0f1629', borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12,
+  },
+  setupTitle: { fontSize: 15, fontWeight: '600', color: '#00d68f' },
+  setupSub:   { fontSize: 12, color: '#b8c4d8', marginTop: 2, lineHeight: 16 },
+  setupChevron: { fontSize: 22, color: '#00d68f', fontWeight: '300', marginLeft: 8 },
   feedPrimaryBtn: {
     backgroundColor: '#00d68f', borderRadius: 10,
     paddingVertical: 13, alignItems: 'center',

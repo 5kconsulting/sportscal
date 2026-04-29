@@ -3,13 +3,14 @@ import {
   View, Text, StyleSheet, FlatList, RefreshControl,
   ActivityIndicator, TouchableOpacity,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
 import { EventCard } from '../../components/EventCard';
 
 export default function Calendar() {
   const { user } = useAuth();
+  const router = useRouter();
   const [events, setEvents]       = useState([]);
   const [overrides, setOverrides] = useState({}); // { [eventId]: { [kidId]: attending } }
   const [loading, setLoading]     = useState(true);
@@ -106,9 +107,19 @@ export default function Calendar() {
         }
         ListEmptyComponent={
           <View style={s.empty}>
+            <Text style={s.emptyEmoji}>📅</Text>
+            <Text style={s.emptyTitle}>No upcoming events</Text>
             <Text style={s.emptyText}>
-              No upcoming events. Add calendar sources on the web app to get started.
+              Connect your sports calendars to see games and practices here.
+              The setup helper walks you through it in a couple of minutes.
             </Text>
+            <TouchableOpacity
+              style={s.emptyCta}
+              onPress={() => router.push('/setup')}
+              activeOpacity={0.8}
+            >
+              <Text style={s.emptyCtaText}>Open setup helper</Text>
+            </TouchableOpacity>
           </View>
         }
         renderItem={({ item }) => {
@@ -150,8 +161,18 @@ const s = StyleSheet.create({
     fontSize: 11, fontWeight: '600', color: '#8896b0',
     textTransform: 'uppercase', letterSpacing: 0.8,
   },
-  empty:       { padding: 40, alignItems: 'center' },
-  emptyText:   { color: '#8896b0', fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  empty: {
+    paddingHorizontal: 24, paddingTop: 40, paddingBottom: 60,
+    alignItems: 'center',
+  },
+  emptyEmoji: { fontSize: 36, marginBottom: 12 },
+  emptyTitle: { fontSize: 17, fontWeight: '600', color: '#0f1629', marginBottom: 6 },
+  emptyText:  { color: '#8896b0', fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 18 },
+  emptyCta: {
+    backgroundColor: '#00d68f', borderRadius: 10,
+    paddingHorizontal: 18, paddingVertical: 12,
+  },
+  emptyCtaText: { color: '#0f1629', fontSize: 15, fontWeight: '600' },
   errorText:   { color: '#ff6b6b', fontSize: 14, marginBottom: 16 },
   retry:       { paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderColor: '#00d68f', borderRadius: 8 },
   retryText:   { color: '#00d68f', fontWeight: '500' },
