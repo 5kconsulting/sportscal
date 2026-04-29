@@ -54,6 +54,18 @@ function AuthGate() {
         name="contacts/picker"
         options={{ presentation: 'modal', headerShown: false }}
       />
+      <Stack.Screen
+        name="contacts/new"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
+      <Stack.Screen
+        name="teams/new"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
+      <Stack.Screen
+        name="teams/[id]"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
     </Stack>
   );
 }
