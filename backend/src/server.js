@@ -36,6 +36,7 @@ import twilioRoutes           from './routes/twilio.js';
 import teamsRoutes            from './routes/teams.js';
 import respondRoutes          from './routes/respond.js';
 import joinTeamRoutes         from './routes/joinTeam.js';
+import setupAgentRoutes      from './routes/setupAgent.js';
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -102,6 +103,7 @@ app.use('/api/logistics',   logisticsRoutes);
 app.use('/api/overrides',   overridesRoutes);
 app.use('/api/ingestions',  ingestionsRoutes);
 app.use('/api/teams',       teamsRoutes);
+app.use('/api/setup-agent', setupAgentRoutes);
 app.use('/api/twilio',      twilioRoutes);   // public: Twilio inbound webhook (signature-verified)
 app.use('/feed',            calendarRoutes); // public: /feed/:token.ics
 app.use('/r',               respondRoutes);  // public: team-request landing page
