@@ -48,7 +48,14 @@ app.set('trust proxy', 1);
 // ============================================================
 app.use(helmet());
 
-app.use(cors({
+// CORS is for protecting cross-origin API access — it doesn't
+// belong on the public server-rendered landing pages (/feed/,
+// /r/, /join/) which authenticate via path tokens and are meant
+// to be reachable from anywhere. Scoping to /api/ only also
+// fixes a real bug where same-origin form POSTs to /join/:token
+// were being rejected because the browser-supplied Origin
+// header didn't exactly startsWith FRONTEND_URL.
+app.use('/api', cors({
   origin: (origin, callback) => {
     const allowed = [
       process.env.FRONTEND_URL,
