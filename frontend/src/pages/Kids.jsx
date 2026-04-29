@@ -2,6 +2,26 @@ import { useState, useEffect } from 'react';
 import { api } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.jsx';
 
+// Parse a roster line into { name, phone, email } — pulls the email
+// and phone via regex and treats whatever's left as the name.
+// Forgiving by design: accepts commas, tabs, pipes, "Linda 555-0100",
+// "Linda Smith linda@email.com (503) 555-0100", etc.
+const ROSTER_EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.-]+/;
+const ROSTER_PHONE_RE = /(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/;
+function parseRosterLine(line) {
+  let s = String(line || '').trim();
+  if (!s) return null;
+  let email = null, phone = null;
+  const em = s.match(ROSTER_EMAIL_RE); if (em) { email = em[0]; s = s.replace(email, ''); }
+  const ph = s.match(ROSTER_PHONE_RE); if (ph) { phone = ph[0]; s = s.replace(phone, ''); }
+  const name = s.replace(/[,;|\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!name) return null;
+  return { name, phone, email };
+}
+function parseRoster(text) {
+  return String(text || '').split('\n').map(parseRosterLine).filter(Boolean);
+}
+
 function UpgradeBanner() {
   const [loading, setLoading] = useState(false);
 
@@ -230,6 +250,10 @@ function Teams() {
   // expanded view has its own draft.
   const [newMember, setNewMember] = useState({ teamId: null, name: '', email: '', phone: '' });
   const [creatingMember, setCreatingMember] = useState(false);
+  // Bulk paste-a-roster state — same per-team keying as newMember
+  // so opening one auto-closes the inline single-add form.
+  const [bulkAdd, setBulkAdd] = useState({ teamId: null, input: '' });
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   useEffect(() => { load(); }, []);
 
@@ -307,6 +331,25 @@ function Teams() {
       await load();
     } catch (err) {
       alert(err.message);
+    }
+  }
+
+  // Bulk paste flow — anyone with the team's contact list (coach,
+  // team mom, the parent who happens to have the spreadsheet) can
+  // paste it instead of typing 24 entries one at a time.
+  async function handleBulkAdd(team, e) {
+    e.preventDefault();
+    const parsed = parseRoster(bulkAdd.input);
+    if (!parsed.length) return;
+    setBulkSaving(true);
+    try {
+      await api.teams.addMembersBulk(team.id, parsed);
+      setBulkAdd({ teamId: null, input: '' });
+      await load();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setBulkSaving(false);
     }
   }
 
@@ -533,17 +576,72 @@ function Teams() {
                               </button>
                             </div>
                           </form>
-                        ) : (
-                          <button type="button"
-                            onClick={() => setNewMember({ teamId: team.id, name: '', email: '', phone: '' })}
-                            style={{
-                              fontSize: 13, padding: '8px 12px', borderRadius: 8,
-                              border: '1px dashed var(--border)', cursor: 'pointer',
-                              background: 'transparent', color: 'var(--slate)',
-                              width: '100%', textAlign: 'center', fontWeight: 500,
-                            }}>
-                            + Add a new person
-                          </button>
+                        ) : bulkAdd.teamId === team.id ? (() => {
+                          // Live-parsed preview — re-runs each render,
+                          // cheap for ≤100 lines so no memo needed.
+                          const parsed = parseRoster(bulkAdd.input);
+                          const preview = parsed.slice(0, 5).map(p => p.name).join(', ');
+                          const more = parsed.length > 5 ? `, and ${parsed.length - 5} more` : '';
+                          return (
+                            <form onSubmit={(e) => handleBulkAdd(team, e)}
+                              style={{
+                                background: 'var(--off-white)', border: '1px solid var(--border)',
+                                borderRadius: 8, padding: 12, display: 'flex',
+                                flexDirection: 'column', gap: 8,
+                              }}>
+                              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--slate)' }}>
+                                Paste a list — one per line. Forgiving format: name, phone, email in any order.
+                              </div>
+                              <textarea className="input"
+                                value={bulkAdd.input}
+                                onChange={(e) => setBulkAdd(b => ({ ...b, input: e.target.value }))}
+                                placeholder={`Linda Smith, 503-555-0100\nMike Johnson 503-555-0123 mike@email.com\nAnna Lee, anna@email.com, (503) 555-0144`}
+                                rows={6}
+                                style={{ fontFamily: 'var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace)', fontSize: 13, lineHeight: 1.5, resize: 'vertical' }}
+                                autoFocus
+                              />
+                              <div style={{ fontSize: 12, color: 'var(--slate)', minHeight: 18 }}>
+                                {parsed.length === 0
+                                  ? 'No rows parsed yet — paste your list above.'
+                                  : `Will add ${parsed.length} ${parsed.length === 1 ? 'person' : 'people'}: ${preview}${more}`}
+                              </div>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button type="submit" className="btn btn-primary btn-sm"
+                                  disabled={bulkSaving || !parsed.length}
+                                  style={{ flex: 1, justifyContent: 'center' }}>
+                                  {bulkSaving ? '…' : `Add ${parsed.length || ''} to group`.trim()}
+                                </button>
+                                <button type="button" className="btn btn-ghost btn-sm"
+                                  onClick={() => setBulkAdd({ teamId: null, input: '' })}>
+                                  Cancel
+                                </button>
+                              </div>
+                            </form>
+                          );
+                        })() : (
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            <button type="button"
+                              onClick={() => setNewMember({ teamId: team.id, name: '', email: '', phone: '' })}
+                              style={{
+                                fontSize: 13, padding: '8px 12px', borderRadius: 8,
+                                border: '1px dashed var(--border)', cursor: 'pointer',
+                                background: 'transparent', color: 'var(--slate)',
+                                flex: '1 1 200px', textAlign: 'center', fontWeight: 500,
+                              }}>
+                              + Add a new person
+                            </button>
+                            <button type="button"
+                              onClick={() => setBulkAdd({ teamId: team.id, input: '' })}
+                              style={{
+                                fontSize: 13, padding: '8px 12px', borderRadius: 8,
+                                border: '1px dashed var(--border)', cursor: 'pointer',
+                                background: 'transparent', color: 'var(--slate)',
+                                flex: '1 1 200px', textAlign: 'center', fontWeight: 500,
+                              }}
+                              title="Paste a roster you got from the coach, league registration, or a team email">
+                              📋 Paste a list
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>

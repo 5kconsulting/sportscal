@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { query, queryOne } from '../db/index.js';
+import { query, queryOne, withTransaction } from '../db/index.js';
+import { toE164 } from '../lib/sms.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -128,6 +129,77 @@ router.post('/:id/members', async (req, res) => {
     await addMembers(team.id, req.user.id, contact_ids);
     res.json({ ok: true });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// POST /api/teams/:id/members/bulk
+//
+// Bulk paste-a-roster flow. Body: { members: [{ name, phone, email }] }
+// Creates one contact per member and adds them all to the team in
+// a single transaction so a partial failure rolls back cleanly. No
+// dedup against existing contacts in v1 — duplicates are rare in
+// practice for a fresh team setup, and the parent can clean them
+// up from Ride contacts later.
+// ============================================================
+router.post('/:id/members/bulk', async (req, res) => {
+  try {
+    const { members } = req.body;
+    if (!Array.isArray(members) || !members.length) {
+      return res.status(422).json({ error: 'members must be a non-empty array' });
+    }
+    if (members.length > 100) {
+      return res.status(422).json({ error: 'Up to 100 members per upload' });
+    }
+
+    const team = await queryOne(
+      `SELECT id FROM teams WHERE id = $1 AND user_id = $2`,
+      [req.params.id, req.user.id]
+    );
+    if (!team) return res.status(404).json({ error: 'Team not found' });
+
+    // Normalize phones to E.164 server-side so the inbound webhook
+    // lookup matches what Twilio sends (matches POST /api/contacts
+    // behavior). Filter out rows with no name — required field.
+    const cleaned = members
+      .map(m => ({
+        name:  String(m.name || '').trim(),
+        phone: m.phone ? (toE164(m.phone) || String(m.phone).trim()) : null,
+        email: m.email ? String(m.email).trim().toLowerCase() : null,
+      }))
+      .filter(m => m.name);
+
+    if (!cleaned.length) {
+      return res.status(422).json({ error: 'No rows had a name' });
+    }
+
+    const result = await withTransaction(async (client) => {
+      const contactIds = [];
+      for (const m of cleaned) {
+        const { rows: [contact] } = await client.query(
+          `INSERT INTO contacts (user_id, name, email, phone)
+           VALUES ($1, $2, $3, $4)
+           RETURNING id`,
+          [req.user.id, m.name, m.email, m.phone]
+        );
+        contactIds.push(contact.id);
+      }
+      // Single multi-row INSERT for team_members. ON CONFLICT eats
+      // dupes (shouldn't happen since these are fresh contacts, but
+      // belt-and-suspenders).
+      const placeholders = contactIds.map((_, i) => `($1, $${i + 2})`).join(', ');
+      await client.query(
+        `INSERT INTO team_members (team_id, contact_id) VALUES ${placeholders}
+         ON CONFLICT (team_id, contact_id) DO NOTHING`,
+        [team.id, ...contactIds]
+      );
+      return contactIds;
+    });
+
+    res.status(201).json({ added: result.length });
+  } catch (err) {
+    console.error('[teams] bulk error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
