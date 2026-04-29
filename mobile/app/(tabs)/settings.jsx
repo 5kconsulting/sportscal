@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Linking, Share } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
 
@@ -9,9 +10,44 @@ export default function Settings() {
   const { user, logout, updateUser } = useAuth();
   const [deleting, setDeleting] = useState(false);
   const [rotating, setRotating] = useState(false);
+  const [kids, setKids] = useState([]);
+  const [kidsLoading, setKidsLoading] = useState(true);
 
   const httpsFeedUrl  = user?.feed_token ? `https://${FEED_HOST}/feed/${user.feed_token}.ics` : '';
   const webcalFeedUrl = user?.feed_token ? `webcal://${FEED_HOST}/feed/${user.feed_token}.ics`  : '';
+
+  // Load kids on focus so adding/removing a kid on the web (the source of
+  // truth for kid CRUD today) is reflected the next time we land here.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      api.get('/api/kids')
+        .then(({ kids }) => { if (!cancelled) setKids(kids || []); })
+        .catch(() => {})
+        .finally(() => { if (!cancelled) setKidsLoading(false); });
+      return () => { cancelled = true; };
+    }, [])
+  );
+
+  async function shareKidSchedule(kid) {
+    if (!kid?.feed_token) {
+      Alert.alert('Missing link', 'This kid is missing a feed token. Pull to refresh and try again.');
+      return;
+    }
+    // webcal:// is what makes Apple/Google Calendar prompt to subscribe
+    // rather than just download the .ics. iMessage tappifies the URL
+    // the same way it would an https:// link.
+    const webcalUrl = `webcal://${FEED_HOST}/feed/kid/${kid.feed_token}.ics`;
+    const message   = `Subscribe to your SportsCal schedule, ${kid.name}: ${webcalUrl}`;
+    try {
+      // Native share sheet — Messages, Mail, AirDrop, Copy, Notes, etc.
+      // Better than the web's sms-only path: parents can AirDrop straight
+      // to the kid's iPad or share via whichever channel the kid uses.
+      await Share.share({ url: webcalUrl, message });
+    } catch {
+      // user dismissed — no-op
+    }
+  }
 
   function subscribeInCalendar() {
     if (!webcalFeedUrl) return;
@@ -155,6 +191,41 @@ export default function Settings() {
         </TouchableOpacity>
       </View>
 
+      <View style={s.section}>
+        <Text style={s.label}>Kid calendars</Text>
+        <Text style={s.feedHelp}>
+          Each kid has their own subscription link — tap Share to send it
+          to their device. They'll see only their own events.
+        </Text>
+
+        {kidsLoading ? (
+          <ActivityIndicator color="#00d68f" style={{ marginTop: 8 }} />
+        ) : kids.length === 0 ? (
+          <Text style={s.kidsEmpty}>
+            No kids yet. Add one on sportscalapp.com (mobile editing coming soon).
+          </Text>
+        ) : (
+          <View style={{ gap: 8 }}>
+            {kids.map(kid => (
+              <View key={kid.id} style={s.kidRow}>
+                <View style={[s.kidAvatar, { backgroundColor: kid.color || '#6366f1' }]}>
+                  <Text style={s.kidAvatarText}>{kid.name?.[0] || '?'}</Text>
+                </View>
+                <Text style={s.kidName} numberOfLines={1}>{kid.name}</Text>
+                <TouchableOpacity
+                  style={s.kidShareBtn}
+                  onPress={() => shareKidSchedule(kid)}
+                  activeOpacity={0.7}
+                  disabled={!kid.feed_token}
+                >
+                  <Text style={s.kidShareText}>Share</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
       <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
         <Text style={s.logoutText}>Sign out</Text>
       </TouchableOpacity>
@@ -198,6 +269,22 @@ const s = StyleSheet.create({
   feedSecondaryText: { color: '#0f1629', fontSize: 14, fontWeight: '500' },
   feedResetBtn: { paddingVertical: 10, alignItems: 'center', marginTop: 4 },
   feedResetText: { color: '#8896b0', fontSize: 12, fontWeight: '500', textDecorationLine: 'underline' },
+  kidsEmpty: { fontSize: 13, color: '#8896b0', lineHeight: 18, marginTop: 4 },
+  kidRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 6,
+  },
+  kidAvatar: {
+    width: 32, height: 32, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  kidAvatarText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
+  kidName: { flex: 1, fontSize: 15, fontWeight: '500', color: '#0f1629' },
+  kidShareBtn: {
+    backgroundColor: '#00d68f', borderRadius: 8,
+    paddingHorizontal: 14, paddingVertical: 7,
+  },
+  kidShareText: { color: '#0f1629', fontSize: 13, fontWeight: '600' },
   logoutBtn:{
     borderWidth: 1, borderColor: '#ff6b6b', borderRadius: 10,
     paddingVertical: 14, alignItems: 'center', marginTop: 8, backgroundColor: '#ffffff',
