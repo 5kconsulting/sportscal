@@ -122,7 +122,53 @@ export default function EventDetail() {
     });
   }
 
-  function openPicker(role) {
+  // Top-level "+ Assign" tap. For free users we go straight to the
+  // single-contact picker (matches existing behavior). For Premium
+  // users with at least one group configured, we ask first whether
+  // they want a single contact or a whole group — same shape as the
+  // tabbed UI on the web event modal.
+  async function openPicker(role) {
+    if (!isPremium) {
+      openContactPicker(role);
+      return;
+    }
+    let teams = [];
+    try {
+      const r = await api.get('/api/teams');
+      teams = r.teams || [];
+    } catch {
+      // If teams endpoint is unreachable, just fall back to contact
+      // picker. Better than blocking on a non-essential lookup.
+    }
+    if (!teams.length) {
+      openContactPicker(role);
+      return;
+    }
+    const choice = await chooseAssignType(role);
+    if (choice === 'contact') openContactPicker(role);
+    else if (choice === 'team') openTeamRequest(role, teams);
+  }
+
+  function chooseAssignType(role) {
+    const action_word = role === 'pickup' ? 'pick up' : 'drop off';
+    return new Promise((resolve) => {
+      const options = ['Pick a contact', 'Ask a group', 'Cancel'];
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: `Who handles ${action_word}?`,
+          options,
+          cancelButtonIndex: options.length - 1,
+        },
+        (idx) => {
+          if (idx === 0) resolve('contact');
+          else if (idx === 1) resolve('team');
+          else resolve(null);
+        },
+      );
+    });
+  }
+
+  function openContactPicker(role) {
     const sessionId = selectionStore.createSession(async (contact) => {
       if (!contact) return;
 
@@ -165,6 +211,59 @@ export default function EventDetail() {
       }
     });
     router.push(`/contacts/picker?session=${sessionId}&role=${role}`);
+  }
+
+  // Ask-a-group flow. Second action sheet lists the user's groups
+  // with member counts; on pick, fires team-request and opens iMessage
+  // with the recipient list + body prefilled. iOS will then create a
+  // single group thread and send the message from the parent's own
+  // phone — no Twilio.
+  async function openTeamRequest(role, teams) {
+    const action_word = role === 'pickup' ? 'pick up' : 'drop off';
+    const team = await new Promise((resolve) => {
+      const options = teams.map(t => {
+        const total = (t.members || []).length;
+        const reachable = (t.members || []).filter(m => m.phone).length;
+        const suffix = reachable === total ? `(${total})` : `(${reachable}/${total})`;
+        return `${t.name} ${suffix}`;
+      });
+      options.push('Cancel');
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: `Ask which group to ${action_word}?`,
+          options,
+          cancelButtonIndex: options.length - 1,
+        },
+        (idx) => {
+          if (idx === options.length - 1) resolve(null);
+          else resolve(teams[idx]);
+        },
+      );
+    });
+    if (!team) return;
+
+    setSavingRole(role);
+    try {
+      const resp = await api.post(`/api/logistics/${id}/team-request`, {
+        team_id: team.id,
+        role,
+      });
+      const phones = (resp.phones || []).join(',');
+      const body = encodeURIComponent(resp.sms_body || '');
+      // sms:?addresses=N1,N2&body=… — same form used on web. iMessage
+      // group thread opens; parent hits Send. First parent to tap the
+      // landing-page link claims the role.
+      Linking.openURL(`sms:?addresses=${phones}&body=${body}`).catch(() => {
+        Alert.alert(
+          'Could not open Messages',
+          'The message body has been copied to your clipboard if available.',
+        );
+      });
+    } catch (err) {
+      Alert.alert('Could not send group request', err.message || 'Please try again.');
+    } finally {
+      setSavingRole(null);
+    }
   }
 
   async function setKidAttendance(kidId, attending) {
