@@ -89,6 +89,7 @@ export const api = {
     addMembers:      (id, contact_ids)          => post(`/teams/${id}/members`, { contact_ids }),
     addMembersBulk:  (id, members)              => post(`/teams/${id}/members/bulk`, { members }),
     removeMember:    (id, contactId)            => del(`/teams/${id}/members/${contactId}`),
+    createInvite:    (id)                       => post(`/teams/${id}/invites`),
   },
   logistics: {
     list:        ()              => get(`/logistics`),

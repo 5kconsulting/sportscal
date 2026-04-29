@@ -11,7 +11,8 @@ const apiProxy = createProxyMiddleware({
   pathFilter: (path) =>
     path.startsWith('/api/') ||
     path.startsWith('/feed/') ||
-    path.startsWith('/r/'),     // team-request landing page (server-rendered)
+    path.startsWith('/r/')     ||  // team-request landing page (server-rendered)
+    path.startsWith('/join/'),     // team-invite self-signup page (server-rendered)
   on: {
     proxyReq: (proxyReq, req) => {
       console.log('[proxy]', req.method, req.url, '->', API_URL + req.url);

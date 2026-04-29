@@ -354,6 +354,34 @@ function Teams() {
     }
   }
 
+  // Generate a self-signup invite link, then open iMessage prefilled
+  // with the share message. Mac / iOS / Android open Messages
+  // directly; Windows / Linux fall back to clipboard. Mirrors the
+  // pattern used by "Share schedule" on the Family page.
+  async function handleShareInvite(team) {
+    try {
+      const { url, team_name } = await api.teams.createInvite(team.id);
+      const body =
+        `Join my ${team_name} group on SportsCal so I can include you in ` +
+        `ride coordination: ${url}`;
+      const supportsSmsLink = /Mac|iPhone|iPad|iPod|Android/.test(navigator.userAgent);
+      if (supportsSmsLink) {
+        window.location.href = `sms:?body=${encodeURIComponent(body)}`;
+      } else {
+        try {
+          await navigator.clipboard.writeText(url);
+          alert(
+            `Invite link copied. Send to anyone who should join the ${team_name} group:\n\n${url}`
+          );
+        } catch {
+          window.prompt(`Invite link for ${team_name} — share with whoever should join:`, url);
+        }
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   async function handleAddExistingMembers(team, contactIds) {
     if (!contactIds.length) return;
     try {
@@ -504,6 +532,10 @@ function Teams() {
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       <button className="btn btn-ghost btn-sm" onClick={() => setExpanded(isOpen ? null : team.id)}>
                         {isOpen ? 'Hide' : 'Manage'}
+                      </button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => handleShareInvite(team)}
+                        title="Share a link anyone can tap to add their own info to this group">
+                        📨 Share invite
                       </button>
                       <button className="btn btn-ghost btn-sm" onClick={() => handleRename(team)}>Rename</button>
                       <button className="btn btn-danger btn-sm" onClick={() => handleDelete(team)}>Delete</button>

@@ -1,7 +1,10 @@
 import { Router } from 'express';
+import crypto from 'crypto';
 import { requireAuth } from '../middleware/auth.js';
 import { query, queryOne, withTransaction } from '../db/index.js';
 import { toE164 } from '../lib/sms.js';
+
+const APP_URL = process.env.FRONTEND_URL || 'https://www.sportscalapp.com';
 
 const router = Router();
 router.use(requireAuth);
@@ -200,6 +203,40 @@ router.post('/:id/members/bulk', async (req, res) => {
     res.status(201).json({ added: result.length });
   } catch (err) {
     console.error('[teams] bulk error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// POST /api/teams/:id/invites
+//
+// Generate a self-signup invite link for this team. The owner
+// shares the link (via iMessage, email, whatever) and recipients
+// fill out their own name/phone/email at /join/<token> to add
+// themselves to the team. v1: evergreen (no expiry), no revoke
+// UI — schema supports both, just not surfaced yet.
+// ============================================================
+router.post('/:id/invites', async (req, res) => {
+  try {
+    const team = await queryOne(
+      `SELECT id, name FROM teams WHERE id = $1 AND user_id = $2`,
+      [req.params.id, req.user.id]
+    );
+    if (!team) return res.status(404).json({ error: 'Team not found' });
+
+    const token = crypto.randomBytes(18).toString('hex'); // 36 chars; short enough for an SMS body
+    const invite = await queryOne(
+      `INSERT INTO team_invites (team_id, user_id, token)
+       VALUES ($1, $2, $3) RETURNING id, token, created_at`,
+      [team.id, req.user.id, token]
+    );
+
+    res.status(201).json({
+      invite,
+      url: `${APP_URL}/join/${invite.token}`,
+      team_name: team.name,
+    });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
