@@ -32,6 +32,33 @@ async function ensureStorageDir() {
   await fs.mkdir(STORAGE_ROOT, { recursive: true });
 }
 
+// JPEG + PNG are the formats Claude's vision API accepts directly. HEIC
+// (iPhone default) is intentionally rejected here — clients (mobile camera,
+// share extension) re-encode to JPEG before upload, which sidesteps adding
+// libvips/sharp as a backend dep just for HEIC conversion.
+const SUPPORTED_INGESTION_MIMES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+]);
+
+// Map a supported mime to the file extension we use on disk + in the
+// blob storage path. Extension is informational only (we read by mime),
+// but it makes the storage tree easier to spelunk during incident
+// debugging.
+function extensionForMime(mime) {
+  switch (mime) {
+    case 'application/pdf': return 'pdf';
+    case 'image/jpeg':      return 'jpg';
+    case 'image/png':       return 'png';
+    default:                return 'bin';
+  }
+}
+
+function kindForMime(mime) {
+  return mime === 'application/pdf' ? 'pdf' : 'image';
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -39,8 +66,8 @@ const upload = multer({
     files: 1,
   },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype !== 'application/pdf') {
-      return cb(new Error('Only PDF files are supported'));
+    if (!SUPPORTED_INGESTION_MIMES.has(file.mimetype)) {
+      return cb(new Error('Unsupported file type. Use PDF, JPEG, or PNG.'));
     }
     cb(null, true);
   },
@@ -122,8 +149,11 @@ router.post('/', requireAuth, uploadMiddleware, async (req, res) => {
 
     await ensureStorageDir();
     const ingestionId = crypto.randomUUID();
-    const storagePath = path.join(STORAGE_ROOT, ingestionId + '.pdf');
+    const ext         = extensionForMime(req.file.mimetype);
+    const storagePath = path.join(STORAGE_ROOT, ingestionId + '.' + ext);
     await fs.writeFile(storagePath, req.file.buffer);
+
+    const kind = kindForMime(req.file.mimetype);
 
     // Note: source_id is set now (at upload time) if this is a replace.
     // The original flow only sets source_id on approve; for replaces we
@@ -133,13 +163,14 @@ router.post('/', requireAuth, uploadMiddleware, async (req, res) => {
          id, user_id, kid_id, source_id, kind,
          original_filename, original_mime, original_size,
          storage_path, status, status_detail
-       ) VALUES ($1, $2, $3, $4, 'pdf', $5, $6, $7, $8, 'pending', $9)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', $10)
        RETURNING id, status, status_detail, source_id, created_at`,
       [
         ingestionId,
         req.user.id,
         kidId,
         sourceId || null,
+        kind,
         req.file.originalname,
         req.file.mimetype,
         req.file.size,
@@ -154,6 +185,8 @@ router.post('/', requireAuth, uploadMiddleware, async (req, res) => {
       'extract',
       { ingestionId },
       {
+        // jobId still 'pdf-' for backwards compatibility with in-flight
+        // jobs at deploy time; the queue accepts both PDFs and images now.
         jobId: 'pdf-' + ingestionId,
         removeOnComplete: 1000,
         removeOnFail: 5000,
@@ -297,11 +330,13 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
 
       source = { id: replacingSource.id };
     } else {
-      // --- CREATE branch (unchanged) -------------------------------------
+      // --- CREATE branch -------------------------------------------------
+      // Strip whichever extension the upload had so the suggested source
+      // name is "Tigers Schedule" not "Tigers Schedule.jpg".
       const derivedName =
         sourceName ||
-        ingestion.original_filename?.replace(/\.pdf$/i, '') ||
-        'Uploaded PDF schedule';
+        ingestion.original_filename?.replace(/\.(pdf|jpe?g|png|heic)$/i, '') ||
+        (ingestion.kind === 'image' ? 'Uploaded photo schedule' : 'Uploaded PDF schedule');
 
       source = await queryOne(
         `INSERT INTO sources (user_id, app, name, fetch_type, enabled)

@@ -1,8 +1,8 @@
 // ============================================================================
 // pdfWorker.js — BullMQ worker that extracts events from an uploaded PDF
-// via the Anthropic API and stores them on the ingestion row.
+// OR image via the Anthropic API and stores them on the ingestion row.
 //
-// Queue: 'pdf-ingestion'
+// Queue: 'pdf-ingestion'  (name kept for back-compat; handles images too)
 // Job payload: { ingestionId }
 //
 // Auto-starts on import (matches icalWorker/scrapeWorker/emailWorker pattern).
@@ -10,6 +10,12 @@
 // Status transitions:
 //   pending -> reading -> parsing -> ready_for_review   (happy path)
 //                                  -> failed            (error path)
+//
+// Branching on ingestion.kind:
+//   - 'pdf'   -> Anthropic content block with type='document'
+//   - 'image' -> content block with type='image' + media_type from
+//                ingestion.original_mime (image/jpeg or image/png).
+//                Same prompt and parsing path; the model handles both.
 // ============================================================================
 
 import { Worker } from 'bullmq';
@@ -89,8 +95,14 @@ async function processIngestion(job) {
     return;
   }
 
+  const isImage = ingestion.kind === 'image';
+
   // --- Phase 1: reading ---
-  await setStatus(ingestionId, 'reading', 'Reading your PDF...');
+  await setStatus(
+    ingestionId,
+    'reading',
+    isImage ? 'Reading your photo...' : 'Reading your PDF...',
+  );
 
   let fileBuffer;
   try {
@@ -100,17 +112,38 @@ async function processIngestion(job) {
     return;
   }
 
-  const base64Pdf = fileBuffer.toString('base64');
+  const base64File = fileBuffer.toString('base64');
 
   // --- Phase 2: parsing ---
   await setStatus(ingestionId, 'parsing', 'Extracting events...');
 
   const systemPrompt = buildExtractionSystemPrompt({
     kidName: ingestion.kid_name,
-    kidSportHint: null, // no sport column on kids — LLM infers from PDF
+    kidSportHint: null, // no sport column on kids — LLM infers from PDF/image
     userTimezone: ingestion.user_timezone,
     currentYear: new Date().getFullYear(),
   });
+
+  // Branch the content block by ingestion kind. Both paths use the same
+  // system prompt + user message — Claude handles document and image
+  // inputs uniformly when the rest of the conversation is identical.
+  const fileBlock = isImage
+    ? {
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: ingestion.original_mime || 'image/jpeg',
+          data: base64File,
+        },
+      }
+    : {
+        type: 'document',
+        source: {
+          type: 'base64',
+          media_type: 'application/pdf',
+          data: base64File,
+        },
+      };
 
   let response;
   try {
@@ -122,14 +155,7 @@ async function processIngestion(job) {
         {
           role: 'user',
           content: [
-            {
-              type: 'document',
-              source: {
-                type: 'base64',
-                media_type: 'application/pdf',
-                data: base64Pdf,
-              },
-            },
+            fileBlock,
             {
               type: 'text',
               text: buildUserMessage({ kidName: ingestion.kid_name }),
