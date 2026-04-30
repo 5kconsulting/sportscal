@@ -14,10 +14,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Alert,
+  ActionSheetIOS,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import Constants from 'expo-constants';
 import { api } from '../lib/api';
+
+const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl
+  || 'https://sportscal-production.up.railway.app';
 
 // ----- helpers --------------------------------------------------------------
 
@@ -41,12 +47,19 @@ export default function SetupAgentScreen() {
   const inputRef  = useRef(null);
 
   // messages: { role: 'user'|'assistant'|'system', content: string,
-  //             display?: string, error?: boolean }
+  //             display?: string, error?: boolean, _ingestionId?, _approvable? }
   const [messages, setMessages] = useState([]);
   const [input, setInput]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [booting, setBooting]   = useState(true);
   const [kids, setKids]         = useState([]);
+
+  // Tracks an in-flight ingestion (image upload -> Claude vision -> events).
+  // We keep this in a ref so the polling loop has a stable handle even
+  // across re-renders, and use the messages array to surface progress
+  // bubbles to the user.
+  const activeIngestionRef = useRef(null);
+  const [busyIngestion, setBusyIngestion] = useState(false);
 
   // Bootstrap: fetch kids + sources, then drop in a tailored intro message.
   useEffect(() => {
@@ -130,6 +143,215 @@ export default function SetupAgentScreen() {
     }
   }, [loading, messages]);
 
+  // ----- Photo intake ------------------------------------------------------
+  // User taps the camera icon -> action sheet (Camera / Photo Library /
+  // Cancel) -> kid picker (auto-skipped if 1 kid) -> expo-image-picker ->
+  // multipart upload to /api/ingestions -> poll for ready_for_review ->
+  // confirm bubble with event count -> approve creates a manual source.
+  //
+  // We surface progress via system bubbles in the chat so the user has a
+  // single timeline view of "we're scanning your photo." If anything fails
+  // we drop a system bubble with role='system' and error=true.
+
+  async function pickKidForUpload() {
+    if (kids.length === 0) {
+      Alert.alert(
+        'Add a kid first',
+        'Add at least one family member from Settings, then come back to scan a schedule.',
+      );
+      return null;
+    }
+    if (kids.length === 1) return kids[0];
+
+    return new Promise((resolve) => {
+      const options = kids.map(k => k.name).concat('Cancel');
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: 'Whose schedule is this?',
+          options,
+          cancelButtonIndex: options.length - 1,
+        },
+        (idx) => {
+          if (idx === options.length - 1) resolve(null);
+          else resolve(kids[idx]);
+        },
+      );
+    });
+  }
+
+  async function pickImageSource() {
+    return new Promise((resolve) => {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: 'Add a photo of a schedule',
+          options: ['Take photo', 'Choose from library', 'Cancel'],
+          cancelButtonIndex: 2,
+        },
+        (idx) => {
+          if (idx === 0) resolve('camera');
+          else if (idx === 1) resolve('library');
+          else resolve(null);
+        },
+      );
+    });
+  }
+
+  async function launchPicker(source) {
+    // Permissions are auto-prompted by expo-image-picker on first call.
+    // We re-encode to JPEG by passing mediaTypes=Images so iOS converts
+    // HEIC photos to JPEG (Claude vision doesn't accept HEIC; the backend
+    // would 415 otherwise).
+    const opts = {
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+      allowsEditing: false,
+      // exif: false keeps the upload smaller — we don't need camera metadata.
+      exif: false,
+      base64: false,
+    };
+    if (source === 'camera') {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Camera access denied', 'Enable camera access in Settings to take a photo.');
+        return null;
+      }
+      const r = await ImagePicker.launchCameraAsync(opts);
+      return r.canceled ? null : r.assets?.[0];
+    }
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Photo library access denied', 'Enable photo access in Settings to pick an image.');
+      return null;
+    }
+    const r = await ImagePicker.launchImageLibraryAsync(opts);
+    return r.canceled ? null : r.assets?.[0];
+  }
+
+  function pushSystem(content, opts = {}) {
+    setMessages(prev => [...prev, {
+      role: 'system',
+      content,
+      error: !!opts.error,
+      _ingestionId: opts.ingestionId,
+      _approvable: !!opts.approvable,
+      _eventCount: opts.eventCount,
+    }]);
+  }
+
+  async function uploadPhotoForIngestion(asset, kid) {
+    // expo-image-picker returns a `mimeType` of 'image/jpeg' by default
+    // when mediaTypes=Images. Belt-and-suspenders: fall back to jpeg.
+    const mime = asset.mimeType || 'image/jpeg';
+    const ext  = mime === 'image/png' ? 'png' : 'jpg';
+
+    const form = new FormData();
+    form.append('file', {
+      // RN's FormData accepts this object shape and pulls bytes from the uri.
+      uri:  asset.uri,
+      type: mime,
+      name: 'schedule.' + ext,
+    });
+    form.append('kidId', kid.id);
+
+    // The shared api.js helper is JSON-only; we hit fetch directly here so
+    // we can send multipart. Auth header still has to come along — read
+    // the token from secure storage via the lib's exported getter pattern.
+    // Easiest: api.js stores _token internally; we recover it by issuing a
+    // hand-rolled fetch that proxies the Authorization header from our lib.
+    const tokenHeader = await api.authHeader();
+    const res = await fetch(`${API_BASE_URL}/api/ingestions`, {
+      method: 'POST',
+      headers: {
+        Authorization: tokenHeader,
+        // Don't set Content-Type — fetch + FormData picks the boundary.
+      },
+      body: form,
+    });
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : {};
+    if (!res.ok) {
+      throw new Error(data.error || `Upload failed (HTTP ${res.status})`);
+    }
+    return data;
+  }
+
+  async function pollIngestion(ingestionId) {
+    const startedAt = Date.now();
+    // Cap polling at 90 seconds. PDF/image extraction usually completes
+    // in <15s; if it goes much longer something's wrong.
+    while (Date.now() - startedAt < 90_000) {
+      if (activeIngestionRef.current !== ingestionId) {
+        // The user kicked off a different ingestion — abandon this poll.
+        return null;
+      }
+      const ing = await api.get(`/api/ingestions/${ingestionId}`);
+      if (ing.status === 'ready_for_review') return ing;
+      if (ing.status === 'failed') {
+        const msg = ing.extraction_error || 'We couldn\'t extract events from that image.';
+        throw new Error(msg);
+      }
+      await new Promise(r => setTimeout(r, 1500));
+    }
+    throw new Error('Scanning is taking longer than expected. Try again or use the website.');
+  }
+
+  async function handleCameraTap() {
+    if (busyIngestion || loading || booting) return;
+
+    const kid = await pickKidForUpload();
+    if (!kid) return;
+    const source = await pickImageSource();
+    if (!source) return;
+    const asset = await launchPicker(source);
+    if (!asset) return;
+
+    setBusyIngestion(true);
+    pushSystem(`📷 Scanning ${kid.name}'s schedule…`);
+    try {
+      const ingestion = await uploadPhotoForIngestion(asset, kid);
+      activeIngestionRef.current = ingestion.id;
+
+      const ready = await pollIngestion(ingestion.id);
+      if (!ready) return; // superseded
+
+      const count = ready.event_count || (ready.extracted_events || []).length;
+      if (count === 0) {
+        pushSystem(
+          'I couldn\'t find any schedulable events in that photo. Try a clearer shot, or paste an iCal URL instead.',
+          { error: true },
+        );
+        return;
+      }
+      pushSystem(
+        `Found ${count} event${count === 1 ? '' : 's'} in ${kid.name}'s photo. Tap "Add ${count} event${count === 1 ? '' : 's'}" below to save them.`,
+        { ingestionId: ingestion.id, approvable: true, eventCount: count },
+      );
+    } catch (err) {
+      pushSystem(err.message || 'Photo scan failed.', { error: true });
+    } finally {
+      setBusyIngestion(false);
+      activeIngestionRef.current = null;
+    }
+  }
+
+  async function approveIngestion(ingestionId, eventCount) {
+    setBusyIngestion(true);
+    try {
+      const ing = await api.get(`/api/ingestions/${ingestionId}`);
+      const events = ing.extracted_events || [];
+      if (events.length === 0) {
+        pushSystem('No events left to add.', { error: true });
+        return;
+      }
+      await api.post(`/api/ingestions/${ingestionId}/approve`, { events });
+      pushSystem(`✅ Added ${eventCount} event${eventCount === 1 ? '' : 's'} to your calendar.`);
+    } catch (err) {
+      pushSystem(err.message || 'Could not save events.', { error: true });
+    } finally {
+      setBusyIngestion(false);
+    }
+  }
+
   // Actions emitted by the model. Mobile only handles add_source today;
   // request_pdf_upload should never arrive (the system prompt forbids it
   // on mobile) but we defensively redirect just in case the model drifts.
@@ -211,12 +433,30 @@ export default function SetupAgentScreen() {
               <ActivityIndicator color="#00d68f" size="large" />
             </View>
           ) : (
-            messages.map((m, i) => <Bubble key={i} message={m} />)
+            messages.map((m, i) => (
+              <Bubble
+                key={i}
+                message={m}
+                onApprove={m._approvable
+                  ? () => approveIngestion(m._ingestionId, m._eventCount)
+                  : null}
+                approving={busyIngestion}
+              />
+            ))
           )}
           {loading && <Bubble message={{ role: 'assistant', display: 'Thinking…', _typing: true }} />}
         </ScrollView>
 
         <View style={s.composer}>
+          <TouchableOpacity
+            onPress={handleCameraTap}
+            disabled={busyIngestion || loading || booting}
+            style={[s.cameraBtn, (busyIngestion || loading || booting) && s.cameraBtnDisabled]}
+            activeOpacity={0.7}
+            accessibilityLabel="Scan a photo of a schedule"
+          >
+            <Text style={s.cameraBtnIcon}>📷</Text>
+          </TouchableOpacity>
           <TextInput
             ref={inputRef}
             style={s.input}
@@ -245,14 +485,30 @@ export default function SetupAgentScreen() {
 
 // ----- bubble ---------------------------------------------------------------
 
-function Bubble({ message }) {
-  const { role, display, content, error, _typing } = message;
+function Bubble({ message, onApprove, approving }) {
+  const { role, display, content, error, _typing, _eventCount } = message;
   const text = display || content || '';
 
   if (role === 'system') {
     return (
       <View style={[s.systemRow, error && s.systemRowError]}>
         <Text style={[s.systemText, error && s.systemTextError]}>{text}</Text>
+        {onApprove ? (
+          <TouchableOpacity
+            style={[s.systemApprove, approving && { opacity: 0.6 }]}
+            onPress={onApprove}
+            disabled={approving}
+            activeOpacity={0.8}
+          >
+            {approving ? (
+              <ActivityIndicator color="#0f1629" size="small" />
+            ) : (
+              <Text style={s.systemApproveText}>
+                Add {_eventCount || ''} event{_eventCount === 1 ? '' : 's'}
+              </Text>
+            )}
+          </TouchableOpacity>
+        ) : null}
       </View>
     );
   }
@@ -319,19 +575,33 @@ const s = StyleSheet.create({
   systemRow: {
     alignSelf: 'center',
     backgroundColor: 'rgba(0,214,143,0.10)',
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 8, marginVertical: 4, maxWidth: '90%',
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 10, marginVertical: 4, maxWidth: '92%',
+    alignItems: 'center', gap: 8,
   },
   systemRowError: { backgroundColor: 'rgba(255,107,107,0.10)' },
   systemText:     { fontSize: 13, color: '#00845b', textAlign: 'center', fontWeight: '500' },
   systemTextError:{ color: '#c44949' },
+  systemApprove: {
+    backgroundColor: '#00d68f', borderRadius: 8,
+    paddingHorizontal: 14, paddingVertical: 8, marginTop: 2,
+  },
+  systemApproveText: { color: '#0f1629', fontSize: 14, fontWeight: '600' },
 
   composer: {
     flexDirection: 'row', alignItems: 'flex-end',
-    paddingHorizontal: 12, paddingVertical: 10, gap: 8,
+    paddingHorizontal: 12, paddingVertical: 10, gap: 6,
     borderTopWidth: 1, borderTopColor: '#e8ecf4',
     backgroundColor: '#ffffff',
   },
+  cameraBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#f4f6fa',
+    borderWidth: 1, borderColor: '#e8ecf4',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cameraBtnDisabled: { opacity: 0.5 },
+  cameraBtnIcon:     { fontSize: 18 },
   input: {
     flex: 1,
     backgroundColor: '#f4f6fa', color: '#0f1629', fontSize: 15,

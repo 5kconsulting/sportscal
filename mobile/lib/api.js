@@ -46,4 +46,8 @@ export const api = {
   post: (path, body)  => request('POST',   path, body),
   patch:(path, body)  => request('PATCH',  path, body),
   del:  (path)        => request('DELETE', path),
+  // Returns the Authorization header value the JSON helper would send,
+  // for callers that need to do their own fetch (e.g. multipart uploads
+  // where Content-Type is set by FormData and shouldn't be touched).
+  authHeader: () => _token ? 'Bearer ' + _token : '',
 };
