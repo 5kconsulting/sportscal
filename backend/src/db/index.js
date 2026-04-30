@@ -146,6 +146,35 @@ export async function getUserByFeedToken(token) {
   );
 }
 
+// Inbound-email addressing: each user gets `add+<inbound_token>@<domain>` so
+// the webhook can resolve mail to a user with one indexed lookup.
+export async function getUserByInboundToken(token) {
+  if (!token) return null;
+  return queryOne(
+    'SELECT * FROM users WHERE inbound_token = $1',
+    [token],
+  );
+}
+
+// Lazy-create on first request to /api/auth/inbound-address. 8 hex chars
+// (4 bytes) -> 4.3B values, ample for our scale and short enough to look
+// reasonable in an address.
+export async function ensureInboundToken(userId) {
+  const updated = await queryOne(
+    `UPDATE users
+        SET inbound_token = encode(gen_random_bytes(4), 'hex')
+      WHERE id = $1 AND inbound_token IS NULL
+      RETURNING inbound_token`,
+    [userId],
+  );
+  if (updated?.inbound_token) return updated.inbound_token;
+  const existing = await queryOne(
+    'SELECT inbound_token FROM users WHERE id = $1',
+    [userId],
+  );
+  return existing?.inbound_token || null;
+}
+
 // Per-kid feed lookup. Returns the kid plus the parent's name so the
 // iCal feed can label itself "Caleb's SportsCal" without a second query.
 export async function getKidByFeedToken(token) {

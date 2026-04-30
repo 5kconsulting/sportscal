@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Linking, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Linking, Share, Platform } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
@@ -13,6 +13,8 @@ export default function Settings() {
   const [rotating, setRotating] = useState(false);
   const [kids, setKids] = useState([]);
   const [kidsLoading, setKidsLoading] = useState(true);
+  const [inboundAddress, setInboundAddress] = useState('');
+  const [inboundConfigured, setInboundConfigured] = useState(false);
 
   const httpsFeedUrl  = user?.feed_token ? `https://${FEED_HOST}/feed/${user.feed_token}.ics` : '';
   const webcalFeedUrl = user?.feed_token ? `webcal://${FEED_HOST}/feed/${user.feed_token}.ics`  : '';
@@ -26,9 +28,30 @@ export default function Settings() {
         .then(({ kids }) => { if (!cancelled) setKids(kids || []); })
         .catch(() => {})
         .finally(() => { if (!cancelled) setKidsLoading(false); });
+      // Lazy-load the inbound address. The endpoint generates the token
+      // on first call, so we hit it once per session and cache the result.
+      if (!inboundAddress) {
+        api.get('/api/auth/inbound-address')
+          .then(({ address, configured }) => {
+            if (cancelled) return;
+            setInboundAddress(address || '');
+            setInboundConfigured(!!configured);
+          })
+          .catch(() => {});
+      }
       return () => { cancelled = true; };
-    }, [])
+    }, [inboundAddress])
   );
+
+  async function shareInboundAddress() {
+    if (!inboundAddress) return;
+    try {
+      await Share.share({
+        message: inboundAddress,
+        url: `mailto:${inboundAddress}`,
+      });
+    } catch {}
+  }
 
   async function shareKidSchedule(kid) {
     if (!kid?.feed_token) {
@@ -170,6 +193,34 @@ export default function Settings() {
         <Text style={s.setupChevron}>›</Text>
       </TouchableOpacity>
 
+      {inboundAddress ? (
+        <View style={s.section}>
+          <Text style={s.label}>Forward emails to add a calendar</Text>
+          <Text style={s.feedHelp}>
+            Forward any email with a calendar link in it to this address and
+            we'll add it to your SportsCal automatically. Great for league
+            sign-up confirmations.
+          </Text>
+          <TouchableOpacity
+            onPress={shareInboundAddress}
+            activeOpacity={0.6}
+            style={s.inboundCard}
+          >
+            <Text style={s.inboundAddress} selectable numberOfLines={1}>
+              {inboundAddress}
+            </Text>
+            <Text style={s.inboundShare}>Share / Copy</Text>
+          </TouchableOpacity>
+          {!inboundConfigured ? (
+            <Text style={s.inboundWarn}>
+              ⚠️ Email forwarding is not active yet. The address is reserved
+              for your account but won't accept mail until DNS + Resend are
+              configured.
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
       <View style={s.section}>
         <Text style={s.label}>Calendar feed</Text>
         <Text style={s.feedHelp}>
@@ -295,6 +346,23 @@ const s = StyleSheet.create({
   setupTitle: { fontSize: 15, fontWeight: '600', color: '#00d68f' },
   setupSub:   { fontSize: 12, color: '#b8c4d8', marginTop: 2, lineHeight: 16 },
   setupChevron: { fontSize: 22, color: '#00d68f', fontWeight: '300', marginLeft: 8 },
+  inboundCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#ffffff', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderWidth: 1, borderColor: '#e8ecf4',
+    marginTop: 8,
+  },
+  inboundAddress: {
+    flex: 1, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 13, color: '#0f1629',
+  },
+  inboundShare: { fontSize: 13, color: '#00d68f', fontWeight: '600' },
+  inboundWarn:  {
+    fontSize: 12, color: '#a87600', marginTop: 8, lineHeight: 17,
+    backgroundColor: 'rgba(255,180,0,0.08)', borderRadius: 6,
+    paddingHorizontal: 10, paddingVertical: 8,
+  },
   feedPrimaryBtn: {
     backgroundColor: '#00d68f', borderRadius: 10,
     paddingVertical: 13, alignItems: 'center',

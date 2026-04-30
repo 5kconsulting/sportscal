@@ -66,6 +66,13 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS billing_interval   TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS sms_consent_at      TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS sms_consent_ip      TEXT;
 
+-- Per-user opaque token used to address inbound mail at
+-- add+<token>@INBOUND_DOMAIN. Lazily generated on first call to
+-- /api/auth/inbound-address; nullable for everyone else. Indexed
+-- (UNIQUE) so the inbound webhook's hot-path lookup is O(1).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS inbound_token        TEXT UNIQUE;
+CREATE INDEX IF NOT EXISTS users_inbound_token_idx ON users(inbound_token) WHERE inbound_token IS NOT NULL;
+
 -- CHECK constraints (drop-and-recreate so edits are declarative)
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_plan_check;
 ALTER TABLE users ADD  CONSTRAINT users_plan_check

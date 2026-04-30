@@ -11,6 +11,7 @@ import {
   updateUser,
   rotateFeedToken,
   getUserById,
+  ensureInboundToken,
   query,
 } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -172,6 +173,31 @@ router.patch('/me',
 router.post('/rotate-feed-token', requireAuth, async (req, res) => {
   const result = await rotateFeedToken(req.user.id);
   res.json({ feed_token: result.feed_token });
+});
+
+// ============================================================
+// GET /api/auth/inbound-address
+// Returns the user's per-account inbound mail address. Lazily generates
+// the inbound_token on first call so existing accounts don't all get
+// addresses they didn't ask for.
+//
+// INBOUND_DOMAIN env var configures the host (default 'inbox.sportscalapp.com').
+// Plus-addressing keeps the lookup O(1) — Resend's `to` field carries
+// `add+<token>@<domain>` and the webhook strips the +<token> piece.
+// ============================================================
+router.get('/inbound-address', requireAuth, async (req, res) => {
+  try {
+    const token = await ensureInboundToken(req.user.id);
+    if (!token) {
+      return res.status(500).json({ error: 'Could not generate inbound address' });
+    }
+    const domain  = process.env.INBOUND_DOMAIN || 'inbox.sportscalapp.com';
+    const address = `add+${token}@${domain}`;
+    res.json({ address, token, configured: !!process.env.RESEND_WEBHOOK_SECRET });
+  } catch (err) {
+    console.error('[auth/inbound-address] error:', err.message);
+    res.status(500).json({ error: 'Failed to load inbound address' });
+  }
 });
 
 // ============================================================
