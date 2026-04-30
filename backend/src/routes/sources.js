@@ -18,6 +18,7 @@ import {
 import { requireAuth } from '../middleware/auth.js';
 import { enqueueIcalFetch, enqueueScrapeFetch } from '../workers/queue.js';
 import { buildDisplayTitle } from '../normalizer.js';
+import { intakeFromUrl } from '../lib/sourceIntake.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -31,6 +32,74 @@ const VALID_FETCH_TYPES = ['ical', 'scrape', 'ical_with_scrape_fallback'];
 router.get('/', async (req, res) => {
   const sources = await getSourcesByUser(req.user.id);
   res.json({ sources });
+});
+
+// ============================================================
+// POST /api/sources/intake
+//
+// Universal "turn raw input into a source candidate" endpoint. Backs all
+// three Tier-A onboarding surfaces:
+//   - iOS Share Extension      -> { url }
+//   - Camera/screenshot        -> { image_b64, mime_type }
+//   - Resend Inbound webhook   -> { email_text, email_from, email_subject }
+//
+// Returns a candidate the client can show in a "looks right? confirm + pick
+// kid" UI, NOT a created source. Creating is still POST /api/sources so we
+// can keep the validation + kid-assignment + first-fetch logic in one place.
+//
+// Response shape:
+//   200 { kind: 'ical_source',     candidate: { name, app, ical_url, fetch_type } }
+//   200 { kind: 'extracted_events', candidate: { ... } }   // future: image/email
+//   422 { error: '...' }
+//   501 { error: '...' }   // image/email paths until those phases land
+// ============================================================
+router.post('/intake', async (req, res) => {
+  try {
+    const { url, image_b64, email_text } = req.body || {};
+
+    // Exactly one input must be provided. Easier to debug than silently
+    // preferring one over another, and lets us add new intake types later
+    // without changing the contract for old callers.
+    const provided = [url, image_b64, email_text].filter(v => v != null);
+    if (provided.length !== 1) {
+      return res.status(422).json({
+        error: 'Provide exactly one of: url, image_b64, email_text',
+      });
+    }
+
+    if (typeof url === 'string') {
+      const result = intakeFromUrl(url);
+      if (!result) {
+        return res.status(422).json({
+          error: 'That doesn\'t look like a calendar URL. iCal links start with https:// or webcal://',
+        });
+      }
+      return res.json(result);
+    }
+
+    if (typeof image_b64 === 'string') {
+      // Wired up in Phase 2 (mobile camera/screenshot capture). Returns 501
+      // for now so the route shape is stable and the share-extension can
+      // ship without waiting on the vision pipeline.
+      return res.status(501).json({
+        error: 'Image intake is not available yet. Try a calendar URL for now.',
+      });
+    }
+
+    if (typeof email_text === 'string') {
+      // Wired up in Phase 4 (Resend Inbound webhook). The intake request
+      // body shape will likely change once we see Resend's actual payload —
+      // this stub just guarantees the URL space is reserved.
+      return res.status(501).json({
+        error: 'Email intake is not available yet.',
+      });
+    }
+
+    res.status(422).json({ error: 'Unsupported intake type' });
+  } catch (err) {
+    console.error('[sources/intake] error:', err.message);
+    res.status(500).json({ error: 'Intake failed — please try again.' });
+  }
 });
 
 // ============================================================
