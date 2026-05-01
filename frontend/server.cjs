@@ -35,6 +35,7 @@ app.get('/sitemap.xml', (_req, res) => res.type('application/xml').sendFile(path
 app.get('/pricing', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'pricing.html')));
 app.get('/terms', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'terms.html')));
 app.get('/privacy', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'privacy.html')));
+app.get('/help', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'help.html')));
 
 // Static assets
 app.use(express.static(path.join(__dirname, 'dist')));

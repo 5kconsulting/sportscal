@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How do I… — SportsCal</title>
+  <meta name="description" content="Common parent questions answered: how to add a calendar, share your kid's schedule, ask grandpa for a ride, and more." />
+  <link rel="canonical" href="https://www.sportscalapp.com/help" />
+  <meta name="robots" content="index, follow" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0f1629; --slate: #8896b0; --slate-light: #b8c4d8; --white: #ffffff;
+      --off-white: #f4f6fa; --border: #e8ecf4; --accent: #00d68f;
+      --font: 'DM Sans', sans-serif;
+    }
+    body { font-family: var(--font); background: var(--white); color: var(--navy); -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav {
+      background: var(--navy); padding: 0 24px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo img { width: 28px; height: 28px; }
+    .nav-logo-text { font-size: 16px; font-weight: 600; color: var(--white); letter-spacing: -0.02em; }
+    .nav-right a { color: var(--slate-light); font-size: 14px; margin-left: 18px; }
+    .nav-right a:hover { color: var(--white); text-decoration: none; }
+
+    .container { max-width: 760px; margin: 0 auto; padding: 60px 24px 100px; }
+
+    h1 { font-size: 36px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .lede { font-size: 16px; color: var(--slate); margin-bottom: 24px; line-height: 1.6; }
+
+    .toc {
+      background: var(--off-white); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px 22px; margin-bottom: 48px;
+    }
+    .toc-title {
+      font-size: 12px; font-weight: 600; color: var(--slate);
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px;
+    }
+    .toc ul { list-style: none; padding: 0; margin: 0; }
+    .toc li { padding: 4px 0; font-size: 15px; }
+    .toc a { color: var(--navy); font-weight: 500; }
+    .toc a:hover { color: var(--accent); }
+
+    h2 {
+      font-size: 22px; font-weight: 600; margin: 48px 0 8px;
+      letter-spacing: -0.01em; padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+    h2:first-of-type { border-top: none; padding-top: 0; }
+    h2 .emoji { font-size: 22px; margin-right: 6px; }
+
+    .task {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px 22px; margin: 18px 0;
+    }
+    .task h3 {
+      font-size: 17px; font-weight: 600; color: var(--navy);
+      margin-bottom: 12px; line-height: 1.4;
+    }
+    .task h3::before { content: "✦"; color: var(--accent); margin-right: 8px; }
+
+    .task ol, .task ul { padding-left: 22px; margin: 8px 0; }
+    .task li { font-size: 15px; line-height: 1.7; color: #3d4d63; margin-bottom: 4px; }
+    .task p { font-size: 15px; line-height: 1.7; color: #3d4d63; margin-bottom: 8px; }
+    .task code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: var(--off-white); padding: 1px 6px; border-radius: 4px;
+      font-size: 13px; color: var(--navy);
+    }
+    .task .note {
+      font-size: 13px; color: var(--slate); font-style: italic;
+      border-left: 2px solid var(--border); padding-left: 12px;
+      margin-top: 12px;
+    }
+    .task .premium {
+      display: inline-block; font-size: 11px; font-weight: 600;
+      background: rgba(0,214,143,0.10); color: #00845b;
+      padding: 2px 8px; border-radius: 10px; margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    .still-stuck {
+      background: var(--navy); color: var(--white);
+      border-radius: 12px; padding: 28px 28px;
+      margin-top: 56px; text-align: center;
+    }
+    .still-stuck h2 {
+      color: var(--white); border: none; padding-top: 0;
+      margin: 0 0 8px; font-size: 20px;
+    }
+    .still-stuck p { color: var(--slate-light); font-size: 15px; line-height: 1.6; margin-bottom: 16px; }
+    .still-stuck a {
+      display: inline-block; background: var(--accent); color: var(--navy);
+      padding: 10px 22px; border-radius: 8px; font-weight: 600;
+    }
+    .still-stuck a:hover { text-decoration: none; opacity: 0.9; }
+
+    footer { background: var(--navy); border-top: 1px solid rgba(255,255,255,0.06); padding: 28px 24px; text-align: center; }
+    footer p { font-size: 13px; color: var(--slate); }
+    footer a { color: var(--slate); }
+
+    @media (max-width: 640px) {
+      .container { padding: 40px 20px 80px; }
+      h1 { font-size: 28px; }
+      .nav-right a { margin-left: 12px; font-size: 13px; }
+    }
+  </style>
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="5f4e8402-2a26-445d-b8bd-e1583a488185"></script>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="https://www.sportscalapp.com">
+    <img src="/favicon-192.png" alt="SportsCal" />
+    <span class="nav-logo-text">SportsCal</span>
+  </a>
+  <div class="nav-right">
+    <a href="/pricing">Pricing</a>
+    <a href="https://www.sportscalapp.com/login">Sign in</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h1>How do I…?</h1>
+  <p class="lede">
+    The most common things parents want to do in SportsCal, in plain language.
+    Tap a section to jump to it. If you don't see your question, scroll to the
+    bottom — we read every email.
+  </p>
+
+  <nav class="toc" aria-label="Table of contents">
+    <div class="toc-title">Jump to</div>
+    <ul>
+      <li><a href="#add-a-calendar">📅 Adding calendars to SportsCal</a></li>
+      <li><a href="#sharing">👨‍👩‍👧 Sharing your calendar with family</a></li>
+      <li><a href="#daily">🗓️ Day-to-day</a></li>
+      <li><a href="#rides">🚗 Coordinating rides</a></li>
+      <li><a href="#account">⚙️ Account &amp; settings</a></li>
+    </ul>
+  </nav>
+
+  <!-- ============================================================ -->
+  <h2 id="add-a-calendar"><span class="emoji">📅</span>Adding calendars to SportsCal</h2>
+
+  <div class="task">
+    <h3>I need to add my kid's team schedule from a sports app (TeamSnap, GameChanger, etc.)</h3>
+    <ol>
+      <li>Open the <strong>Setup helper</strong> from the menu, or tap <strong>+ Add calendar</strong> on the Calendars page.</li>
+      <li>Tell the helper which app you use — it'll walk you through finding the "Subscribe to calendar" link.</li>
+      <li>Paste the link. Tell it which kid it's for. Done.</li>
+    </ol>
+    <p class="note">Works with TeamSnap, GameChanger, PlayMetrics, SportsEngine, TeamSideline, BYGA, TeamReach, LeagueApps, Demosphere, 360Player, SportsYou, BAND, RankOne, Google Classroom, and more.</p>
+  </div>
+
+  <div class="task">
+    <h3>I want to add specific events from my Google Calendar (or Apple/Outlook)</h3>
+    <p>For one-off events you've already got in your personal calendar — soccer with the neighborhood crew, a school field trip — invite SportsCal as a guest:</p>
+    <ol>
+      <li>Open SportsCal → <strong>Settings</strong> → <strong>Add a calendar by email</strong>. Copy your personal address (it looks like <code>add+abc123@inbox.sportscalapp.com</code>).</li>
+      <li>In Google/Apple/Outlook Calendar, save that address as a contact called "SportsCal" so it autocompletes next time.</li>
+      <li>For any event you want in SportsCal: open the event → <strong>Add guest</strong> → SportsCal → Save.</li>
+      <li>Within about 10 seconds, the event appears in your SportsCal calendar. Edits and cancellations sync automatically.</li>
+    </ol>
+    <p class="note">No, it won't pull every event from your personal calendar — you choose which ones to invite. We never see anything you didn't explicitly share.</p>
+  </div>
+
+  <div class="task">
+    <h3>I have a paper schedule from the coach (or a PDF)</h3>
+    <p><strong>From the SportsCal mobile app:</strong></p>
+    <ol>
+      <li>Open the <strong>Setup helper</strong>.</li>
+      <li>Tap the 📷 camera button next to the message box.</li>
+      <li>Take a photo or pick from your library. Choose which kid it's for.</li>
+      <li>We extract the events; review and tap save.</li>
+    </ol>
+    <p><strong>From email (PDF):</strong></p>
+    <ol>
+      <li>Forward the email containing the PDF to your <code>add+…@inbox.sportscalapp.com</code> address.</li>
+      <li>Within ~30 seconds we'll email you a link to a review chat.</li>
+      <li>Click the link → pick which kid → review the events we found → tap save.</li>
+    </ol>
+    <p class="note">PDFs occasionally pick up extras (header text, page numbers). The review step lets you delete anything that looks wrong before saving.</p>
+  </div>
+
+  <div class="task">
+    <h3>I want to add a one-off event by hand</h3>
+    <ol>
+      <li>On the dashboard, tap the <strong>+ Add event</strong> button.</li>
+      <li>Fill in the title, date, time, and which kids it's for.</li>
+      <li>Save. The event shows up alongside everything else.</li>
+    </ol>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="sharing"><span class="emoji">👨‍👩‍👧</span>Sharing your calendar with family</h2>
+
+  <div class="task">
+    <h3>I want to see all the family events on my own phone calendar (Apple, Google, Outlook)</h3>
+    <ol>
+      <li>Open SportsCal → <strong>Settings</strong> → <strong>Calendar feed</strong>.</li>
+      <li>Tap <strong>Subscribe in Apple Calendar</strong> (iPhone), or copy the link and paste it into Google or Outlook's "Add calendar by URL" option.</li>
+      <li>Your phone calendar will refresh automatically when new events are added or changed.</li>
+    </ol>
+    <p class="note">Subscribed calendars are read-only on your phone — you make changes inside SportsCal, and they flow out.</p>
+  </div>
+
+  <div class="task">
+    <h3>I want to share the family calendar with my spouse or co-parent</h3>
+    <ol>
+      <li>Open <strong>Settings</strong> → <strong>Calendar feed</strong> → <strong>Copy URL</strong>.</li>
+      <li>Send them the link via text or email.</li>
+      <li>They paste it into their own Apple/Google/Outlook Calendar — no SportsCal account needed.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>I want my kid to see only their own games on their own iPad</h3>
+    <ol>
+      <li>Open <strong>Settings</strong> → scroll to <strong>Kid calendars</strong>.</li>
+      <li>Tap the green <strong>Share</strong> button next to your kid's name.</li>
+      <li>Pick how to send it — Messages, Mail, AirDrop straight to their iPad, etc.</li>
+      <li>They tap the link on their device; their calendar app subscribes. They see only their own events, never their siblings'.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>My calendar URL got shared by mistake — I want a new one</h3>
+    <ol>
+      <li>Open <strong>Settings</strong> → <strong>Calendar feed</strong>.</li>
+      <li>Tap <strong>Reset link</strong> (red text).</li>
+      <li>Confirm. The old URL stops working immediately. Resubscribe in your phone calendar with the new URL.</li>
+    </ol>
+    <p class="note">This rotates the URL for every linked calendar — you'll need to send the new link to anyone you'd previously shared it with.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="daily"><span class="emoji">🗓️</span>Day-to-day</h2>
+
+  <div class="task">
+    <h3>One of my kids is going to skip Tuesday's practice</h3>
+    <ol>
+      <li>Tap that event on the dashboard.</li>
+      <li>Find your kid's row under "Who's going."</li>
+      <li>Toggle the switch off. The event disappears from their personal calendar feed but stays on yours so you don't lose track.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>We're traveling — skip a whole week</h3>
+    <p>Right now you'll need to toggle each event off individually for the affected kid. A "skip this week" shortcut is on our list. In the meantime, the dashboard's day-by-day view makes batch toggling fast.</p>
+  </div>
+
+  <div class="task">
+    <h3>I want a weekly summary email <span class="premium">PRO</span></h3>
+    <ol>
+      <li>Open <strong>Settings</strong> → <strong>Weekly digest</strong>.</li>
+      <li>Pick the day and time you want it sent (e.g. Sunday at 6 PM).</li>
+      <li>Save. The first digest goes out the following week.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>I want a reminder before each event <span class="premium">PRO</span></h3>
+    <ol>
+      <li>Open <strong>Settings</strong> → <strong>Event reminders</strong>.</li>
+      <li>Pick how far in advance you want to be reminded (1 hour to 48 hours).</li>
+      <li>Save. Reminders send by email; push notifications coming soon.</li>
+    </ol>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="rides"><span class="emoji">🚗</span>Coordinating rides</h2>
+
+  <div class="task">
+    <h3>I need Grandpa to pick up Lily on Tuesday</h3>
+    <ol>
+      <li>Tap Tuesday's event on the dashboard.</li>
+      <li>Tap <strong>+ Assign</strong> next to "Pickup."</li>
+      <li>Pick Grandpa from your contacts (or tap "+ Add" to add him on the spot).</li>
+      <li>Choose how to ask: just record it, email him, or open Messages with a pre-filled text containing a one-tap "Yes / No" link.</li>
+      <li>When he taps Yes, you'll see his confirmation in the app.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>I want to ask anyone in the carpool group who can drive Saturday <span class="premium">PRO</span></h3>
+    <ol>
+      <li>First, set up a group: <strong>Contacts</strong> → <strong>Teams and Groups</strong> → <strong>+ Add</strong> → name it (e.g. "Soccer carpool") → pick the parents who are in it.</li>
+      <li>Open Saturday's event → <strong>+ Assign</strong> → <strong>Ask a group</strong> → pick the carpool.</li>
+      <li>Messages opens with a group thread pre-filled and a Yes/No link. Send it.</li>
+      <li>The first parent to tap Yes claims the role; everyone else sees they're off the hook.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>A contact got the SMS confirmation by mistake — make it stop</h3>
+    <p>Have them reply <strong>STOP</strong> to the SMS. They're immediately removed from the messaging list and we won't text them again. You can also remove their phone number from their contact card in the SportsCal Contacts page.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="account"><span class="emoji">⚙️</span>Account &amp; settings</h2>
+
+  <div class="task">
+    <h3>I forgot my password</h3>
+    <ol>
+      <li>On the sign-in page, tap <strong>Forgot password</strong>.</li>
+      <li>Enter your email.</li>
+      <li>Check your inbox for a reset link, click it, set a new password.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>I want to change my plan or cancel</h3>
+    <ol>
+      <li>Open <strong>Settings</strong> → <strong>Plan</strong>.</li>
+      <li>For Premium users: tap <strong>Manage billing</strong> to update card, change plan, or cancel.</li>
+      <li>Cancellations take effect at the end of your current billing period — you keep Premium features until then.</li>
+    </ol>
+  </div>
+
+  <div class="task">
+    <h3>I want to delete my account</h3>
+    <ol>
+      <li>Open <strong>Settings</strong> → scroll to the bottom → <strong>Delete account</strong>.</li>
+      <li>Confirm twice (we'd rather you didn't, but it's your data).</li>
+      <li>Your account, kids, calendars, contacts, and any saved chat history are deleted within 30 days.</li>
+    </ol>
+    <p class="note">Active subscriptions are cancelled automatically. We don't keep a backup of deleted accounts.</p>
+  </div>
+
+  <div class="task">
+    <h3>Change my timezone, name, or email digest day</h3>
+    <p>Everything's in <strong>Settings</strong> → <strong>Account</strong>. Edit and tap <strong>Save changes</strong>.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <div class="still-stuck">
+    <h2>Still stuck?</h2>
+    <p>Your question is probably one we should answer here too. Email us and we'll write you back — and add it to this page if it'll help other parents.</p>
+    <a href="mailto:hello@sportscalapp.com">hello@sportscalapp.com</a>
+  </div>
+
+</div>
+
+<footer>
+  <p>© 2026 SportsCal · <a href="/help">Help</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/pricing">Pricing</a> · <a href="https://www.sportscalapp.com/login">Sign in</a></p>
+</footer>
+
+</body>
+</html>
