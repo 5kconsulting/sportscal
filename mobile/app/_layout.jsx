@@ -51,6 +51,10 @@ function AuthGate() {
         options={{ presentation: 'modal', headerShown: false }}
       />
       <Stack.Screen
+        name="event/new"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
+      <Stack.Screen
         name="contacts/picker"
         options={{ presentation: 'modal', headerShown: false }}
       />

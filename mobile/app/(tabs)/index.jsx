@@ -90,12 +90,22 @@ export default function Calendar() {
   return (
     <View style={s.root}>
       <View style={s.header}>
-        <Text style={s.hi}>Hi {user?.name?.split(' ')[0] || 'there'}</Text>
-        <Text style={s.sub}>
-          {events.length === 0
-            ? 'Nothing upcoming in the next 30 days.'
-            : events.length + ' upcoming event' + (events.length === 1 ? '' : 's')}
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.hi}>Hi {user?.name?.split(' ')[0] || 'there'}</Text>
+          <Text style={s.sub}>
+            {events.length === 0
+              ? 'Nothing upcoming in the next 30 days.'
+              : events.length + ' upcoming event' + (events.length === 1 ? '' : 's')}
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => router.push('/event/new')}
+          style={s.addEventBtn}
+          activeOpacity={0.7}
+          accessibilityLabel="Add a new event"
+        >
+          <Text style={s.addEventBtnText}>+ Add event</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -150,7 +160,16 @@ function DayHeader({ date }) {
 const s = StyleSheet.create({
   root:   { flex: 1, backgroundColor: '#f4f6fa' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f4f6fa' },
-  header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
+  header: {
+    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8,
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+  },
+  addEventBtn: {
+    backgroundColor: '#00d68f', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 8,
+    marginTop: 4,
+  },
+  addEventBtnText: { color: '#0f1629', fontSize: 14, fontWeight: '600' },
   hi:     { fontSize: 22, fontWeight: '600', color: '#0f1629' },
   sub:    { fontSize: 13, color: '#8896b0', marginTop: 4 },
   dayHeader: {
