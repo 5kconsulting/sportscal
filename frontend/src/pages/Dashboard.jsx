@@ -255,10 +255,10 @@ function OnboardingBanner({ hasKids, hasSources, onDismiss }) {
     },
     {
       num: 2,
-      title: 'Connect a sports app',
+      title: 'Add your first calendar',
       desc: 'Paste an iCal link from TeamSnap, GameChanger, PlayMetrics, or any other app.',
       done: hasSources,
-      action: <Link to="/sources" className="btn btn-sm btn-primary" style={{ textDecoration: 'none' }}>Add source →</Link>,
+      action: <Link to="/sources" className="btn btn-sm btn-primary" style={{ textDecoration: 'none' }}>Add calendar →</Link>,
     },
     {
       num: 3,
@@ -1328,7 +1328,7 @@ function EmptyState() {
       </p>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
         <Link to="/kids" className="btn btn-primary">Add a member</Link>
-        <Link to="/sources" className="btn btn-ghost">Add a source</Link>
+        <Link to="/sources" className="btn btn-ghost">Add a calendar</Link>
       </div>
     </div>
   );

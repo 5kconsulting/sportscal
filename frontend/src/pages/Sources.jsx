@@ -37,7 +37,7 @@ function UpgradeBanner() {
           ⚡ Upgrade to Premium
         </div>
         <div style={{ fontSize: 13, color: 'var(--slate)' }}>
-          Get 8 family members and 24 sources for $5/month.
+          Get 8 family members and 24 calendars for $5/month.
         </div>
       </div>
       <button onClick={handleUpgrade} disabled={loading}
@@ -550,8 +550,8 @@ export default function Sources() {
   // updates local state on success.
   async function handleDelete(id) {
     const src = sources.find(s => s.id === id);
-    const label = src?.name || 'this source';
-    if (!window.confirm(`Remove ${label}? All events from this source will be deleted.`)) return;
+    const label = src?.name || 'this calendar';
+    if (!window.confirm(`Remove ${label}? All events from this calendar will be deleted.`)) return;
     try {
       await api.sources.delete(id);
       setSources(s => s.filter(x => x.id !== id));
@@ -597,9 +597,9 @@ export default function Sources() {
     <div style={{ padding: '40px', maxWidth: 720 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32 }}>
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 4 }}>Sources</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 4 }}>Calendars</h1>
           <p style={{ color: 'var(--slate)', fontSize: 15 }}>
-            Connect your sports apps and assign kids to each one.{' '}
+            Connect your sports apps and assign kids to each calendar.{' '}
             <a href="/setup" style={{ color: 'var(--accent-dim)', fontWeight: 500, textDecoration: 'none' }}>
                 Want help? Use the setup agent →
             </a>
@@ -607,7 +607,7 @@ export default function Sources() {
         </div>
         {!showForm && (
           <button className="btn btn-primary" onClick={() => { setEditingSource(null); setShowForm(true); }}>
-            + Add source
+            + Add calendar
           </button>
         )}
       </div>
@@ -662,20 +662,20 @@ export default function Sources() {
         </div>
       ) : (
         <>
-          {/* ---- Section: Automated feeds ---- */}
+          {/* ---- Section: Connected calendars (URL-based, auto-syncing) ---- */}
           <SectionHeader
-            title="Automated feeds"
-            subtitle="iCal URLs that SportsCal polls and keeps in sync."
+            title="Connected calendars"
+            subtitle="Calendar URLs that SportsCal polls and keeps in sync."
             count={automated.length}
           />
           {automated.length === 0 ? (
             <EmptyState
               icon="🔗"
-              title="No feeds yet"
-              body="Add a source to pull schedules from TeamSnap, GameChanger, PlayMetrics, and others."
+              title="No calendars yet"
+              body="Add a calendar to pull schedules from TeamSnap, GameChanger, PlayMetrics, and others."
               cta={!showForm && (
                 <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-                  Add first source
+                  Add first calendar
                 </button>
               )}
             />
@@ -1036,7 +1036,7 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
   return (
     <div className="card fade-up" style={{ padding: '24px', marginBottom: 24 }}>
       <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 20 }}>
-        {isEditing ? `Edit — ${initial.name}` : 'Add a source'}
+        {isEditing ? `Edit — ${initial.name}` : 'Add a calendar'}
       </h3>
 
       {showHelp && <SourceHelpModal app={app} onClose={() => setShowHelp(false)} />}
@@ -1099,7 +1099,7 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
           <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving
               ? <span className="spinner" style={{ width: 14, height: 14 }} />
-              : isEditing ? 'Save changes' : 'Add source'}
+              : isEditing ? 'Save changes' : 'Add calendar'}
           </button>
           <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
         </div>

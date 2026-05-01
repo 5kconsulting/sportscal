@@ -375,8 +375,8 @@ export default function Settings() {
               </div>
               <div style={{ fontSize: 13, color: 'var(--slate)', marginTop: 2 }}>
                 {user?.plan === 'free'
-                  ? '2 members · 2 sources · no email digest'
-                  : '8 members · 24 sources · digest + reminders'}
+                  ? '2 members · 2 calendars · no email digest'
+                  : '8 members · 24 calendars · digest + reminders'}
               </div>
             </div>
             {user?.plan === 'free' ? (
@@ -454,7 +454,7 @@ export default function Settings() {
           <div>
             <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>Delete account</div>
             <div style={{ fontSize: 13, color: 'var(--slate)', lineHeight: 1.5 }}>
-              Permanently delete your account, all family members, sources, and events.
+              Permanently delete your account, all family members, calendars, and events.
               {user?.plan === 'premium' && ' Your subscription will be cancelled.'}
             </div>
           </div>

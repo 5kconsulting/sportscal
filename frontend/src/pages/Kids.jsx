@@ -35,7 +35,7 @@ function UpgradeBanner() {
           ⚡ Upgrade to Premium
         </div>
         <div style={{ fontSize: 13, color: 'var(--slate)' }}>
-          Get 8 family members and 24 sources for $5/month.
+          Get 8 family members and 24 calendars for $5/month.
         </div>
       </div>
       <button onClick={handleUpgrade} disabled={loading}

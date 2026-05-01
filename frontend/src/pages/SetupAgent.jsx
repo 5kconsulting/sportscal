@@ -286,7 +286,7 @@ export default function SetupAgent({ onSourceAdded }) {
 
     const intro = isNew
       ? 'Hi' + (kids.length > 0 ? ', I can see you have ' + (kids.length > 1 ? kids.length + ' kids' : '1 kid') + ': ' + kidNames : '') + '! Want to jump right in with your real sports apps, or would you like to try SportsCal first with some sample schedules? I have demo feeds for soccer, baseball, basketball, volleyball, swimming, and track ready to go. (If you only have a PDF from the coach, I can read that too — just say "I have a PDF".)'
-      : 'Hi' + (kids.length > 0 ? ' - I see you already have ' + existingSources.length + ' source' + (existingSources.length !== 1 ? 's' : '') + ' set up' : '') + '! Want to add more? Which apps do you use? (I can also read PDF schedules if you have one.)';
+      : 'Hi' + (kids.length > 0 ? ' - I see you already have ' + existingSources.length + ' calendar' + (existingSources.length !== 1 ? 's' : '') + ' set up' : '') + '! Want to add more? Which apps do you use? (I can also read PDF schedules if you have one.)';
 
     setMessages([{ role: 'assistant', content: intro }]);
     setLoading(false);
@@ -536,13 +536,13 @@ export default function SetupAgent({ onSourceAdded }) {
             </h1>
             {addedSources.length > 0 && (
               <p style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 500 }}>
-                {addedSources.length} source{addedSources.length !== 1 ? 's' : ''} added
+                {addedSources.length} calendar{addedSources.length !== 1 ? 's' : ''} added
               </p>
             )}
           </div>
           {addedSources.length > 0 && (
             <a href="/sources" style={{ fontSize: 13, color: 'var(--accent-dim)', fontWeight: 500, textDecoration: 'none' }}>
-              View sources →
+              View calendars →
             </a>
           )}
         </div>

@@ -85,7 +85,7 @@ export default function SetupAgentScreen() {
       const isNew    = sourceCount === 0;
       const intro = isNew
         ? `Hi${kidsList.length > 0 ? `, I see ${kidsList.length > 1 ? kidsList.length + ' kids' : '1 kid'}: ${kidNames}` : ''}! I'll help you connect your sports calendars. Which apps do you use? (TeamSnap, GameChanger, PlayMetrics, SportsEngine, and others — or paste an iCal URL if you already have one.)`
-        : `Hi${kidsList.length > 0 ? ` — I see you already have ${sourceCount} source${sourceCount !== 1 ? 's' : ''} set up` : ''}! Want to add more? Which app are we working with?`;
+        : `Hi${kidsList.length > 0 ? ` — I see you already have ${sourceCount} calendar${sourceCount !== 1 ? 's' : ''} set up` : ''}! Want to add more? Which app are we working with?`;
 
       setMessages([{ role: 'assistant', content: intro, display: intro }]);
       setBooting(false);

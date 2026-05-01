@@ -8,7 +8,7 @@ const NAV = [
   { to: '/kids',      label: 'Family',    icon: UsersIcon },
   { to: '/contacts',  label: 'Contacts',  icon: AddressBookIcon },
   { to: '/setup',     label: 'Setup',     icon: SparkleIcon },
-  { to: '/sources',   label: 'Sources',   icon: LinkIcon },
+  { to: '/sources',   label: 'Calendars', icon: LinkIcon },
   { to: '/settings',  label: 'Settings',  icon: GearIcon },
 ];
 

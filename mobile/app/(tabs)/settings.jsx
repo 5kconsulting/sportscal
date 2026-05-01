@@ -149,7 +149,7 @@ export default function Settings() {
   function handleDeleteAccount() {
     Alert.alert(
       'Delete account?',
-      'This permanently removes your account, all kids, sources, and events. ' +
+      'This permanently removes your account, all kids, calendars, and events. ' +
       'Active subscriptions will be cancelled. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
@@ -205,7 +205,7 @@ export default function Settings() {
         <View style={{ flex: 1 }}>
           <Text style={s.setupTitle}>Setup helper</Text>
           <Text style={s.setupSub}>
-            Add or update calendar sources by chatting with the helper.
+            Add or update calendars by chatting with the helper.
           </Text>
         </View>
         <Text style={s.setupChevron}>›</Text>

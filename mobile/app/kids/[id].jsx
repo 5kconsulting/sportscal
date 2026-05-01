@@ -62,7 +62,7 @@ export default function EditKid() {
   function handleDelete() {
     Alert.alert(
       'Remove this family member?',
-      'Their attendance overrides and per-kid sources will also be removed. Events from shared sources stay.',
+      'Their attendance overrides and per-kid calendars will also be removed. Events from shared calendars stay.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
