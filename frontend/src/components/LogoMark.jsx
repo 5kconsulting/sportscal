@@ -2,7 +2,7 @@ export function LogoMark({ size = 32, dark = false }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <img
-        src="/favicon.svg"
+        src="/favicon-192.png"
         alt="SportsCal icon"
         style={{ width: size, height: size, display: 'block', borderRadius: Math.round(size * 0.2) }}
       />
