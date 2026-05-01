@@ -52,6 +52,13 @@ export const api = {
     update: (id, data)  => patch(`/kids/${id}`, data),
     delete: (id)        => del(`/kids/${id}`),
   },
+  setupAgent: {
+    // Backend proxy for the SetupAgent chat. Replaces direct
+    // api.anthropic.com calls so VITE_ANTHROPIC_API_KEY can be removed
+    // from the deploy. System prompt + kid roster + persistence all
+    // live server-side now.
+    message: (data) => post('/setup-agent/message', data),
+  },
   sources: {
     list:    ()          => get('/sources'),
     get:     (id)        => get(`/sources/${id}`),

@@ -4,6 +4,14 @@ import { useAuth } from '../hooks/useAuth.jsx';
 import { useIngestion } from '../hooks/useIngestion.js';
 import IngestionReviewModal from '../components/IngestionReviewModal.jsx';
 
+// DEPRECATED — moved to backend/src/lib/setupAgentPrompt.js as part of the
+// 2026-05-01 web SetupAgent → backend proxy migration. The constants and
+// buildSystemPrompt() below are no longer called from this file (sendMessage
+// hits POST /api/setup-agent/message which builds the prompt server-side).
+// Kept here as dead code only because deleting them is unrelated to the
+// proxy migration and could regress if anything still imports from this
+// file. Safe to delete in a follow-up commit once a grep confirms no
+// external references.
 const APP_INSTRUCTIONS = {
   teamsnap: {
     label: 'TeamSnap',
@@ -298,24 +306,16 @@ export default function SetupAgent({ onSourceAdded }) {
         .filter(m => m.role === 'user' || m.role === 'assistant')
         .map(m => ({ role: m.role, content: m.content }));
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: buildSystemPrompt(kids),
-          messages: apiMessages,
-        }),
+      // Route through the backend proxy (POST /api/setup-agent/message).
+      // The system prompt, kid roster lookup, rate limit, and chat
+      // persistence all live server-side now — see backend/src/routes/
+      // setupAgent.js + lib/setupAgentPrompt.js. The Anthropic key
+      // never ships in the bundle.
+      const data = await api.setupAgent.message({
+        messages: apiMessages,
+        platform: 'web',
       });
-
-      const data = await res.json();
-      const rawContent = data.content?.[0]?.text || 'Sorry, something went wrong. Please try again.';
+      const rawContent = data.content || 'Sorry, something went wrong. Please try again.';
       const action = extractAction(rawContent);
       const displayContent = stripAction(rawContent);
 
