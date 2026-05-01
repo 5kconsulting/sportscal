@@ -168,8 +168,11 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Feed URL card */}
-      <FeedUrlCard user={user} />
+      {/* Feed URL card — auto-collapses once user has any sources */}
+      <FeedUrlCard
+        user={user}
+        hasSources={sources.filter(s => s.name !== '__manual__').length > 0}
+      />
 
       {/* Kid filter */}
       {kids.length > 1 && (
@@ -367,15 +370,59 @@ function OnboardingBanner({ hasKids, hasSources, onDismiss }) {
   );
 }
 
-function FeedUrlCard({ user }) {
+function FeedUrlCard({ user, hasSources = false }) {
   const [copied, setCopied]       = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  // Mirrors the Settings auto-collapse pattern: once the user has any
+  // calendars, the URL becomes one-time-use clutter. Default expanded
+  // for fresh users so the URL is prominent during initial onboarding.
+  // Manual toggle wins over the auto-default for the rest of the session
+  // (a deliberate "Show" / "Hide" click shouldn't get re-snapped).
+  const [collapsed, setCollapsed] = useState(hasSources);
+  const [manuallyToggled, setManuallyToggled] = useState(false);
+  useEffect(() => {
+    if (!manuallyToggled) setCollapsed(hasSources);
+  }, [hasSources, manuallyToggled]);
+
   const feedUrl = user ? `${window.location.origin}/feed/${user.feed_token}.ics` : '';
 
   function copy() {
     navigator.clipboard.writeText(feedUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        onClick={() => { setManuallyToggled(true); setCollapsed(false); }}
+        style={{
+          width: '100%',
+          background: 'var(--navy)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '14px 20px',
+          border: 'none',
+          cursor: 'pointer',
+          textAlign: 'left',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+        }}
+        aria-label="Show calendar feed URL"
+      >
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600,
+                         textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            ✓ Calendar feed connected
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--slate-light)' }}>
+            Tap to view URL or rotate
+          </span>
+        </div>
+        <span style={{ fontSize: 16, color: 'var(--slate-light)' }}>›</span>
+      </button>
+    );
   }
 
   return (
@@ -393,11 +440,21 @@ function FeedUrlCard({ user }) {
                         textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Your calendar feed URL
           </div>
-          <button onClick={() => setShowGuide(true)}
-            style={{ fontSize: 12, color: 'var(--accent-dim)', background: 'none',
-                     border: 'none', cursor: 'pointer', fontWeight: 500, padding: 0 }}>
-            How to subscribe →
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button onClick={() => setShowGuide(true)}
+              style={{ fontSize: 12, color: 'var(--accent-dim)', background: 'none',
+                       border: 'none', cursor: 'pointer', fontWeight: 500, padding: 0 }}>
+              How to subscribe →
+            </button>
+            {hasSources && (
+              <button
+                onClick={() => { setManuallyToggled(true); setCollapsed(true); }}
+                style={{ fontSize: 12, color: 'var(--slate-light)', background: 'none',
+                         border: 'none', cursor: 'pointer', fontWeight: 500, padding: 0 }}>
+                Hide
+              </button>
+            )}
+          </div>
         </div>
         <div style={{
           fontSize: 12, color: 'var(--slate-light)',
