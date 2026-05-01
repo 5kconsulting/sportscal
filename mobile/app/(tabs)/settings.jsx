@@ -15,6 +15,12 @@ export default function Settings() {
   const [kidsLoading, setKidsLoading] = useState(true);
   const [inboundAddress, setInboundAddress] = useState('');
   const [inboundConfigured, setInboundConfigured] = useState(false);
+  // Calendar feed section auto-collapses once the user has any sources
+  // (mirrors the web Settings UX). The URL is mostly relevant during
+  // initial onboarding; surfacing it on every Settings visit is clutter
+  // for established users.
+  const [feedCollapsed, setFeedCollapsed] = useState(false);
+  const [feedManuallyToggled, setFeedManuallyToggled] = useState(false);
 
   const httpsFeedUrl  = user?.feed_token ? `https://${FEED_HOST}/feed/${user.feed_token}.ics` : '';
   const webcalFeedUrl = user?.feed_token ? `webcal://${FEED_HOST}/feed/${user.feed_token}.ics`  : '';
@@ -39,8 +45,20 @@ export default function Settings() {
           })
           .catch(() => {});
       }
+      // Auto-collapse Calendar feed once the user has any sources.
+      // Skipped if they've explicitly toggled it open during this session
+      // — don't fight a deliberate action.
+      if (!feedManuallyToggled) {
+        api.get('/api/sources')
+          .then(({ sources }) => {
+            if (cancelled) return;
+            const real = (sources || []).filter(s => s.name !== '__manual__');
+            setFeedCollapsed(real.length > 0);
+          })
+          .catch(() => {});
+      }
       return () => { cancelled = true; };
-    }, [inboundAddress])
+    }, [inboundAddress, feedManuallyToggled])
   );
 
   async function shareInboundAddress() {
@@ -221,41 +239,66 @@ export default function Settings() {
         </View>
       ) : null}
 
-      <View style={s.section}>
-        <Text style={s.label}>Calendar feed</Text>
-        <Text style={s.feedHelp}>
-          Subscribe once and your phone calendar stays in sync automatically.
-        </Text>
-
+      {feedCollapsed ? (
         <TouchableOpacity
-          style={s.feedPrimaryBtn}
-          onPress={subscribeInCalendar}
-          activeOpacity={0.8}
-          disabled={!webcalFeedUrl}
-        >
-          <Text style={s.feedPrimaryText}>Subscribe in Apple Calendar</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={s.feedSecondaryBtn}
-          onPress={shareFeedLink}
-          activeOpacity={0.7}
-          disabled={!httpsFeedUrl}
-        >
-          <Text style={s.feedSecondaryText}>Share link (Google, Outlook…)</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={s.feedResetBtn}
-          onPress={handleResetFeed}
-          disabled={rotating}
+          style={s.feedCollapsedBtn}
+          onPress={() => { setFeedManuallyToggled(true); setFeedCollapsed(false); }}
           activeOpacity={0.7}
         >
-          {rotating
-            ? <ActivityIndicator color="#8896b0" />
-            : <Text style={s.feedResetText}>Reset link</Text>}
+          <View style={{ flex: 1 }}>
+            <Text style={s.feedCollapsedTitle}>Calendar feed</Text>
+            <Text style={s.feedCollapsedSub}>
+              <Text style={{ color: '#00b377', fontWeight: '600' }}>✓ Subscribed.</Text>
+              {' '}Tap to view, share, or reset.
+            </Text>
+          </View>
+          <Text style={s.feedCollapsedChevron}>›</Text>
         </TouchableOpacity>
-      </View>
+      ) : (
+        <View style={s.section}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={s.label}>Calendar feed</Text>
+            <TouchableOpacity
+              onPress={() => { setFeedManuallyToggled(true); setFeedCollapsed(true); }}
+              hitSlop={8}
+            >
+              <Text style={s.feedHideText}>Hide</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={s.feedHelp}>
+            Subscribe once and your phone calendar stays in sync automatically.
+          </Text>
+
+          <TouchableOpacity
+            style={s.feedPrimaryBtn}
+            onPress={subscribeInCalendar}
+            activeOpacity={0.8}
+            disabled={!webcalFeedUrl}
+          >
+            <Text style={s.feedPrimaryText}>Subscribe in Apple Calendar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={s.feedSecondaryBtn}
+            onPress={shareFeedLink}
+            activeOpacity={0.7}
+            disabled={!httpsFeedUrl}
+          >
+            <Text style={s.feedSecondaryText}>Share link (Google, Outlook…)</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={s.feedResetBtn}
+            onPress={handleResetFeed}
+            disabled={rotating}
+            activeOpacity={0.7}
+          >
+            {rotating
+              ? <ActivityIndicator color="#8896b0" />
+              : <Text style={s.feedResetText}>Reset link</Text>}
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={s.section}>
         <View style={s.kidsHeader}>
@@ -338,6 +381,19 @@ const s = StyleSheet.create({
   value:    { fontSize: 16, fontWeight: '600', color: '#0f1629' },
   sub:      { fontSize: 13, color: '#8896b0', marginTop: 2 },
   feedHelp: { fontSize: 13, color: '#4a5670', lineHeight: 18, marginBottom: 12 },
+  feedHideText: { fontSize: 13, color: '#00d68f', fontWeight: '600' },
+  feedCollapsedBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#ffffff', marginHorizontal: 16, marginTop: 16,
+    paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12,
+    borderWidth: 1, borderColor: '#e8ecf4',
+  },
+  feedCollapsedTitle: {
+    fontSize: 12, fontWeight: '600', color: '#8896b0',
+    textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4,
+  },
+  feedCollapsedSub: { fontSize: 13, color: '#4a5670' },
+  feedCollapsedChevron: { fontSize: 22, color: '#b8c4d8', fontWeight: '300', marginLeft: 8 },
   setupBtn: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#0f1629', borderRadius: 12,
