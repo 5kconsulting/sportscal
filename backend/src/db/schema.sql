@@ -376,11 +376,18 @@ CREATE TABLE IF NOT EXISTS ingestions (
 -- CHECK constraints — drop-and-recreate so edits are declarative.
 ALTER TABLE ingestions DROP CONSTRAINT IF EXISTS ingestions_kind_check;
 ALTER TABLE ingestions ADD  CONSTRAINT ingestions_kind_check
-  CHECK (kind IN ('pdf', 'email', 'photo'));
+  CHECK (kind IN ('pdf', 'image', 'email', 'photo'));
+-- 'image' is the canonical value for camera/screenshot uploads (matches the
+-- 'image/*' mime family); 'photo' is kept for back-compat with any legacy
+-- rows. New rows should use 'image'.
 
+-- Inbound-mail PDF flow needs an ingestion to exist BEFORE the kid is known
+-- (we ask the user "which kid is this for?" via the magic-link chat after
+-- the email arrives). pending_kid is the holding state until they pick.
 ALTER TABLE ingestions DROP CONSTRAINT IF EXISTS ingestions_status_check;
 ALTER TABLE ingestions ADD  CONSTRAINT ingestions_status_check
   CHECK (status IN (
+    'pending_kid',
     'pending',
     'uploading',
     'reading',
@@ -391,6 +398,20 @@ ALTER TABLE ingestions ADD  CONSTRAINT ingestions_status_check
     'rejected',
     'failed'
   ));
+
+-- Allow kid_id NULL for ingestions that arrive via inbound mail without a
+-- pre-selected kid. The application layer enforces "must be set before
+-- transitioning out of pending_kid" (see routes/ingestions.js).
+ALTER TABLE ingestions ALTER COLUMN kid_id DROP NOT NULL;
+
+-- One-time(ish) opaque token that grants public read access to a single
+-- ingestion via /setup?ingestion=<token>. Used by the inbound-mail PDF
+-- flow so a forwarded PDF can become events without the user having to
+-- log in. Cleared on approve/reject so the link stops working after use.
+ALTER TABLE ingestions ADD COLUMN IF NOT EXISTS magic_link_token TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS ingestions_magic_link_token_idx
+  ON ingestions(magic_link_token)
+  WHERE magic_link_token IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS ingestions_user_status_idx
   ON ingestions(user_id, status);

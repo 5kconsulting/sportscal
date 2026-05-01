@@ -39,6 +39,9 @@
 import { Router } from 'express';
 import { Resend } from 'resend';
 import ical from 'node-ical';
+import crypto from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 import {
   getUserByInboundToken,
@@ -51,12 +54,23 @@ import {
   getKidsForSource,
   upsertEvent,
   query,
+  queryOne,
   invalidateFeedCache,
 } from '../db/index.js';
 import { intakeFromUrl } from '../lib/sourceIntake.js';
 import { extractIcalUrls } from '../lib/inboundParser.js';
 import { normalizeIcalFeed } from '../normalizer.js';
 import { enqueueIcalFetch } from '../workers/queue.js';
+
+// Same disk path the multipart /api/ingestions upload uses, so the existing
+// pdfWorker reads the file from a familiar location once we enqueue.
+// MUST match the constant in routes/ingestions.js (uses Railway's persistent
+// volume mount at /data/ingestions in production).
+const INGESTION_STORAGE_ROOT =
+  process.env.INGESTION_STORAGE_ROOT || '/data/ingestions';
+
+const APP_URL =
+  process.env.APP_URL || 'https://www.sportscalapp.com';
 
 const router = Router();
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -188,6 +202,73 @@ async function processIcalAttachments(user, attachments) {
   return { added, updated, cancelled, source };
 }
 
+// Inbound-mail PDF flow: stash the bytes on disk + create an ingestion row
+// with kid_id=null and status='pending_kid'. The worker is NOT enqueued
+// yet — the user picks the kid via the magic-link chat first, and that
+// transition (assignKidToIngestion -> 'pending') is what starts the
+// extraction. Returns one entry per accepted PDF for the email summary.
+async function processPdfAttachments(user, attachments) {
+  const pdfAttachments = (attachments || []).filter(a =>
+    a && (a.mime_type === 'application/pdf' || /\.pdf$/i.test(a.filename || '')),
+  );
+  if (pdfAttachments.length === 0) return [];
+
+  await fs.mkdir(INGESTION_STORAGE_ROOT, { recursive: true });
+
+  const out = [];
+  for (const att of pdfAttachments) {
+    let bytes;
+    try {
+      bytes = Buffer.from(att.content_b64 || '', 'base64');
+    } catch {
+      console.warn('[inbound] failed to b64-decode PDF attachment:', att.filename);
+      continue;
+    }
+    if (bytes.length === 0) continue;
+    if (bytes.length > 10 * 1024 * 1024) {
+      // Same 10MB cap as the multipart /api/ingestions route. Larger PDFs
+      // would also blow Anthropic's vision-input limits.
+      out.push({ ok: false, reason: 'too-large', filename: att.filename, sizeBytes: bytes.length });
+      continue;
+    }
+
+    const ingestionId = crypto.randomUUID();
+    const storagePath = path.join(INGESTION_STORAGE_ROOT, ingestionId + '.pdf');
+    await fs.writeFile(storagePath, bytes);
+
+    // 32 hex chars = 128 bits — uniqueness-collision-proof at any volume
+    // and short enough to fit cleanly in a URL.
+    const magicLinkToken = crypto.randomBytes(16).toString('hex');
+
+    const row = await queryOne(
+      `INSERT INTO ingestions (
+         id, user_id, kid_id, kind,
+         original_filename, original_mime, original_size,
+         storage_path, status, status_detail, magic_link_token
+       ) VALUES ($1, $2, NULL, 'pdf', $3, $4, $5, $6, 'pending_kid', $7, $8)
+       RETURNING id`,
+      [
+        ingestionId,
+        user.id,
+        att.filename || 'schedule.pdf',
+        att.mime_type || 'application/pdf',
+        bytes.length,
+        storagePath,
+        'Waiting for you to pick a kid',
+        magicLinkToken,
+      ],
+    );
+
+    out.push({
+      ok: true,
+      filename: att.filename || 'schedule.pdf',
+      ingestionId: row.id,
+      magicLink: `${APP_URL}/setup?ingestion=${magicLinkToken}`,
+    });
+  }
+  return out;
+}
+
 async function notifyUserBySendingEmail(user, summary) {
   if (!process.env.RESEND_API_KEY) return;
   const FROM = process.env.RESEND_FROM || 'SportsCal <hello@sportscalapp.com>';
@@ -244,18 +325,29 @@ router.post('/mail', async (req, res) => {
 
   const fromAddr = fromHeader || envelopeFrom || '(unknown sender)';
 
-  // Two intake paths run in parallel for the same email:
-  //   1. .ics attachments -> Google/Apple/Outlook iMIP guest invite. Each
-  //      VEVENT becomes an event in the user's "Email invites" source.
-  //      METHOD:CANCEL deletes events.
-  //   2. Calendar URLs in the body -> subscribe-the-whole-feed flow.
-  // Most emails will exercise exactly one of these; the canonical
-  // Google-invite path uses (1), the canonical "I forwarded my league's
-  // welcome email" path uses (2). We run both because we don't know which
-  // shape we got and there's no harm if both paths return zero hits.
+  // Three intake paths run in parallel for the same email — we don't
+  // know up front which shape arrived:
+  //   1. .ics attachments -> Google/Apple/Outlook iMIP guest invite.
+  //      Each VEVENT becomes an event in the user's "Email invites"
+  //      source. METHOD:CANCEL deletes events.
+  //   2. .pdf attachments -> printed-schedule scan. We stash the file
+  //      and create an ingestion in pending_kid state, then email the
+  //      user a magic link to /setup?ingestion=<token> where they pick
+  //      the kid + review extracted events. We DON'T auto-process —
+  //      most parents will forward generic "swim calendar" emails and
+  //      the chat-led kid picker keeps garbage out of the calendar.
+  //   3. Calendar URLs in the body -> subscribe-the-whole-feed flow.
+  // Most emails exercise exactly one path. (2) and (1) are mutually
+  // exclusive in practice (Google invites attach .ics, sports apps
+  // attach .pdf); we don't try to be clever.
   const inviteSummary = await processIcalAttachments(user, attachments).catch(err => {
     console.error('[inbound] ics processing failed:', err.message);
     return { added: [], updated: [], cancelled: [], error: err.message };
+  });
+
+  const pdfResults = await processPdfAttachments(user, attachments).catch(err => {
+    console.error('[inbound] pdf processing failed:', err.message);
+    return [];
   });
 
   const urls    = extractIcalUrls({ text, html });
@@ -277,19 +369,25 @@ router.post('/mail', async (req, res) => {
   const totalAdded =
     inviteSummary.added.length + inviteSummary.updated.length + urlCreated.length;
   const totalCancelled = inviteSummary.cancelled.length;
+  const pdfsAccepted   = pdfResults.filter(r => r.ok);
+  const pdfsTooLarge   = pdfResults.filter(r => !r.ok && r.reason === 'too-large');
 
-  // No calendar URLs AND no .ics attachments -> friendly "we couldn't find anything" reply.
-  if (totalAdded === 0 && totalCancelled === 0 && urlFailed.length === 0) {
+  // No calendar URLs AND no .ics attachments AND no PDFs -> friendly
+  // "we couldn't find anything" reply.
+  if (totalAdded === 0 && totalCancelled === 0 && urlFailed.length === 0
+      && pdfsAccepted.length === 0 && pdfsTooLarge.length === 0) {
     console.log(`[inbound] no calendar content from ${fromAddr} (subject="${subject}")`);
     await notifyUserBySendingEmail(user, {
       subject: 'Couldn\'t find a calendar in that email',
       text:
         'Hi ' + (user.name || 'there') + ',\n\n' +
-        'I scanned the email you forwarded but didn\'t find a calendar URL or invite ' +
-        'attachment. A few ways to add events to SportsCal:\n\n' +
+        'I scanned the email you forwarded but didn\'t find a calendar URL, invite ' +
+        'attachment, or PDF schedule. A few ways to add events to SportsCal:\n\n' +
         '  • Forward an email that has a "Subscribe to calendar" link in it.\n' +
         '  • In Google/Apple/Outlook Calendar, invite this address as a guest on ' +
         'the event you want — we\'ll add it automatically.\n' +
+        '  • Forward a paper schedule attached as a PDF — we\'ll scan it and let ' +
+        'you pick which events to keep.\n' +
         '  • Open the app and use the setup helper.\n\n' +
         '— SportsCal',
     });
@@ -340,12 +438,33 @@ router.post('/mail', async (req, res) => {
       lines.push(`  • ${r.url || '(unknown)'}: ${why}`);
     }
   }
+  if (pdfsAccepted.length) {
+    if (lines.length) lines.push('');
+    lines.push(
+      `Got ${pdfsAccepted.length} PDF${pdfsAccepted.length === 1 ? '' : 's'} — open ` +
+      `${pdfsAccepted.length === 1 ? 'this link' : 'these links'} to pick which kid ` +
+      'and review the events:',
+    );
+    for (const r of pdfsAccepted) {
+      lines.push(`  • ${r.filename}`);
+      lines.push(`    ${r.magicLink}`);
+    }
+  }
+  if (pdfsTooLarge.length) {
+    if (lines.length) lines.push('');
+    lines.push(`Couldn't process ${pdfsTooLarge.length} large PDF${pdfsTooLarge.length === 1 ? '' : 's'} (10MB cap):`);
+    for (const r of pdfsTooLarge) {
+      lines.push(`  • ${r.filename || '(unknown)'} (${Math.round(r.sizeBytes / 1024 / 1024)}MB)`);
+    }
+  }
 
   const subjectLine = totalAdded > 0
     ? `Added ${totalAdded} ${totalAdded === 1 ? 'item' : 'items'} to SportsCal`
-    : (totalCancelled > 0
-        ? `Removed ${totalCancelled} cancelled event${totalCancelled === 1 ? '' : 's'}`
-        : 'Couldn\'t add anything from that email');
+    : (pdfsAccepted.length > 0
+        ? `Got your PDF — pick a kid to add the events`
+        : (totalCancelled > 0
+            ? `Removed ${totalCancelled} cancelled event${totalCancelled === 1 ? '' : 's'}`
+            : 'Couldn\'t add anything from that email'));
 
   await notifyUserBySendingEmail(user, {
     subject: subjectLine,
@@ -357,12 +476,14 @@ router.post('/mail', async (req, res) => {
     ` invite_updated=${inviteSummary.updated.length}` +
     ` invite_cancelled=${inviteSummary.cancelled.length}` +
     ` url_created=${urlCreated.length} url_failed=${urlFailed.length}` +
+    ` pdfs_accepted=${pdfsAccepted.length} pdfs_too_large=${pdfsTooLarge.length}` +
     ` from=${fromAddr}`,
   );
   res.status(200).json({
     ok: true,
-    invites:    { added: inviteSummary.added.length, updated: inviteSummary.updated.length, cancelled: inviteSummary.cancelled.length },
-    urls:       { created: urlCreated.length, failed: urlFailed.length },
+    invites: { added: inviteSummary.added.length, updated: inviteSummary.updated.length, cancelled: inviteSummary.cancelled.length },
+    urls:    { created: urlCreated.length, failed: urlFailed.length },
+    pdfs:    { accepted: pdfsAccepted.length, too_large: pdfsTooLarge.length },
   });
 });
 

@@ -18,7 +18,11 @@ import { Queue } from 'bullmq';
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { query, queryOne } from '../db/index.js';
+import {
+  query, queryOne,
+  getIngestionByMagicLink, assignKidToIngestion, clearIngestionMagicLink,
+  getKidsByUser,
+} from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { connection } from '../workers/queue.js';
 
@@ -71,6 +75,98 @@ const upload = multer({
     }
     cb(null, true);
   },
+});
+
+// ----------------------------------------------------------------------------
+// PUBLIC magic-link routes for the inbound-mail PDF flow.
+//
+// When a parent forwards a PDF to add+<token>@inbox.sportscalapp.com, the
+// inbound webhook stashes the file + creates an ingestion in pending_kid
+// state, then emails the parent a link like
+//   https://www.sportscalapp.com/setup?ingestion=<magic_link_token>
+// The chat opens, fetches the ingestion via these endpoints (no login),
+// asks "which kid is this for?", then assigns + enqueues the worker. The
+// magic link is the only auth — once the kid is set + worker runs, the
+// ingestion review uses the standard requireAuth path. (We assume the
+// parent is logged in by the time the review UI shows; if they're not,
+// the review modal will gracefully kick to login.)
+//
+// Mounted BEFORE the requireAuth gate below so the public can hit them.
+// ----------------------------------------------------------------------------
+router.get('/by-link/:token', async (req, res) => {
+  try {
+    const ingestion = await getIngestionByMagicLink(req.params.token);
+    if (!ingestion) return res.status(404).json({ error: 'Link expired or invalid' });
+    // Sanitize: don't leak server-side fields.
+    const kids = await getKidsByUser(ingestion.user_id);
+    res.json({
+      ingestion: {
+        id:                ingestion.id,
+        kind:              ingestion.kind,
+        status:            ingestion.status,
+        status_detail:     ingestion.status_detail,
+        original_filename: ingestion.original_filename,
+        original_size:     ingestion.original_size,
+        kid_id:            ingestion.kid_id,
+        event_count:       ingestion.event_count,
+        approved_count:    ingestion.approved_count,
+        extracted_events:  ingestion.extracted_events,
+        extraction_error:  ingestion.extraction_error,
+        created_at:        ingestion.created_at,
+      },
+      user: {
+        id:    ingestion.user_id,
+        name:  ingestion.user_name,
+        email: ingestion.user_email,
+      },
+      kids: kids.map(k => ({ id: k.id, name: k.name, color: k.color })),
+    });
+  } catch (err) {
+    console.error('[GET /api/ingestions/by-link] error', err);
+    res.status(500).json({ error: err.message || 'Lookup failed' });
+  }
+});
+
+// Assign a kid to a pending_kid ingestion via the magic-link token.
+// Body: { token, kidId }. Atomic: only succeeds if the ingestion is
+// pending_kid AND the kid belongs to the same user that owns the
+// ingestion. On success, transitions to 'pending' and enqueues the
+// pdfWorker — same as if the user had uploaded via the multipart route.
+router.post('/by-link/assign-kid', async (req, res) => {
+  try {
+    const { token, kidId } = req.body || {};
+    if (!token || !kidId) {
+      return res.status(400).json({ error: 'token and kidId are required' });
+    }
+    const ingestion = await getIngestionByMagicLink(token);
+    if (!ingestion) return res.status(404).json({ error: 'Link expired or invalid' });
+    if (ingestion.status !== 'pending_kid') {
+      return res.status(409).json({ error: 'This PDF has already been assigned' });
+    }
+    const updated = await assignKidToIngestion(ingestion.id, ingestion.user_id, kidId);
+    if (!updated) {
+      return res.status(404).json({ error: 'Kid not found on this account' });
+    }
+    await pdfQueue.add(
+      'extract',
+      { ingestionId: ingestion.id },
+      {
+        jobId: 'pdf-' + ingestion.id,
+        removeOnComplete: 1000,
+        removeOnFail: 5000,
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 5000 },
+      },
+    );
+    res.json({
+      ingestion: {
+        id: updated.id, status: updated.status, status_detail: updated.status_detail,
+      },
+    });
+  } catch (err) {
+    console.error('[POST /api/ingestions/by-link/assign-kid] error', err);
+    res.status(500).json({ error: err.message || 'Assign failed' });
+  }
 });
 
 function uploadMiddleware(req, res, next) {
@@ -408,7 +504,8 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
               approved_count = $2,
               reviewed_at = NOW(),
               status_detail = $3,
-              updated_at = NOW()
+              updated_at = NOW(),
+              magic_link_token = NULL
         WHERE id = $4`,
       [source.id, inserted, detail, ingestion.id],
     );
@@ -452,7 +549,8 @@ router.post('/:id/reject', requireAuth, async (req, res) => {
             file_deleted_at = NOW(),
             reviewed_at = NOW(),
             updated_at = NOW(),
-            status_detail = 'Discarded'
+            status_detail = 'Discarded',
+            magic_link_token = NULL
       WHERE id = $1`,
     [ingestion.id],
   );

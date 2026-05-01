@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { api } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useIngestion } from '../hooks/useIngestion.js';
@@ -202,6 +202,18 @@ function statusToBubble(ing) {
 }
 
 export default function SetupAgent({ onSourceAdded }) {
+  // Magic-link PDF review path: when a parent forwards a PDF schedule to
+  // their inbound mail address, we email them back a link that drops them
+  // here with ?ingestion=<magic_link_token>. The flow is "pick a kid ->
+  // we extract events -> review and approve" without ever needing them
+  // to upload anything. See routes/inbound.js processPdfAttachments + the
+  // /api/ingestions/by-link/* endpoints.
+  // URL is stable per page load; cheap enough to read every render.
+  const magicLinkToken = new URLSearchParams(window.location.search).get('ingestion');
+  if (magicLinkToken) {
+    return <MagicLinkPdfReview token={magicLinkToken} />;
+  }
+
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -714,6 +726,274 @@ function TypingDots() {
           30% { transform: translateY(-4px); opacity: 1; }
         }
       `}</style>
+    </div>
+  );
+}
+
+// ============================================================================
+// MagicLinkPdfReview — render path for /setup?ingestion=<magic_link_token>
+//
+// The user got here from the confirmation email after forwarding a PDF
+// to add+<token>@inbox.sportscalapp.com. The ingestion already exists
+// in pending_kid status with the PDF on disk. We:
+//   1. Fetch ingestion + kids list publicly via /api/ingestions/by-link/:token
+//   2. If pending_kid, show a kid picker as the primary action
+//   3. After kid pick, POST /by-link/assign-kid (worker enqueues there)
+//   4. Poll status as it moves through reading -> parsing
+//   5. When ready_for_review, open the existing IngestionReviewModal —
+//      that modal calls /api/ingestions/:id/approve which still requires
+//      auth (security checkpoint at the moment of inserting events). If
+//      the user isn't signed in, the modal's submit will 401 and we
+//      surface a "please sign in" message with a link.
+// ============================================================================
+
+const MAGIC_LINK_TERMINAL = new Set(['ready_for_review', 'approved', 'rejected', 'failed']);
+const MAGIC_LINK_POLL_MS  = 1500;
+
+function MagicLinkPdfReview({ token }) {
+  const { user } = useAuth();
+  const [data, setData]       = useState(null);   // { ingestion, user, kids }
+  const [loadError, setLoadError] = useState(null);
+  const [chosenKidId, setChosenKidId] = useState(null);
+  const [assigning, setAssigning] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  const pollRef = useRef(null);
+
+  const fetchIngestion = useCallback(async () => {
+    const res = await fetch('/api/ingestions/by-link/' + encodeURIComponent(token));
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || 'Link expired or invalid');
+    }
+    return res.json();
+  }, [token]);
+
+  // Initial load.
+  useEffect(() => {
+    let cancelled = false;
+    fetchIngestion()
+      .then(d => { if (!cancelled) setData(d); })
+      .catch(err => { if (!cancelled) setLoadError(err.message); });
+    return () => { cancelled = true; };
+  }, [fetchIngestion]);
+
+  // Polling loop. Runs whenever we have a non-terminal ingestion.
+  useEffect(() => {
+    const status = data?.ingestion?.status;
+    if (!status || MAGIC_LINK_TERMINAL.has(status) || status === 'pending_kid') {
+      // Don't poll while waiting on the user to pick a kid.
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+      return;
+    }
+    if (pollRef.current) return;
+    pollRef.current = setInterval(async () => {
+      try {
+        const next = await fetchIngestion();
+        setData(next);
+      } catch {
+        // transient network errors are fine; the next tick retries
+      }
+    }, MAGIC_LINK_POLL_MS);
+    return () => {
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    };
+  }, [data?.ingestion?.status, fetchIngestion]);
+
+  // Open review modal when extraction is done.
+  useEffect(() => {
+    if (data?.ingestion?.status === 'ready_for_review') setShowReview(true);
+  }, [data?.ingestion?.status]);
+
+  async function assignKid(kidId) {
+    setAssigning(true);
+    try {
+      const res = await fetch('/api/ingestions/by-link/assign-kid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, kidId }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || 'Assign failed');
+      // Refresh local state to reflect kid_id + new status; polling takes over.
+      const next = await fetchIngestion();
+      setData(next);
+    } catch (err) {
+      setLoadError(err.message);
+    } finally {
+      setAssigning(false);
+    }
+  }
+
+  async function handleApprove(events, sourceName) {
+    // Approve still requires auth — uses the same /:id/approve as the
+    // logged-in flow. If the user isn't signed in we'll get a 401 here
+    // and surface a sign-in prompt.
+    const auth = localStorage.getItem('sc_token');
+    if (!auth) {
+      setLoadError('Please sign in to save these events to your calendar.');
+      return;
+    }
+    const res = await fetch('/api/ingestions/' + data.ingestion.id + '/approve', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + auth,
+      },
+      body: JSON.stringify({ events, sourceName }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || 'Approve failed');
+    }
+    setShowReview(false);
+    // Refresh — status will be 'approved'.
+    const next = await fetchIngestion().catch(() => null);
+    if (next) setData(next);
+  }
+
+  async function handleReject() {
+    const auth = localStorage.getItem('sc_token');
+    if (!auth) { setShowReview(false); return; }
+    await fetch('/api/ingestions/' + data.ingestion.id + '/reject', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + auth },
+    }).catch(() => {});
+    setShowReview(false);
+  }
+
+  // ----- render branches -------------------------------------------------
+
+  if (loadError) {
+    return (
+      <CenteredCard title="Link expired">
+        <p style={{ fontSize: 14, color: 'var(--slate)', lineHeight: 1.6 }}>
+          {loadError}
+        </p>
+        <p style={{ fontSize: 14, color: 'var(--slate)', marginTop: 12, lineHeight: 1.6 }}>
+          You can forward the PDF again to your inbox address — we'll send a fresh link.
+        </p>
+      </CenteredCard>
+    );
+  }
+
+  if (!data) {
+    return <CenteredCard title="Loading…"><span className="spinner" style={{ width: 16, height: 16 }} /></CenteredCard>;
+  }
+
+  const ing = data.ingestion;
+  const kid = data.kids.find(k => k.id === ing.kid_id);
+
+  if (ing.status === 'approved') {
+    return (
+      <CenteredCard title={`Added ${ing.approved_count || ing.event_count || 0} events`}>
+        <p style={{ fontSize: 14, color: 'var(--slate)', lineHeight: 1.6 }}>
+          {kid?.name ? `${kid.name}'s` : 'The'} schedule is up to date.
+        </p>
+        <a href="/dashboard" className="btn btn-primary btn-sm" style={{ marginTop: 16 }}>
+          Open SportsCal
+        </a>
+      </CenteredCard>
+    );
+  }
+
+  if (ing.status === 'rejected') {
+    return <CenteredCard title="Discarded"><p style={{ fontSize: 14, color: 'var(--slate)' }}>This PDF was thrown away. Forward it again any time.</p></CenteredCard>;
+  }
+
+  if (ing.status === 'failed') {
+    return (
+      <CenteredCard title="Couldn't read that PDF">
+        <p style={{ fontSize: 14, color: 'var(--slate)', lineHeight: 1.6 }}>
+          {ing.extraction_error || 'The schedule wasn\'t in a format we could parse. Try a clearer scan or paste the iCal URL into the setup helper.'}
+        </p>
+      </CenteredCard>
+    );
+  }
+
+  if (ing.status === 'pending_kid') {
+    return (
+      <CenteredCard title={`Found '${ing.original_filename}'`}>
+        <p style={{ fontSize: 14, color: 'var(--slate)', lineHeight: 1.6, marginBottom: 16 }}>
+          Hi {data.user.name?.split(' ')[0] || 'there'} — which kid is this schedule for?
+        </p>
+        {data.kids.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--slate)', padding: 12,
+                        background: 'var(--off-white)', borderRadius: 8 }}>
+            You don't have any kids on your account yet.
+            {' '}<a href="/kids">Add one in the Kids page</a> first, then come back to this link.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {data.kids.map(k => (
+              <button key={k.id}
+                onClick={() => assignKid(k.id)}
+                disabled={assigning}
+                className="card"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '12px 14px', textAlign: 'left',
+                  cursor: assigning ? 'wait' : 'pointer',
+                  opacity: assigning && chosenKidId !== k.id ? 0.5 : 1,
+                  border: '1px solid var(--border)',
+                  background: 'white',
+                }}
+                onMouseDown={() => setChosenKidId(k.id)}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: k.color || '#6366f1',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'white', fontWeight: 700, fontSize: 13,
+                }}>
+                  {(k.name || '?')[0].toUpperCase()}
+                </div>
+                <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--navy)', flex: 1 }}>
+                  {k.name}
+                </span>
+                {assigning && chosenKidId === k.id && <span className="spinner" style={{ width: 14, height: 14 }} />}
+              </button>
+            ))}
+          </div>
+        )}
+      </CenteredCard>
+    );
+  }
+
+  // Worker is processing.
+  return (
+    <>
+      <CenteredCard title="Reading your schedule…">
+        <p style={{ fontSize: 14, color: 'var(--slate)', lineHeight: 1.6 }}>
+          {kid?.name ? `Pulling events for ${kid.name}.` : 'Extracting events.'}
+          {' '}This usually takes 5–15 seconds.
+        </p>
+        <div style={{ marginTop: 16, fontSize: 13, color: 'var(--slate)' }}>
+          {ing.status_detail || ing.status}
+        </div>
+        <div style={{ marginTop: 12 }}><span className="spinner" style={{ width: 16, height: 16 }} /></div>
+      </CenteredCard>
+      {showReview && ing.status === 'ready_for_review' && (
+        <IngestionReviewModal
+          ingestion={ing}
+          kidName={kid?.name}
+          onApprove={handleApprove}
+          onCancel={handleReject}
+        />
+      )}
+    </>
+  );
+}
+
+function CenteredCard({ title, children }) {
+  return (
+    <div style={{
+      maxWidth: 480, margin: '60px auto', padding: '32px',
+      background: 'white', border: '1px solid var(--border)',
+      borderRadius: 'var(--radius)', boxShadow: '0 4px 12px rgba(15,22,41,0.05)',
+    }}>
+      <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 16, letterSpacing: '-0.01em' }}>
+        {title}
+      </h1>
+      {children}
     </div>
   );
 }

@@ -339,6 +339,41 @@ export async function createSource({
   );
 }
 
+// Magic-link lookup for the inbound-mail PDF flow. Returns the ingestion
+// plus the parent's name/timezone so the SetupAgent chat can greet the
+// user without needing them to log in. Token is cleared when the
+// ingestion reaches a terminal state (see clearIngestionMagicLink).
+export async function getIngestionByMagicLink(token) {
+  if (!token) return null;
+  return queryOne(
+    `SELECT i.*, u.name AS user_name, u.email AS user_email, u.timezone AS user_timezone
+       FROM ingestions i
+       JOIN users u ON u.id = i.user_id
+      WHERE i.magic_link_token = $1`,
+    [token],
+  );
+}
+
+export async function assignKidToIngestion(ingestionId, userId, kidId) {
+  // Atomic: only succeeds if the ingestion is currently pending_kid AND
+  // the kid actually belongs to the user. Returns the updated row or null.
+  return queryOne(
+    `UPDATE ingestions i
+        SET kid_id = $3, status = 'pending', status_detail = 'Queued for processing'
+       WHERE i.id = $1 AND i.user_id = $2 AND i.status = 'pending_kid'
+         AND EXISTS (SELECT 1 FROM kids k WHERE k.id = $3 AND k.user_id = $2)
+     RETURNING *`,
+    [ingestionId, userId, kidId],
+  );
+}
+
+export async function clearIngestionMagicLink(ingestionId) {
+  return query(
+    `UPDATE ingestions SET magic_link_token = NULL WHERE id = $1`,
+    [ingestionId],
+  );
+}
+
 // Per-user pseudo-source for events that arrive via Google/Apple/Outlook
 // calendar guest invites — the parent adds add+<token>@inbox.sportscalapp.com
 // as a guest and Google sends an iMIP invite, which we parse and drop into
