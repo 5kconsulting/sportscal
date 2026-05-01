@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -84,6 +84,16 @@ export default function Login() {
                 : <Text style={s.btnText}>Sign in</Text>}
             </TouchableOpacity>
 
+            {/* Forgot password lives on the web (token-link reset flow).
+                Open in Safari rather than building it natively \u2014 the
+                rate limit + email send already works server-side. */}
+            <TouchableOpacity
+              onPress={() => Linking.openURL('https://www.sportscalapp.com/forgot-password').catch(() => {})}
+              style={{ marginTop: 14, alignSelf: 'center' }}
+            >
+              <Text style={s.linkSubtle}>Forgot password?</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               onPress={() => router.push('/signup')}
               style={{ marginTop: 18, alignSelf: 'center' }}
@@ -121,4 +131,5 @@ const s = StyleSheet.create({
   },
   link:       { fontSize: 13, color: '#8896b0' },
   linkStrong: { color: '#00d68f', fontWeight: '500' },
+  linkSubtle: { fontSize: 13, color: '#8896b0', textDecorationLine: 'underline' },
 });

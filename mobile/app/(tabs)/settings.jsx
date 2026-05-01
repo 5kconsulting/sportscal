@@ -195,6 +195,20 @@ export default function Settings() {
         <Text style={s.value}>
           {user?.plan === 'premium' ? 'Premium' : 'Free'}
         </Text>
+        {/* Apple App Store policy: in-app purchase of digital subs would
+            need IAP. Sending users to the web Stripe portal for *managing*
+            an existing subscription (cancel / change / update card) is
+            allowed and gives Premium users a way to self-serve from
+            mobile. Free users see the same link and can upgrade on web. */}
+        <TouchableOpacity
+          onPress={() => Linking.openURL('https://www.sportscalapp.com/settings').catch(() => {})}
+          activeOpacity={0.7}
+          style={s.planManageBtn}
+        >
+          <Text style={s.planManageText}>
+            {user?.plan === 'premium' ? 'Manage billing on the web →' : 'Upgrade to Premium on the web →'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity
@@ -403,6 +417,11 @@ const s = StyleSheet.create({
   },
   feedCollapsedSub: { fontSize: 13, color: '#4a5670' },
   feedCollapsedChevron: { fontSize: 22, color: '#b8c4d8', fontWeight: '300', marginLeft: 8 },
+  planManageBtn: {
+    marginTop: 10, paddingTop: 8,
+    borderTopWidth: 1, borderTopColor: '#e8ecf4',
+  },
+  planManageText: { fontSize: 13, color: '#00d68f', fontWeight: '600' },
   setupBtn: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#0f1629', borderRadius: 12,
