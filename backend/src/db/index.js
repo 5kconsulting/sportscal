@@ -339,6 +339,31 @@ export async function createSource({
   );
 }
 
+// Per-user pseudo-source for events that arrive via Google/Apple/Outlook
+// calendar guest invites — the parent adds add+<token>@inbox.sportscalapp.com
+// as a guest and Google sends an iMIP invite, which we parse and drop into
+// this source. One source per user, lazily created on first invite.
+//
+// Plan limits intentionally NOT applied here — this isn't a calendar feed,
+// it's the equivalent of the user picking a single event into their own
+// schedule. Counting it against `max_sources` would be punitive UX.
+export async function getOrCreateEmailInviteSource(userId) {
+  const existing = await queryOne(
+    `SELECT * FROM sources
+       WHERE user_id = $1 AND app = 'email_forward' AND fetch_type = 'manual'
+       ORDER BY created_at ASC
+       LIMIT 1`,
+    [userId],
+  );
+  if (existing) return existing;
+  return queryOne(
+    `INSERT INTO sources (user_id, name, app, fetch_type, enabled)
+     VALUES ($1, 'Email invites', 'email_forward', 'manual', true)
+     RETURNING *`,
+    [userId],
+  );
+}
+
 export async function updateSource(id, userId, fields) {
   const allowed = [
     'name', 'app', 'fetch_type', 'ical_url', 'scrape_url', 'scrape_config',

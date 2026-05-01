@@ -58,6 +58,11 @@ export default {
       subject:       parsed.subject || '',
       text:          parsed.text || '',
       html:          parsed.html || '',
+      // Forward attachments so the backend can pick up .ics invites from
+      // Google/Apple/Outlook calendar guest invites — the "add this single
+      // event to my SportsCal" pattern. Cap at ~2MB total to keep the JSON
+      // payload reasonable; .ics attachments are typically <10KB.
+      attachments:   serializeAttachments(parsed.attachments),
     };
 
     let res;
@@ -86,3 +91,44 @@ export default {
     }
   },
 };
+
+// postal-mime hands attachments back as { filename, mimeType, content (ArrayBuffer
+// or Uint8Array), disposition, ... }. We base64-encode for JSON transport and cap
+// total payload to ~2MB. .ics files are tiny (<10KB typical); the cap is just a
+// safety net for surprise inline images.
+const MAX_ATTACHMENT_TOTAL_BYTES = 2 * 1024 * 1024;
+
+function serializeAttachments(list) {
+  if (!Array.isArray(list) || list.length === 0) return [];
+  const out = [];
+  let total = 0;
+  for (const a of list) {
+    const bytes = a.content instanceof Uint8Array
+      ? a.content
+      : new Uint8Array(a.content || new ArrayBuffer(0));
+    if (total + bytes.byteLength > MAX_ATTACHMENT_TOTAL_BYTES) {
+      console.warn('[inbound-mail] attachment cap reached; dropping rest');
+      break;
+    }
+    total += bytes.byteLength;
+    out.push({
+      filename:     a.filename     || '',
+      mime_type:    a.mimeType     || 'application/octet-stream',
+      disposition:  a.disposition  || null,
+      size:         bytes.byteLength,
+      content_b64:  uint8ToBase64(bytes),
+    });
+  }
+  return out;
+}
+
+// Workers don't have Node's Buffer; btoa expects a binary string. Build one in
+// 32K chunks to avoid blowing the call stack with String.fromCharCode.apply.
+function uint8ToBase64(u8) {
+  let s = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < u8.length; i += CHUNK) {
+    s += String.fromCharCode.apply(null, u8.subarray(i, i + CHUNK));
+  }
+  return btoa(s);
+}
