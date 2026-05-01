@@ -76,18 +76,39 @@ export default {
         body: JSON.stringify(payload),
       });
     } catch (err) {
-      // Network / DNS error reaching the backend. Don't reject the email
-      // (sender bounce isn't the right UX for a backend hiccup); log and
-      // move on. Cloudflare won't retry.
-      console.error('[inbound-mail] fetch failed:', err && err.message);
+      // Network / DNS error reaching the backend (e.g. Railway is mid-deploy).
+      // Use setReject so the sender's mail server retries instead of marking
+      // the message permanently delivered. Tradeoff: prolonged backend
+      // outages eventually bounce mail back to the sender, which is loud but
+      // recoverable. Silent loss is worse — that's how we lost two PDFs the
+      // night this fix shipped.
+      console.error('[inbound-mail] fetch failed (setReject for retry):', err && err.message);
+      message.setReject('SportsCal backend is temporarily unreachable; please retry');
+      return;
+    }
+
+    // 5xx from the backend is the same shape as a connection failure from
+    // the sender's perspective: try again later. 4xx (auth/validation) is
+    // our problem — accept and log so we can debug without bouncing the
+    // sender. 2xx is the happy path.
+    if (res.status >= 500) {
+      const body = await res.text().catch(() => '');
+      console.error(
+        '[inbound-mail] backend 5xx (setReject for retry):',
+        res.status, body.slice(0, 500),
+      );
+      message.setReject(`SportsCal backend error ${res.status}; please retry`);
       return;
     }
 
     if (!res.ok) {
       const body = await res.text().catch(() => '');
-      console.error('[inbound-mail] backend rejected:', res.status, body.slice(0, 500));
-      // Same logic — accept the email at the SMTP layer; let the backend's
-      // error logging tell the story.
+      console.error(
+        '[inbound-mail] backend 4xx (accepting at SMTP, debug server-side):',
+        res.status, body.slice(0, 500),
+      );
+      // Don't reject 4xx — config bugs on our side shouldn't bounce the
+      // parent's email. Logged for our side to fix.
     }
   },
 };
