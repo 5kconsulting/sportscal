@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Linking, Share, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Linking, Share, Platform } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
@@ -183,7 +183,7 @@ export default function Settings() {
   }
 
   return (
-    <View style={s.root}>
+    <ScrollView style={s.root} contentContainerStyle={s.scrollContent}>
       <View style={s.section}>
         <Text style={s.label}>Signed in as</Text>
         <Text style={s.value}>{user?.name}</Text>
@@ -367,12 +367,17 @@ export default function Settings() {
       </TouchableOpacity>
 
       <Text style={s.footer}>SportsCal v0.1.0 — mobile beta</Text>
-    </View>
+    </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  root:     { flex: 1, backgroundColor: '#f4f6fa', padding: 20 },
+  // ScrollView outer — flex + bg only. Padding moves to contentContainerStyle
+  // because ScrollView doesn't honor padding on its outer style prop.
+  root:          { flex: 1, backgroundColor: '#f4f6fa' },
+  // Inner padding + extra bottom space so the last item doesn't sit flush
+  // with the tab bar on small phones (SE / mini).
+  scrollContent: { padding: 20, paddingBottom: 40 },
   section:  {
     backgroundColor: '#ffffff', borderRadius: 12, padding: 16,
     marginBottom: 12, borderWidth: 1, borderColor: '#e8ecf4',
