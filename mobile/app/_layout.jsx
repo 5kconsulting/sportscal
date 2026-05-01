@@ -79,6 +79,14 @@ function AuthGate() {
         options={{ presentation: 'modal', headerShown: false }}
       />
       <Stack.Screen
+        name="sources/index"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
+      <Stack.Screen
+        name="sources/[id]"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
+      <Stack.Screen
         name="setup"
         options={{ presentation: 'modal', headerShown: false }}
       />

@@ -225,6 +225,20 @@ export default function Settings() {
         <Text style={s.setupChevron}>›</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={s.manageBtn}
+        onPress={() => router.push('/sources')}
+        activeOpacity={0.7}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={s.manageTitle}>Manage calendars</Text>
+          <Text style={s.manageSub}>
+            Rename, pause, or remove the calendars you've added.
+          </Text>
+        </View>
+        <Text style={s.manageChevron}>›</Text>
+      </TouchableOpacity>
+
       {inboundAddress ? (
         <View style={s.section}>
           <Text style={s.label}>Forward emails to add a calendar</Text>
@@ -430,6 +444,18 @@ const s = StyleSheet.create({
   setupTitle: { fontSize: 15, fontWeight: '600', color: '#00d68f' },
   setupSub:   { fontSize: 12, color: '#b8c4d8', marginTop: 2, lineHeight: 16 },
   setupChevron: { fontSize: 22, color: '#00d68f', fontWeight: '300', marginLeft: 8 },
+  // Lighter sibling of setupBtn — the setup helper is the "primary" CTA
+  // (dark navy / accent green), this manage row is a quieter follow-up
+  // styled like a section card to fit visually below it.
+  manageBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#ffffff', borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12,
+    borderWidth: 1, borderColor: '#e8ecf4',
+  },
+  manageTitle: { fontSize: 15, fontWeight: '600', color: '#0f1629' },
+  manageSub:   { fontSize: 12, color: '#8896b0', marginTop: 2, lineHeight: 16 },
+  manageChevron: { fontSize: 22, color: '#b8c4d8', fontWeight: '300', marginLeft: 8 },
   inboundCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     backgroundColor: '#ffffff', borderRadius: 10,
