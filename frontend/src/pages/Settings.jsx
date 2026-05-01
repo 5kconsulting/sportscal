@@ -20,6 +20,13 @@ export default function Settings() {
   const [inboundAddress, setInboundAddress] = useState('');
   const [inboundConfigured, setInboundConfigured] = useState(false);
   const [inboundCopied, setInboundCopied] = useState(false);
+  // Calendar feed section auto-collapses once the user has at least one
+  // source — the URL is mostly relevant during initial onboarding to
+  // subscribe a phone calendar, and clutters Settings forever after.
+  // Default expanded so first-time users see the URL prominently; flip
+  // to collapsed after the sources fetch completes if any exist.
+  const [feedCollapsed, setFeedCollapsed] = useState(false);
+  const [feedManuallyToggled, setFeedManuallyToggled] = useState(false);
 
   const feedUrl = user ? `${window.location.origin}/feed/${user.feed_token}.ics` : '';
 
@@ -35,6 +42,24 @@ export default function Settings() {
       })
       .catch(() => {});
   }, [user]);
+
+  // Auto-collapse the Calendar feed section if the user has any sources.
+  // The URL is most useful during initial onboarding — once they've
+  // subscribed their phone calendar once, surfacing it on every Settings
+  // visit is clutter. Skipped if the user has explicitly toggled the
+  // section open during this session (don't fight a deliberate action).
+  useEffect(() => {
+    if (!user || feedManuallyToggled) return;
+    let cancelled = false;
+    api.sources.list()
+      .then(({ sources }) => {
+        if (cancelled) return;
+        const real = (sources || []).filter(s => s.name !== '__manual__');
+        setFeedCollapsed(real.length > 0);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [user, feedManuallyToggled]);
 
   const [form, setForm] = useState({
     name:                 user?.name || '',
@@ -179,34 +204,64 @@ export default function Settings() {
           </div>
         </Section>
 
-        {/* Calendar feed */}
-        <Section title="Calendar feed">
-          <p style={{ fontSize: 14, color: 'var(--slate)', marginBottom: 12, lineHeight: 1.6 }}>
-            Subscribe to this URL in Apple Calendar, Google Calendar, or Outlook. It stays live and updates automatically.
-          </p>
-          <div style={{
-            display: 'flex', gap: 8, alignItems: 'center',
-            background: 'var(--off-white)', border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)', padding: '10px 14px',
-          }}>
-            <code style={{ flex: 1, fontSize: 12, color: 'var(--navy)',
-                           fontFamily: 'var(--mono)', wordBreak: 'break-all' }}>
-              {feedUrl}
-            </code>
-            <button type="button" onClick={copyFeed} className="btn btn-sm btn-ghost" style={{ flexShrink: 0 }}>
-              {copied ? '✓' : 'Copy'}
+        {/* Calendar feed — auto-collapses once user has any sources */}
+        {feedCollapsed ? (
+          <div>
+            <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--slate)',
+                         textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 16 }}>
+              Calendar feed
+            </h2>
+            <button type="button"
+              onClick={() => { setFeedManuallyToggled(true); setFeedCollapsed(false); }}
+              className="card"
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                padding: '14px 18px', cursor: 'pointer', textAlign: 'left',
+                border: '1px solid var(--border)', background: 'var(--white)',
+              }}>
+              <span style={{ fontSize: 14, color: 'var(--slate)', flex: 1 }}>
+                <span style={{ color: 'var(--accent-dim)', fontWeight: 600 }}>✓ Subscribed.</span>
+                {' '}Tap to view your URL or rotate it.
+              </span>
+              <span style={{ fontSize: 16, color: 'var(--slate)' }}>▸</span>
             </button>
           </div>
-          <div style={{ marginTop: 10 }}>
-            <button type="button" onClick={handleRotate} className="btn btn-ghost btn-sm"
-              disabled={rotating} style={{ color: 'var(--red)' }}>
-              {rotating ? <span className="spinner" style={{ width: 12, height: 12 }} /> : '↻ Rotate URL'}
-            </button>
-            <span style={{ fontSize: 12, color: 'var(--slate)', marginLeft: 10 }}>
-              Use if your URL was accidentally shared.
-            </span>
-          </div>
-        </Section>
+        ) : (
+          <Section title="Calendar feed">
+            <p style={{ fontSize: 14, color: 'var(--slate)', marginBottom: 12, lineHeight: 1.6 }}>
+              Subscribe to this URL in Apple Calendar, Google Calendar, or Outlook. It stays live and updates automatically.
+            </p>
+            <div style={{
+              display: 'flex', gap: 8, alignItems: 'center',
+              background: 'var(--off-white)', border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)', padding: '10px 14px',
+            }}>
+              <code style={{ flex: 1, fontSize: 12, color: 'var(--navy)',
+                             fontFamily: 'var(--mono)', wordBreak: 'break-all' }}>
+                {feedUrl}
+              </code>
+              <button type="button" onClick={copyFeed} className="btn btn-sm btn-ghost" style={{ flexShrink: 0 }}>
+                {copied ? '✓' : 'Copy'}
+              </button>
+            </div>
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div>
+                <button type="button" onClick={handleRotate} className="btn btn-ghost btn-sm"
+                  disabled={rotating} style={{ color: 'var(--red)' }}>
+                  {rotating ? <span className="spinner" style={{ width: 12, height: 12 }} /> : '↻ Rotate URL'}
+                </button>
+                <span style={{ fontSize: 12, color: 'var(--slate)', marginLeft: 10 }}>
+                  Use if your URL was accidentally shared.
+                </span>
+              </div>
+              <button type="button"
+                onClick={() => { setFeedManuallyToggled(true); setFeedCollapsed(true); }}
+                className="btn btn-ghost btn-sm">
+                Hide
+              </button>
+            </div>
+          </Section>
+        )}
 
         {/* Inbound mail — forward an email or invite-as-guest to add a calendar */}
         {inboundAddress && (
