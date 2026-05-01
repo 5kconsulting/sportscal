@@ -280,7 +280,11 @@ async function notifyUserBySendingEmail(user, summary) {
     console.error('[inbound] user has no email — confirmation NOT sent', { userId: user?.id });
     return;
   }
-  const FROM = process.env.RESEND_FROM || 'SportsCal <hello@sportscalapp.com>';
+  // Match passwordReset.js / logistics.js — the only verified sending
+  // subdomain on Resend is mail.sportscalapp.com. Sending FROM the bare
+  // apex (hello@sportscalapp.com) gets rejected by Resend pre-API as
+  // "domain not verified" and silently swallowed.
+  const FROM = `${process.env.EMAIL_FROM_NAME || 'SportsCal'} <${process.env.EMAIL_FROM || 'noreply@mail.sportscalapp.com'}>`;
   try {
     const result = await resend.emails.send({
       from: FROM,
