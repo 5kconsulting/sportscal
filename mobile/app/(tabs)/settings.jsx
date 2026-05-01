@@ -387,11 +387,15 @@ const s = StyleSheet.create({
   sub:      { fontSize: 13, color: '#8896b0', marginTop: 2 },
   feedHelp: { fontSize: 13, color: '#4a5670', lineHeight: 18, marginBottom: 12 },
   feedHideText: { fontSize: 13, color: '#00d68f', fontWeight: '600' },
+  // Mirrors s.section's spacing so the collapsed feed sits flush with
+  // sibling sections: same horizontal alignment (no extra inset), same
+  // 12px gap below before the next section.
   feedCollapsedBtn: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#ffffff', marginHorizontal: 16, marginTop: 16,
+    backgroundColor: '#ffffff',
     paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12,
     borderWidth: 1, borderColor: '#e8ecf4',
+    marginBottom: 12,
   },
   feedCollapsedTitle: {
     fontSize: 12, fontWeight: '600', color: '#8896b0',
