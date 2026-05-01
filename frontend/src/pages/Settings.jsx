@@ -17,8 +17,24 @@ export default function Settings() {
   const [rotating, setRotating] = useState(false);
   const [copied, setCopied]   = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [inboundAddress, setInboundAddress] = useState('');
+  const [inboundConfigured, setInboundConfigured] = useState(false);
+  const [inboundCopied, setInboundCopied] = useState(false);
 
   const feedUrl = user ? `${window.location.origin}/feed/${user.feed_token}.ics` : '';
+
+  // Lazy-load the inbound address on mount. The endpoint generates the
+  // token if the user doesn't have one yet, so a fresh sign-up gets an
+  // address minted on first Settings visit.
+  useEffect(() => {
+    if (!user) return;
+    api.auth.inboundAddress()
+      .then(({ address, configured }) => {
+        setInboundAddress(address || '');
+        setInboundConfigured(!!configured);
+      })
+      .catch(() => {});
+  }, [user]);
 
   const [form, setForm] = useState({
     name:                 user?.name || '',
@@ -122,6 +138,13 @@ export default function Settings() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  function copyInboundAddress() {
+    if (!inboundAddress) return;
+    navigator.clipboard.writeText(inboundAddress);
+    setInboundCopied(true);
+    setTimeout(() => setInboundCopied(false), 2000);
+  }
+
   return (
     <div style={{ padding: '40px', maxWidth: 580 }}>
       <h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 4 }}>Settings</h1>
@@ -184,6 +207,44 @@ export default function Settings() {
             </span>
           </div>
         </Section>
+
+        {/* Inbound mail — forward an email or invite-as-guest to add a calendar */}
+        {inboundAddress && (
+          <Section title="Add a calendar by email">
+            <p style={{ fontSize: 14, color: 'var(--slate)', marginBottom: 6, lineHeight: 1.6 }}>
+              Two ways to use this address:
+            </p>
+            <ol style={{ fontSize: 14, color: 'var(--slate)', marginTop: 0, marginBottom: 12,
+                         paddingLeft: 20, lineHeight: 1.7 }}>
+              <li><strong>Forward any email</strong> with a calendar URL to this address — we'll auto-add the calendar.</li>
+              <li><strong>Invite this address as a guest</strong> on a Google / Apple / Outlook calendar event — we'll add just that event. Updates and cancellations sync automatically.</li>
+            </ol>
+            <div style={{
+              display: 'flex', gap: 8, alignItems: 'center',
+              background: 'var(--off-white)', border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)', padding: '10px 14px',
+            }}>
+              <code style={{ flex: 1, fontSize: 12, color: 'var(--navy)',
+                             fontFamily: 'var(--mono)', wordBreak: 'break-all' }}>
+                {inboundAddress}
+              </code>
+              <button type="button" onClick={copyInboundAddress}
+                className="btn btn-sm btn-ghost" style={{ flexShrink: 0 }}>
+                {inboundCopied ? '✓' : 'Copy'}
+              </button>
+            </div>
+            {!inboundConfigured && (
+              <div style={{
+                marginTop: 10, fontSize: 12, color: '#a87600',
+                background: 'rgba(255,180,0,0.08)', borderRadius: 6,
+                padding: '8px 10px', lineHeight: 1.5,
+              }}>
+                ⚠️ Email forwarding isn't active yet. The address is reserved for your account
+                but won't accept mail until inbound is configured server-side.
+              </div>
+            )}
+          </Section>
+        )}
 
         {/* Email digest */}
         <Section title="Weekly digest">

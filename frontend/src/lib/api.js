@@ -44,6 +44,7 @@ export const api = {
     me:     ()      => get('/auth/me'),
     update: (data)  => patch('/auth/me', data),
     rotateFeedToken: () => post('/auth/rotate-feed-token'),
+    inboundAddress:  () => get('/auth/inbound-address'),
   },
   kids: {
     list:   ()          => get('/kids'),
