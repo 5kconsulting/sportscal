@@ -1,0 +1,18 @@
+name         = "sportscal-inbound-mail"
+main         = "src/index.js"
+compatibility_date = "2026-04-30"
+
+# Email Workers: triggered by Cloudflare Email Routing rather than HTTP.
+# Wire the route up in the Cloudflare dashboard under
+# Email > Email Routing > Routing rules > Send to a Worker.
+# Use a "Catch-all" rule on inbox.sportscalapp.com so every
+# add+<token>@inbox.sportscalapp.com address routes here without
+# needing a per-token rule.
+[triggers]
+crons = []
+
+# Public env defaults. Secrets (INTAKE_SECRET) MUST be set with
+#   wrangler secret put INTAKE_SECRET
+# rather than committed here.
+[vars]
+INTAKE_URL = "https://sportscal-production.up.railway.app/api/inbound/mail"

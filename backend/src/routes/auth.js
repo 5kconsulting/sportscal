@@ -193,7 +193,7 @@ router.get('/inbound-address', requireAuth, async (req, res) => {
     }
     const domain  = process.env.INBOUND_DOMAIN || 'inbox.sportscalapp.com';
     const address = `add+${token}@${domain}`;
-    res.json({ address, token, configured: !!process.env.RESEND_WEBHOOK_SECRET });
+    res.json({ address, token, configured: !!process.env.INBOUND_SECRET });
   } catch (err) {
     console.error('[auth/inbound-address] error:', err.message);
     res.status(500).json({ error: 'Failed to load inbound address' });

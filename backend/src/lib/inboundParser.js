@@ -1,9 +1,9 @@
 // ============================================================================
 // inboundParser.js — extract iCal URLs from a forwarded email body.
 //
-// Used by routes/inbound.js after we fetch the full email from
-// GET /emails/receiving/{id}. The webhook itself only carries metadata, so
-// we don't try to parse anything until we have the actual body.
+// Used by routes/inbound.js. The Cloudflare Email Worker upstream parses
+// MIME with postal-mime and POSTs us text/html bodies; this module just
+// walks them for calendar links.
 //
 // Returns an array of unique URLs (https or webcal scheme, .ics or
 // .ical extension OR a known-calendar host pattern). Caller runs each

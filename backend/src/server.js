@@ -82,12 +82,15 @@ app.use(rateLimit({
   keyGenerator: (req) => req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip,
 }));
 
-// Raw body for webhooks (signature verification needs the unmodified bytes).
+// Raw body for Stripe webhooks (HMAC signature needs the unmodified bytes).
 // Must be mounted BEFORE express.json() so the raw parser claims the body
-// first. Resend Inbound webhooks are metadata-only, but we still bump the
-// limit a touch to be safe — body fetch happens in a separate API call.
+// first. Cloudflare-side inbound mail uses a shared-secret header, not an
+// HMAC over the body, so it parses as JSON like any other route.
 app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
-app.use('/api/inbound/resend',  express.raw({ type: 'application/json', limit: '256kb' }));
+
+// Inbound mail bodies can carry email text + HTML — bump the limit just for
+// that mount so a lengthy HTML email doesn't trip the global 64kb cap.
+app.use('/api/inbound', express.json({ limit: '512kb' }));
 
 app.use(express.json({ limit: '64kb' }));
 
@@ -109,7 +112,7 @@ app.use('/api/overrides',   overridesRoutes);
 app.use('/api/ingestions',  ingestionsRoutes);
 app.use('/api/teams',       teamsRoutes);
 app.use('/api/setup-agent', setupAgentRoutes);
-app.use('/api/inbound',     inboundRoutes);  // public: Resend Inbound webhook (signature-verified)
+app.use('/api/inbound',     inboundRoutes);  // public: Cloudflare Email Worker -> JSON envelope (shared-secret protected)
 app.use('/api/twilio',      twilioRoutes);   // public: Twilio inbound webhook (signature-verified)
 app.use('/feed',            calendarRoutes); // public: /feed/:token.ics
 app.use('/r',               respondRoutes);  // public: team-request landing page

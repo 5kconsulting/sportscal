@@ -1,33 +1,39 @@
 // ============================================================================
-// inbound.js — Resend Inbound webhook handler.
+// inbound.js — receives inbound mail from a Cloudflare Email Worker.
 //
-// POST /api/inbound/resend  (public; signature-verified)
+// POST /api/inbound/mail   (public; shared-secret protected)
 //
-// Resend posts a thin "email.received" event with metadata only — no body,
-// no attachments. We:
-//   1. Verify the svix signature against the RAW request body (the body
-//      parser middleware in server.js skips this path so we get bytes).
-//   2. Look at the `to[]` list for any address shaped `add+<token>@<host>`,
-//      resolve `<token>` -> user.
-//   3. Fetch the full email via GET https://api.resend.com/emails/receiving/{id}
-//      to read text/html bodies (where the parent's calendar URL lives).
-//   4. Extract iCal URLs (lib/inboundParser), pass each through
-//      lib/sourceIntake to detect app + name, then create the source and
-//      link the user's kid (auto-link only when the user has exactly one
-//      kid — no signal otherwise).
-//   5. Send a confirmation email back so the parent knows it worked.
+// Architecture
+// ------------
+// Cloudflare Email Routing on `INBOUND_DOMAIN` (default inbox.sportscalapp.com)
+// catches mail addressed to `add+<token>@<domain>` and hands the raw MIME to a
+// Cloudflare Worker (see cloudflare/inbound-mail/). The Worker parses the
+// MIME with `postal-mime` and POSTs us a small JSON envelope:
 //
-// Required env:
-//   RESEND_API_KEY            — already set; used for outbound mail
-//   RESEND_WEBHOOK_SECRET     — set when creating the webhook in Resend
-//   INBOUND_DOMAIN (optional) — defaults to 'inbox.sportscalapp.com'
+//   { envelope_to, envelope_from, from, to, subject, text, html }
 //
-// We always 200 even on no-op so Resend doesn't keep retrying. Real errors
-// are logged + emailed back to the user when possible.
+// We authenticate the request with a shared secret (X-Intake-Secret header).
+// No svix / HMAC dance is needed — both sides are ours, and the Worker speaks
+// only to this endpoint over HTTPS.
+//
+// We then:
+//   1. Extract the per-user token from `envelope_to` (`add+<token>@<domain>`).
+//   2. Resolve to a user via getUserByInboundToken.
+//   3. Run lib/inboundParser.extractIcalUrls on the body.
+//   4. For each URL, run lib/sourceIntake -> createSource + first-fetch.
+//   5. Auto-link to the user's only kid if they have exactly one.
+//   6. Send a confirmation email back via Resend outbound.
+//
+// Required env on Railway:
+//   INBOUND_SECRET    — must match the Cloudflare Worker's INTAKE_SECRET binding
+//   INBOUND_DOMAIN    — defaults to 'inbox.sportscalapp.com'
+//   RESEND_API_KEY    — already set; used for the confirmation email
+//
+// We always 200 (or 401/503 for config errors) so a misconfigured Worker
+// doesn't bombard us with retries.
 // ============================================================================
 
 import { Router } from 'express';
-import { Webhook } from 'svix';
 import { Resend } from 'resend';
 
 import {
@@ -37,7 +43,6 @@ import {
   setKidSources,
   getUserPlanLimits,
   countUserSources,
-  query,
 } from '../db/index.js';
 import { intakeFromUrl } from '../lib/sourceIntake.js';
 import { extractIcalUrls } from '../lib/inboundParser.js';
@@ -46,50 +51,28 @@ import { enqueueIcalFetch } from '../workers/queue.js';
 const router = Router();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const RESEND_API_BASE = 'https://api.resend.com';
-
-// Pull the per-user token out of the `to` list. We accept the first match
-// — a forwarded message can land in multiple inboxes, but only one of
-// them is ours.
-function findInboundToken(toList) {
-  if (!Array.isArray(toList)) return null;
+// "add+<token>@<domain>" -> "<token>". Returns null on shape mismatch.
+function tokenFromEnvelopeTo(envelopeTo) {
+  if (typeof envelopeTo !== 'string') return null;
   const domain = (process.env.INBOUND_DOMAIN || 'inbox.sportscalapp.com').toLowerCase();
-  for (const raw of toList) {
-    if (typeof raw !== 'string') continue;
-    // Normalize "Name <addr@domain>" -> "addr@domain"
-    const m = raw.match(/<([^>]+)>/);
-    const addr = (m ? m[1] : raw).trim().toLowerCase();
-    const plus = addr.match(new RegExp(`^add\\+([a-f0-9]{6,16})@${domain.replace(/\./g, '\\.')}$`));
-    if (plus) return plus[1];
-  }
-  return null;
-}
-
-async function fetchReceivedEmail(emailId) {
-  const res = await fetch(`${RESEND_API_BASE}/emails/receiving/${emailId}`, {
-    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`Resend GET /emails/receiving/${emailId} failed: ${res.status} ${body}`);
-  }
-  return res.json();
+  const m = envelopeTo.trim().toLowerCase().match(
+    new RegExp(`^add\\+([a-f0-9]{6,16})@${domain.replace(/\./g, '\\.')}$`),
+  );
+  return m ? m[1] : null;
 }
 
 async function autoCreateSourceFromUrl(user, kid, url) {
   const candidate = intakeFromUrl(url);
-  if (!candidate) {
-    return { ok: false, reason: 'not-a-calendar-url', url };
-  }
+  if (!candidate) return { ok: false, reason: 'not-a-calendar-url', url };
 
-  // Plan limit guard. Mirror the check in routes/sources.js so an inbound
-  // email can't sneak past it.
+  // Plan-limit guard. Mirrors POST /api/sources so an inbound email
+  // can't bypass it.
   const [limits, count] = await Promise.all([
     getUserPlanLimits(user.id),
     countUserSources(user.id),
   ]);
   if (count >= limits.max_sources) {
-    return { ok: false, reason: 'plan-limit', candidate, limits, count };
+    return { ok: false, reason: 'plan-limit', candidate, limits, count, url };
   }
 
   const source = await createSource({
@@ -103,11 +86,9 @@ async function autoCreateSourceFromUrl(user, kid, url) {
     refreshIntervalMinutes: 120,
   });
 
-  if (kid) {
-    await setKidSources(source.id, [kid.id]);
-  }
+  if (kid) await setKidSources(source.id, [kid.id]);
 
-  // First fetch — same shape as routes/sources.js:114
+  // First fetch. Same shape as routes/sources.js.
   await enqueueIcalFetch({ ...source, user_id: user.id });
 
   return { ok: true, source };
@@ -129,45 +110,35 @@ async function notifyUserBySendingEmail(user, summary) {
 }
 
 // ============================================================
-// Route handler. server.js mounts express.raw() ahead of express.json()
-// for this path so req.body is a Buffer here, not a parsed object.
+// POST /api/inbound/mail
 // ============================================================
-router.post('/resend', async (req, res) => {
-  const secret = process.env.RESEND_WEBHOOK_SECRET;
-  if (!secret) {
-    console.error('[inbound] RESEND_WEBHOOK_SECRET not configured');
+router.post('/mail', async (req, res) => {
+  const expected = process.env.INBOUND_SECRET;
+  if (!expected) {
+    console.error('[inbound] INBOUND_SECRET not configured');
     return res.status(503).json({ error: 'Inbound mail is not configured' });
   }
 
-  // Verify signature on the RAW bytes. svix's verify throws on mismatch.
-  let payload;
-  try {
-    const wh = new Webhook(secret);
-    const raw = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : String(req.body || '');
-    payload = wh.verify(raw, {
-      'svix-id':        req.headers['svix-id'],
-      'svix-timestamp': req.headers['svix-timestamp'],
-      'svix-signature': req.headers['svix-signature'],
-    });
-  } catch (err) {
-    console.warn('[inbound] signature verify failed:', err.message);
-    return res.status(400).json({ error: 'Invalid webhook signature' });
+  // Constant-time-ish compare. Header could be array if duplicated; coerce.
+  const got = String(req.headers['x-intake-secret'] || '');
+  if (got.length !== expected.length || got !== expected) {
+    console.warn('[inbound] secret mismatch from', req.ip);
+    return res.status(401).json({ error: 'Bad inbound secret' });
   }
 
-  if (payload?.type !== 'email.received') {
-    // Other event types (e.g. delivery confirmations) — accept and ignore.
-    return res.status(200).json({ ok: true, ignored: payload?.type || 'unknown' });
-  }
+  const {
+    envelope_to:   envelopeTo,
+    envelope_from: envelopeFrom,
+    from:          fromHeader,
+    subject,
+    text,
+    html,
+  } = req.body || {};
 
-  const data    = payload.data || {};
-  const emailId = data.email_id || data.id;
-  const toList  = data.to || [];
-  const fromAddr = data.from || '(unknown sender)';
-
-  const token = findInboundToken(toList);
+  const token = tokenFromEnvelopeTo(envelopeTo);
   if (!token) {
-    console.log('[inbound] no add+<token> address in to list:', toList);
-    return res.status(200).json({ ok: true, reason: 'no-token-in-to' });
+    console.log('[inbound] envelope_to does not match add+<token>@<domain>:', envelopeTo);
+    return res.status(200).json({ ok: true, reason: 'no-token-in-envelope' });
   }
 
   const user = await getUserByInboundToken(token);
@@ -176,18 +147,10 @@ router.post('/resend', async (req, res) => {
     return res.status(200).json({ ok: true, reason: 'unknown-token' });
   }
 
-  // Fetch the full email body (the webhook only delivers metadata).
-  let email;
-  try {
-    email = await fetchReceivedEmail(emailId);
-  } catch (err) {
-    console.error('[inbound] body fetch failed:', err.message);
-    return res.status(200).json({ ok: true, error: 'body-fetch-failed' });
-  }
-
-  const urls = extractIcalUrls({ text: email.text, html: email.html });
+  const fromAddr = fromHeader || envelopeFrom || '(unknown sender)';
+  const urls = extractIcalUrls({ text, html });
   if (urls.length === 0) {
-    console.log(`[inbound] no calendar URLs in email ${emailId} from ${fromAddr}`);
+    console.log(`[inbound] no calendar URLs from ${fromAddr} (subject="${subject}")`);
     await notifyUserBySendingEmail(user, {
       subject: 'Couldn\'t find a calendar link in that email',
       text:
@@ -201,16 +164,13 @@ router.post('/resend', async (req, res) => {
     return res.status(200).json({ ok: true, found: 0 });
   }
 
-  // Auto-link to the only kid if there's exactly one. Multi-kid users
-  // assign in app — no good signal in the email body.
   const kids = await getKidsByUser(user.id).catch(() => []);
   const linkKid = kids.length === 1 ? kids[0] : null;
 
   const results = [];
   for (const url of urls) {
     try {
-      const r = await autoCreateSourceFromUrl(user, linkKid, url);
-      results.push(r);
+      results.push(await autoCreateSourceFromUrl(user, linkKid, url));
     } catch (err) {
       console.error('[inbound] source create failed:', err.message);
       results.push({ ok: false, reason: 'create-error', url, message: err.message });
@@ -220,7 +180,7 @@ router.post('/resend', async (req, res) => {
   const created = results.filter(r => r.ok);
   const failed  = results.filter(r => !r.ok);
 
-  // Build a friendly confirmation summary.
+  // Build a friendly confirmation.
   const lines = [];
   if (created.length) {
     lines.push(
@@ -246,12 +206,12 @@ router.post('/resend', async (req, res) => {
   await notifyUserBySendingEmail(user, {
     subject: created.length
       ? `Added ${created.length} calendar${created.length === 1 ? '' : 's'} to SportsCal`
-      : `Couldn\'t add any calendars from that email`,
+      : 'Couldn\'t add any calendars from that email',
     text: lines.join('\n') + '\n\n— SportsCal',
   });
 
   console.log(
-    `[inbound] user=${user.id} created=${created.length} failed=${failed.length}`,
+    `[inbound] user=${user.id} created=${created.length} failed=${failed.length} from=${fromAddr}`,
   );
   res.status(200).json({ ok: true, created: created.length, failed: failed.length });
 });
