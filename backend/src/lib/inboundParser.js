@@ -13,6 +13,25 @@
 
 import { detectAppFromUrl } from './sourceIntake.js';
 
+// App slugs whose hostname alone is enough of a signal to treat a URL as
+// a calendar feed even without a .ics / .ical / webcal:// hint. Sports-app
+// hosts are calendar-specific by design (teamsnap.com, gc.com, etc.) so
+// any URL there is almost certainly a feed.
+//
+// google_classroom is INTENTIONALLY excluded. Google Calendar invitation
+// emails contain dozens of *.google.com URLs that aren't feeds — login,
+// Meet, help articles, "respond to invitation" pages, Calendar UI deep
+// links. Treating any of them as a feed creates ghost sources that
+// 500 forever in the iCal worker. Real Google Classroom calendar URLs
+// always end in .ics (the "secret address in iCal format" Google
+// generates) and are caught by the extension check above.
+const INBOUND_TRUSTED_APP_HOSTNAMES = new Set([
+  'teamsnap', 'teamsnapone', 'gamechanger', 'playmetrics',
+  'teamsideline', 'byga', 'sportsengine', 'teamreach',
+  'leagueapps', 'demosphere', '360player', 'sportsyou',
+  'band', 'rankone',
+]);
+
 // HTML entities to decode before regex matching. We don't pull in a full
 // HTML parser — the email body comes pre-rendered HTML from MUAs that
 // already escape literal &, <, >, etc. A small entity table covers
@@ -77,9 +96,9 @@ export function extractIcalUrls({ text, html } = {}) {
     //   2. ends in .ics / .ical (with optional querystring) — calendar
     //   3. host matches a known sports-app pattern from sourceIntake —
     //      probably calendar (TeamSnap dashboard URLs sometimes pass)
-    if (/^webcal:\/\//i.test(cleaned))           { found.add(cleaned); continue; }
-    if (/\.(ics|ical)(\?|$)/i.test(cleaned))     { found.add(cleaned); continue; }
-    if (detectAppFromUrl(cleaned) !== 'custom')  { found.add(cleaned); continue; }
+    if (/^webcal:\/\//i.test(cleaned))                                         { found.add(cleaned); continue; }
+    if (/\.(ics|ical)(\?|$)/i.test(cleaned))                                   { found.add(cleaned); continue; }
+    if (INBOUND_TRUSTED_APP_HOSTNAMES.has(detectAppFromUrl(cleaned)))          { found.add(cleaned); continue; }
   }
   return Array.from(found);
 }

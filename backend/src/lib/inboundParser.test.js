@@ -56,6 +56,28 @@ test('keeps known-app hosts even without .ics', () => {
   });
   assert.deepStrictEqual(urls, ['https://teamsnap.com/team/Tigers/feed/abc']);
 });
+test('rejects Google invite-email noise URLs', () => {
+  // A representative Google Calendar invitation email has dozens of
+  // *.google.com URLs that aren't iCal feeds. None should come through.
+  const urls = extractIcalUrls({
+    text: [
+      'You are invited to: Soccer practice',
+      'When: Tue 4pm',
+      'Yes: https://calendar.google.com/calendar/u/0/r/eventedit?yes',
+      'No:  https://calendar.google.com/calendar/u/0/r/eventedit?no',
+      'Open in Google Meet: https://meet.google.com/abc-defg-hij',
+      'Help: https://support.google.com/calendar/answer/123456',
+      'Sign in: https://accounts.google.com/v3/signin/identifier?continue=...',
+    ].join('\n'),
+  });
+  assert.deepStrictEqual(urls, []);
+});
+test('keeps real Google Classroom secret-address URLs (end in .ics)', () => {
+  const urls = extractIcalUrls({
+    text: 'Subscribe: https://calendar.google.com/calendar/ical/SECRETHASH/basic.ics',
+  });
+  assert.deepStrictEqual(urls, ['https://calendar.google.com/calendar/ical/SECRETHASH/basic.ics']);
+});
 test('empty / null input returns empty array', () => {
   assert.deepStrictEqual(extractIcalUrls({}), []);
   assert.deepStrictEqual(extractIcalUrls({ text: '' }), []);
