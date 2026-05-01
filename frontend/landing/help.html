@@ -22,7 +22,11 @@
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    nav {
+    /* Scope to body > nav so the site header doesn't accidentally style
+       any nested <nav> elements inside the page body (e.g. an aside
+       table-of-contents). The bare `nav { ... }` selector did exactly
+       that on the first draft of this page and broke the TOC layout. */
+    body > nav {
       background: var(--navy); padding: 0 24px; height: 60px;
       display: flex; align-items: center; justify-content: space-between;
       border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -138,7 +142,7 @@
     bottom — we read every email.
   </p>
 
-  <nav class="toc" aria-label="Table of contents">
+  <div class="toc" role="navigation" aria-label="Table of contents">
     <div class="toc-title">Jump to</div>
     <ul>
       <li><a href="#add-a-calendar">📅 Adding calendars to SportsCal</a></li>
@@ -147,7 +151,7 @@
       <li><a href="#rides">🚗 Coordinating rides</a></li>
       <li><a href="#account">⚙️ Account &amp; settings</a></li>
     </ul>
-  </nav>
+  </div>
 
   <!-- ============================================================ -->
   <h2 id="add-a-calendar"><span class="emoji">📅</span>Adding calendars to SportsCal</h2>
