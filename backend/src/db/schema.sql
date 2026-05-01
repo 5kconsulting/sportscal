@@ -631,3 +631,33 @@ UPDATE kids
 ALTER TABLE kids ALTER COLUMN feed_token SET DEFAULT encode(gen_random_bytes(24), 'hex');
 ALTER TABLE kids ALTER COLUMN feed_token SET NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS kids_feed_token_unique_idx ON kids(feed_token);
+
+-- ============================================================
+-- SETUP_AGENT_MESSAGES — persisted chat history for the
+-- AI-powered onboarding helper. Originally we logged only
+-- token counts to stdout; debugging a real user video on
+-- 2026-04-30 made it clear we need the actual transcripts.
+--
+-- Wins beyond debugging:
+--   * Training data for prompt iteration
+--   * Inspection lever when a user pings support
+--   * Foundation for "resume your last conversation"
+--
+-- One row per turn (user OR assistant). Grouped by user_id +
+-- created_at; we'll add an explicit session_id later if needed.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS setup_agent_messages (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role        TEXT NOT NULL,
+  content     TEXT NOT NULL,
+  platform    TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE setup_agent_messages DROP CONSTRAINT IF EXISTS setup_agent_messages_role_check;
+ALTER TABLE setup_agent_messages ADD  CONSTRAINT setup_agent_messages_role_check
+  CHECK (role IN ('user', 'assistant'));
+
+CREATE INDEX IF NOT EXISTS setup_agent_messages_user_idx
+  ON setup_agent_messages(user_id, created_at DESC);

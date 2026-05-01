@@ -16,7 +16,7 @@ import rateLimit from 'express-rate-limit';
 import Anthropic from '@anthropic-ai/sdk';
 
 import { requireAuth } from '../middleware/auth.js';
-import { getKidsByUser } from '../db/index.js';
+import { getKidsByUser, query } from '../db/index.js';
 import { buildSystemPrompt } from '../lib/setupAgentPrompt.js';
 
 const router = Router();
@@ -89,6 +89,34 @@ router.post('/message', setupAgentLimiter, async (req, res) => {
 
     const content = resp.content?.[0]?.text || '';
     const usage   = resp.usage || {};
+
+    // Persist this turn (the user's new message + the assistant's reply)
+    // for debugging, training data, and future "resume conversation" UX.
+    // Best-effort: a write failure here doesn't block the response — the
+    // user has already paid the latency, no reason to fail their request
+    // because our diagnostic write hiccupped.
+    try {
+      const lastUserMsg = apiMessages[apiMessages.length - 1];
+      const platformTag = platform === 'mobile' ? 'mobile' : 'web';
+      // Insert both rows in a single statement so they share their
+      // created_at within microseconds — nicer for transcript reads.
+      if (lastUserMsg && lastUserMsg.role === 'user') {
+        await query(
+          `INSERT INTO setup_agent_messages (user_id, role, content, platform)
+           VALUES ($1, 'user', $2, $3),
+                  ($1, 'assistant', $4, $3)`,
+          [req.user.id, lastUserMsg.content, platformTag, content],
+        );
+      } else {
+        await query(
+          `INSERT INTO setup_agent_messages (user_id, role, content, platform)
+           VALUES ($1, 'assistant', $2, $3)`,
+          [req.user.id, content, platformTag],
+        );
+      }
+    } catch (err) {
+      console.error('[setup-agent] persist failed (non-fatal):', err.message);
+    }
 
     // Log usage so we can spot-check unit economics during launch. If this
     // gets noisy we can pipe to a usage table; for now console is enough.
