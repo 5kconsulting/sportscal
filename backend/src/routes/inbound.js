@@ -270,17 +270,31 @@ async function processPdfAttachments(user, attachments) {
 }
 
 async function notifyUserBySendingEmail(user, summary) {
-  if (!process.env.RESEND_API_KEY) return;
+  if (!process.env.RESEND_API_KEY) {
+    console.error('[inbound] RESEND_API_KEY not set — confirmation email NOT sent', {
+      to: user.email, subject: summary.subject,
+    });
+    return;
+  }
+  if (!user?.email) {
+    console.error('[inbound] user has no email — confirmation NOT sent', { userId: user?.id });
+    return;
+  }
   const FROM = process.env.RESEND_FROM || 'SportsCal <hello@sportscalapp.com>';
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: FROM,
       to: user.email,
       subject: summary.subject,
       text: summary.text,
     });
+    console.log('[inbound] confirmation sent', {
+      to: user.email, subject: summary.subject, resend_id: result?.data?.id || null,
+    });
   } catch (err) {
-    console.error('[inbound] confirmation send failed:', err.message);
+    console.error('[inbound] confirmation send failed:', err.message, {
+      to: user.email, subject: summary.subject,
+    });
   }
 }
 
