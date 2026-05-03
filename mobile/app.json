@@ -106,6 +106,12 @@
         "projectId": "40370800-083e-405d-b0db-cde4569ef7a0"
       }
     },
-    "owner": "5kconsulting"
+    "owner": "5kconsulting",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/40370800-083e-405d-b0db-cde4569ef7a0"
+    }
   }
 }
