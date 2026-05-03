@@ -16,7 +16,7 @@ import {
   KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Alert,
   ActionSheetIOS,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useShareIntentContext } from 'expo-share-intent';
@@ -42,8 +42,15 @@ function stripAction(text) {
 
 // ----- screen ---------------------------------------------------------------
 
+// Distance from the top of our custom header to its bottom border. Used
+// below to compute KeyboardAvoidingView's offset; iOS measures KAV
+// position from the screen top, so we have to add status-bar inset +
+// header height so the keyboard doesn't push the composer off-screen.
+const HEADER_HEIGHT = 49;
+
 export default function SetupAgentScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const scrollRef = useRef(null);
   const inputRef  = useRef(null);
 
@@ -482,7 +489,12 @@ export default function SetupAgentScreen() {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+        // iOS measures keyboardVerticalOffset from the top of the screen
+        // to the top of the KAV. The KAV sits below the safe-area top
+        // inset + our custom header, so without this the keyboard pushes
+        // the composer (camera + input + send) off-screen entirely. The
+        // `+ 8` is the small breathing-room buffer we used to have.
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + HEADER_HEIGHT + 8 : 0}
       >
         <ScrollView
           ref={scrollRef}
