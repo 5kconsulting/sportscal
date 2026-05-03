@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { ShareIntentProvider, useShareIntentContext } from 'expo-share-intent';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { requestTrackingPermission } from '../lib/analytics';
 
@@ -10,6 +11,16 @@ function AuthGate() {
   const { user, loading } = useAuth();
   const segments = useSegments();
   const router   = useRouter();
+  // iOS Share Extension hand-off. When a parent shares a calendar URL or
+  // schedule photo from Safari/Mail/Photos into SportsCal, the share
+  // extension persists the payload and the host app reads it via this
+  // hook on next launch/foreground. We route the user into /setup, which
+  // owns the consume-and-process logic — see app/setup.jsx.
+  //
+  // Only routing happens here; setup.jsx calls resetShareIntent() once
+  // the payload is in flight, so we don't bounce them back into setup
+  // every time they navigate elsewhere.
+  const { hasShareIntent } = useShareIntentContext();
 
   // Once auth state has resolved, ask for App Tracking Transparency.
   // Doing it here (rather than at app launch) means the prompt appears
@@ -32,6 +43,19 @@ function AuthGate() {
       router.replace('/(tabs)');
     }
   }, [user, loading, segments]);
+
+  // Whenever a share-extension payload arrives (cold launch or warm
+  // foreground), bounce the signed-in user into /setup. setup.jsx reads
+  // the same context, processes the payload, and calls resetShareIntent
+  // once it's in flight. We use push() not replace() so the user can
+  // tap close on the modal and return to wherever they were.
+  useEffect(() => {
+    if (loading || !user) return;
+    if (!hasShareIntent) return;
+    const first = segments[0];
+    if (first === 'setup') return; // already there
+    router.push('/setup');
+  }, [hasShareIntent, user, loading, segments]);
 
   if (loading) {
     return (
@@ -97,10 +121,16 @@ function AuthGate() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <StatusBar style="light" />
-        <AuthGate />
-      </AuthProvider>
+      {/* ShareIntentProvider must wrap the whole app so useShareIntentContext
+          works in any screen. The provider itself is a thin wrapper around
+          the native module's event emitters; it has no UI and no overhead
+          when nothing's being shared. */}
+      <ShareIntentProvider>
+        <AuthProvider>
+          <StatusBar style="light" />
+          <AuthGate />
+        </AuthProvider>
+      </ShareIntentProvider>
     </SafeAreaProvider>
   );
 }

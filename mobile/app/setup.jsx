@@ -19,6 +19,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { useShareIntentContext } from 'expo-share-intent';
 import Constants from 'expo-constants';
 import { api } from '../lib/api';
 
@@ -61,6 +62,14 @@ export default function SetupAgentScreen() {
   const activeIngestionRef = useRef(null);
   const [busyIngestion, setBusyIngestion] = useState(false);
 
+  // iOS Share Extension hand-off — a parent in Safari/Mail/Photos hits
+  // share -> SportsCal. _layout.jsx routes them here; we read the
+  // payload from the same global context and process it like a typed
+  // message (URL) or a camera capture (image). consumedShareRef ensures
+  // we only process each share once even if React re-runs the effect.
+  const { shareIntent, hasShareIntent, resetShareIntent } = useShareIntentContext();
+  const consumedShareRef = useRef(null);
+
   // Bootstrap: fetch kids + sources, then drop in a tailored intro message.
   useEffect(() => {
     let cancelled = false;
@@ -99,6 +108,51 @@ export default function SetupAgentScreen() {
     const id = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 60);
     return () => clearTimeout(id);
   }, [messages.length, loading]);
+
+  // Consume an incoming Share Extension payload once the chat has booted
+  // (so kids and the intro message are both ready). URL → simulated user
+  // message; image → existing ingestion pipeline. We always call
+  // resetShareIntent() in finally so a failure doesn't trap the user in a
+  // permanent "open the share again" loop.
+  useEffect(() => {
+    if (booting || !hasShareIntent || !shareIntent) return;
+    // The share-intent context can re-fire while we're mid-process; key
+    // off the payload identity to ignore the redundant runs. Falls back
+    // to a JSON stringify so an exotic payload still gets de-duped.
+    const key = shareIntent.webUrl
+      || shareIntent.files?.[0]?.path
+      || shareIntent.text
+      || JSON.stringify(shareIntent);
+    if (consumedShareRef.current === key) return;
+    consumedShareRef.current = key;
+
+    (async () => {
+      try {
+        if (shareIntent.webUrl) {
+          // URL share — let the agent handle it as if the user typed it.
+          // The system prompt's URL-detection logic will pick it up and
+          // emit an add_source ACTION on the next turn.
+          await sendMessage(shareIntent.webUrl);
+        } else if (shareIntent.files?.[0]) {
+          // Photo share — adapt the Share Extension's `path`+`mimeType`
+          // shape into the `uri`+`mimeType` asset shape that the rest of
+          // the photo pipeline already expects.
+          const f = shareIntent.files[0];
+          await ingestImageAsset({
+            uri:      f.path,
+            mimeType: f.mimeType || 'image/jpeg',
+          });
+        } else if (shareIntent.text) {
+          // Plain-text share with no extracted URL — drop it into the
+          // chat as a user message; the agent often pulls a URL out of
+          // surrounding text on its own.
+          await sendMessage(shareIntent.text);
+        }
+      } finally {
+        resetShareIntent();
+      }
+    })();
+  }, [shareIntent, hasShareIntent, booting]);
 
   const sendMessage = useCallback(async (text) => {
     const trimmed = text.trim();
@@ -295,15 +349,12 @@ export default function SetupAgentScreen() {
     throw new Error('Scanning is taking longer than expected. Try again or use the website.');
   }
 
-  async function handleCameraTap() {
-    if (busyIngestion || loading || booting) return;
-
+  // Shared between the camera-button flow and the iOS Share Extension
+  // hand-off (a parent shares a photo from Photos.app into SportsCal).
+  // Caller has already produced an asset with `{ uri, mimeType }`.
+  async function ingestImageAsset(asset) {
     const kid = await pickKidForUpload();
     if (!kid) return;
-    const source = await pickImageSource();
-    if (!source) return;
-    const asset = await launchPicker(source);
-    if (!asset) return;
 
     setBusyIngestion(true);
     pushSystem(`📷 Scanning ${kid.name}'s schedule…`);
@@ -332,6 +383,17 @@ export default function SetupAgentScreen() {
       setBusyIngestion(false);
       activeIngestionRef.current = null;
     }
+  }
+
+  async function handleCameraTap() {
+    if (busyIngestion || loading || booting) return;
+
+    const source = await pickImageSource();
+    if (!source) return;
+    const asset = await launchPicker(source);
+    if (!asset) return;
+
+    await ingestImageAsset(asset);
   }
 
   async function approveIngestion(ingestionId, eventCount) {
