@@ -17,20 +17,20 @@
 // expo-share-intent and redirect to '/' so AuthGate + the share
 // listener take over.
 
-import { hasShareIntent } from 'expo-share-intent';
-
 export function redirectSystemPath({ path, initial }) {
-  try {
-    const url = new URL(path);
-    if (hasShareIntent(url.searchParams)) {
-      // Bounce to root. AuthGate sends signed-in users into (tabs);
-      // _layout.jsx's hasShareIntent effect then routes them to /setup
-      // with the consumed payload.
-      return '/';
-    }
-  } catch {
-    // Malformed URL — fall through to the default behavior so the
-    // user at least doesn't see the share-extension URL crash the app.
+  // The share extension wakes the host app via a URL of the shape
+  //   sportscal://dataUrl=sportscalShareKey
+  // depending on iOS version + library version that marker can land in
+  // the URL host, path, or query — URL.searchParams parsing misses some
+  // of those cases. A substring check catches them all and is simpler
+  // anyway.
+  //
+  // The actual share payload lives in App Group shared storage; this URL
+  // is just a wake signal. Bouncing to '/' lets AuthGate take signed-in
+  // users into (tabs) and the useShareIntentContext effect in
+  // _layout.jsx routes them on to /setup with the consumed payload.
+  if (typeof path === 'string' && (path.includes('dataUrl=') || path.includes('ShareIntent'))) {
+    return '/';
   }
   return path;
 }
