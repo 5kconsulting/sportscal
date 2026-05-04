@@ -29,13 +29,27 @@ export default function NewEvent() {
   // first-screen state is a plausible event the user just nudges, not
   // 12:00am today which is never what they want.
   const [date, setDate]       = useState(() => roundedNowPlus30());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  // Default end-time to start + 90 min — typical practice/game length.
+  // Subsequent start-time changes shift end by the same delta so the
+  // user's duration customization survives. Direct edits to end-time
+  // re-anchor the delta naturally.
+  const [endDate, setEndDate] = useState(() => addMinutes(roundedNowPlus30(), 90));
+  const [showDatePicker, setShowDatePicker]   = useState(false);
+  const [showTimePicker, setShowTimePicker]   = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   const [location, setLocation] = useState('');
   const [kids, setKids]         = useState([]);
   const [kidIds, setKidIds]     = useState([]);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
+
+  // Keep end-time tracking start-time when the user adjusts start (so
+  // duration stays the same). Direct edits to end go through setEndDate.
+  function updateStart(newStart) {
+    const delta = endDate.getTime() - date.getTime();
+    setDate(newStart);
+    setEndDate(new Date(newStart.getTime() + delta));
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -62,16 +76,21 @@ export default function NewEvent() {
       setError('Pick at least one kid this event is for.');
       return;
     }
+    if (!allDay && endDate.getTime() <= date.getTime()) {
+      setError('End time must be after start time.');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
       // For all-day events, snap starts_at to the start of the local day
       // so the event renders as "all day" not "12:34am" in calendar feeds.
       const startsAt = allDay ? startOfLocalDay(date) : date;
+      const endsAt   = allDay ? null               : endDate.toISOString();
       await api.post('/api/manual', {
         title:     title.trim(),
         starts_at: startsAt.toISOString(),
-        ends_at:   null,
+        ends_at:   endsAt,
         location:  location.trim() || null,
         all_day:   allDay,
         kid_ids:   kidIds,
@@ -133,10 +152,11 @@ export default function NewEvent() {
               onChange={(_, picked) => {
                 if (picked) {
                   // Preserve the time-of-day from the current state when
-                  // the user adjusts only the date (and vice versa).
+                  // the user adjusts only the date. updateStart shifts
+                  // the end-time by the same delta to preserve duration.
                   const next = new Date(date);
                   next.setFullYear(picked.getFullYear(), picked.getMonth(), picked.getDate());
-                  setDate(next);
+                  updateStart(next);
                 }
                 if (Platform.OS !== 'ios') setShowDatePicker(false);
               }}
@@ -162,9 +182,42 @@ export default function NewEvent() {
                     if (picked) {
                       const next = new Date(date);
                       next.setHours(picked.getHours(), picked.getMinutes(), 0, 0);
-                      setDate(next);
+                      updateStart(next);
                     }
                     if (Platform.OS !== 'ios') setShowTimePicker(false);
+                  }}
+                />
+              )}
+
+              <Text style={s.label}>End time</Text>
+              <TouchableOpacity
+                style={s.pickerBtn}
+                onPress={() => setShowEndTimePicker(v => !v)}
+                activeOpacity={0.7}
+              >
+                <Text style={s.pickerBtnText}>
+                  {formatTime(endDate)}
+                  {!sameDay(date, endDate) ? ' (next day)' : ''}
+                </Text>
+              </TouchableOpacity>
+              {showEndTimePicker && (
+                <DateTimePicker
+                  value={endDate}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(_, picked) => {
+                    if (picked) {
+                      // Anchor end-time on the same calendar day as start,
+                      // unless the picked time is earlier — in which case
+                      // assume the next day (e.g. 11pm start + 1am end).
+                      const next = new Date(date);
+                      next.setHours(picked.getHours(), picked.getMinutes(), 0, 0);
+                      if (next.getTime() <= date.getTime()) {
+                        next.setDate(next.getDate() + 1);
+                      }
+                      setEndDate(next);
+                    }
+                    if (Platform.OS !== 'ios') setShowEndTimePicker(false);
                   }}
                 />
               )}
@@ -232,6 +285,18 @@ function roundedNowPlus30() {
   const m = d.getMinutes();
   d.setMinutes(m + ((15 - (m % 15)) % 15), 0, 0);
   return d;
+}
+
+function addMinutes(d, minutes) {
+  const x = new Date(d);
+  x.setMinutes(x.getMinutes() + minutes);
+  return x;
+}
+
+function sameDay(a, b) {
+  return a.getFullYear() === b.getFullYear()
+      && a.getMonth() === b.getMonth()
+      && a.getDate()  === b.getDate();
 }
 
 function startOfLocalDay(d) {

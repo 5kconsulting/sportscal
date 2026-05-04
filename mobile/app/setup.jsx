@@ -103,7 +103,20 @@ export default function SetupAgentScreen() {
         ? `Hi${kidsList.length > 0 ? `, I see ${kidsList.length > 1 ? kidsList.length + ' kids' : '1 kid'}: ${kidNames}` : ''}! I'll help you connect your sports calendars. Which apps do you use? (TeamSnap, GameChanger, PlayMetrics, SportsEngine, and others — or paste an iCal URL if you already have one.)`
         : `Hi${kidsList.length > 0 ? ` — I see you already have ${sourceCount} calendar${sourceCount !== 1 ? 's' : ''} set up` : ''}! Want to add more? Which app are we working with?`;
 
-      setMessages([{ role: 'assistant', content: intro, display: intro }]);
+      // Drop a one-time tip about the iOS Share Extension as a system
+      // bubble after the intro. Suppress it when the user is arriving
+      // *via* a share — they already discovered it. Most parents won't
+      // notice the SportsCal target in the share sheet on their own;
+      // this hint is the difference between adoption and "oh, I didn't
+      // know it could do that."
+      const initialMessages = [{ role: 'assistant', content: intro, display: intro }];
+      if (!hasShareIntent) {
+        initialMessages.push({
+          role: 'system',
+          content: '💡 Tip: in Safari, Photos, or Mail, tap iOS\'s share button → SportsCal. We\'ll grab the URL or photo and add it for you.',
+        });
+      }
+      setMessages(initialMessages);
       setBooting(false);
       setTimeout(() => inputRef.current?.focus(), 250);
     })();
