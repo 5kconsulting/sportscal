@@ -21,6 +21,7 @@
 import { Worker } from 'bullmq';
 import Anthropic from '@anthropic-ai/sdk';
 import fs from 'node:fs/promises';
+import sharp from 'sharp';
 import { query, queryOne } from '../db/index.js';
 import { buildExtractionSystemPrompt, buildUserMessage } from '../lib/extractionPrompt.js';
 import { connection } from './queue.js';
@@ -29,6 +30,21 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const MODEL = 'claude-sonnet-4-20250514';
 const MAX_TOKENS = 4096;
+
+// Anthropic limits inline image payloads to ~5MB base64 (which is roughly
+// 3.75MB of decoded image bytes once you account for the ~33% base64 overhead).
+// We resize anything bigger to a safe ceiling: max 2400px on the long side,
+// JPEG quality 75. That's plenty of resolution for OCR'ing a schedule photo
+// and reliably lands well under the limit. We deliberately pre-shrink rather
+// than waiting for Anthropic to bounce the request — a failed Claude call
+// burns tokens on the error response and shows a confusing UX.
+//
+// 1MB threshold for "is it worth resizing?" — small JPEGs already from a
+// digital camera or after-iOS-compression don't need the round-trip through
+// libvips.
+const MAX_IMAGE_BYTES_FOR_ANTHROPIC = 3_500_000;
+const RESIZE_LONG_EDGE_PX = 2400;
+const RESIZE_JPEG_QUALITY = 75;
 
 // --- helpers ----------------------------------------------------------------
 
@@ -112,6 +128,30 @@ async function processIngestion(job) {
     return;
   }
 
+  // Images coming off modern phones (or full-res screenshots) routinely
+  // blow past Anthropic's ~5MB inline-image cap. Resize before encoding
+  // so the request always fits, and re-stamp media_type to JPEG since
+  // we re-encode regardless of source format. PDFs skip this entirely.
+  let mediaTypeForAnthropic = ingestion.original_mime || 'image/jpeg';
+  if (isImage && fileBuffer.length > MAX_IMAGE_BYTES_FOR_ANTHROPIC) {
+    try {
+      fileBuffer = await sharp(fileBuffer)
+        .rotate() // honor EXIF orientation (most photos)
+        .resize({
+          width:           RESIZE_LONG_EDGE_PX,
+          height:          RESIZE_LONG_EDGE_PX,
+          fit:             'inside',
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: RESIZE_JPEG_QUALITY })
+        .toBuffer();
+      mediaTypeForAnthropic = 'image/jpeg';
+    } catch (err) {
+      await setFailed(ingestionId, 'Could not process image: ' + err.message);
+      return;
+    }
+  }
+
   const base64File = fileBuffer.toString('base64');
 
   // --- Phase 2: parsing ---
@@ -132,7 +172,7 @@ async function processIngestion(job) {
         type: 'image',
         source: {
           type: 'base64',
-          media_type: ingestion.original_mime || 'image/jpeg',
+          media_type: mediaTypeForAnthropic,
           data: base64File,
         },
       }
