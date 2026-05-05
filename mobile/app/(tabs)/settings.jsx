@@ -195,18 +195,20 @@ export default function Settings() {
         <Text style={s.value}>
           {user?.plan === 'premium' ? 'Premium' : 'Free'}
         </Text>
-        {/* Apple App Store policy: in-app purchase of digital subs would
-            need IAP. Sending users to the web Stripe portal for *managing*
-            an existing subscription (cancel / change / update card) is
-            allowed and gives Premium users a way to self-serve from
-            mobile. Free users see the same link and can upgrade on web. */}
+        {/* Apple App Store policy 3.1.1: in-app *purchase* of digital
+            subs requires IAP, but linking out to manage an existing plan
+            is allowed. The "Upgrade to Premium" wording was on the line
+            of "in-app purchase intent" — softened to "Manage your plan"
+            so the same string serves both Premium (cancel / change card)
+            and Free (view options / upgrade) users without inviting a
+            purchase from inside iOS. */}
         <TouchableOpacity
           onPress={() => Linking.openURL('https://www.sportscalapp.com/settings').catch(() => {})}
           activeOpacity={0.7}
           style={s.planManageBtn}
         >
           <Text style={s.planManageText}>
-            {user?.plan === 'premium' ? 'Manage billing on the web →' : 'Upgrade to Premium on the web →'}
+            Manage your plan on the web →
           </Text>
         </TouchableOpacity>
       </View>
