@@ -320,7 +320,7 @@ const s = StyleSheet.create({
   errorText: { color: '#ef4444', fontSize: 14, paddingHorizontal: 24, textAlign: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
+    paddingHorizontal: 20, paddingVertical: 14,
     borderBottomWidth: 1, borderBottomColor: '#e8ecf4',
     backgroundColor: '#ffffff',
   },

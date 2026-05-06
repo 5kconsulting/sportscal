@@ -110,7 +110,7 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f4f6fa' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
+    paddingHorizontal: 20, paddingVertical: 14,
     borderBottomWidth: 1, borderBottomColor: '#e8ecf4',
     backgroundColor: '#ffffff',
   },
