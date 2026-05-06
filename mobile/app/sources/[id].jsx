@@ -1,9 +1,16 @@
-// Edit a single calendar source: name + kid assignments.
+// Edit a single calendar source: name + iCal URL + kid assignments.
 //
-// URL/app/fetch-type editing is intentionally web-only — those fields
-// are rare to change and easy to break (one wrong char and the feed
-// stops working). On mobile the answer is "remove + re-add via setup
-// helper" if the URL really did change.
+// We expose the iCal URL because real users hit cases where the URL
+// they entered during onboarding had a typo, or their league/team
+// rotated the calendar token, or they want to swap to a different
+// season's feed without losing the kid-assignment history. "Remove
+// and re-add via setup helper" is a real workaround but a fairly
+// punishing one — losing override + edit history is too much for a
+// single character that needs fixing.
+//
+// `app` and `fetch_type` editing stays web-only — those decisions
+// are tightly coupled to URL pattern and getting them wrong silently
+// breaks the feed. Web's edit screen has more guardrails for that.
 
 import { useEffect, useState } from 'react';
 import {
@@ -20,6 +27,7 @@ export default function EditSource() {
 
   const [source, setSource]   = useState(null);
   const [name, setName]       = useState('');
+  const [icalUrl, setIcalUrl] = useState('');
   const [kids, setKids]       = useState([]);
   const [kidIds, setKidIds]   = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +49,7 @@ export default function EditSource() {
         }
         setSource(src);
         setName(src.name || '');
+        setIcalUrl(src.ical_url || '');
         // Source's `kids` is the populated array; pull just the ids.
         setKidIds((src.kids || []).map(k => k.id));
         setKids(kidsRes.kids || []);
@@ -56,13 +65,35 @@ export default function EditSource() {
 
   async function handleSave() {
     if (!name.trim()) { setError('Name is required.'); return; }
+
+    // Only validate iCal URL shape if this source actually has one
+    // (scrape-only sources have ical_url=null; we don't want to force
+    // them to fabricate one to save a name change). Backend accepts
+    // webcal:// and https:// as equivalent — match that here.
+    const trimmedUrl = icalUrl.trim();
+    if (source?.ical_url && trimmedUrl) {
+      const normalized = trimmedUrl.replace(/^webcal:\/\//i, 'https://');
+      try { new URL(normalized); }
+      catch {
+        setError('That doesn\'t look like a valid URL. iCal links start with https:// or webcal://');
+        return;
+      }
+    }
+
     setSaving(true);
     setError('');
     try {
-      await api.patch(`/api/sources/${id}`, {
+      const patch = {
         name:    name.trim(),
         kid_ids: kidIds,
-      });
+      };
+      // Only send ical_url if the source had one originally — avoids
+      // accidentally setting it on a scrape-only source where the
+      // field is irrelevant.
+      if (source?.ical_url !== null && source?.ical_url !== undefined) {
+        patch.ical_url = trimmedUrl || null;
+      }
+      await api.patch(`/api/sources/${id}`, patch);
       router.back();
     } catch (err) {
       setError(err.message || 'Could not save changes');
@@ -146,16 +177,39 @@ export default function EditSource() {
             </>
           ) : null}
 
-          <View style={s.metaCard}>
-            <Text style={s.metaLabel}>Source URL</Text>
-            <Text style={s.metaValue} numberOfLines={2}>
-              {source?.ical_url || source?.scrape_url || '—'}
-            </Text>
-            <Text style={s.metaHelp}>
-              Need to change the URL? Remove this calendar and re-add it
-              through the setup helper.
-            </Text>
-          </View>
+          {/* iCal URL — editable for ical-based sources, read-only for
+              scrape-only sources (no ical_url to begin with). */}
+          {source?.ical_url !== null && source?.ical_url !== undefined ? (
+            <>
+              <Text style={s.label}>iCal URL</Text>
+              <TextInput
+                style={[s.input, s.urlInput]}
+                value={icalUrl}
+                onChangeText={setIcalUrl}
+                placeholder="https://… or webcal://…"
+                placeholderTextColor="#b8c4d8"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                multiline
+              />
+              <Text style={s.help}>
+                The iCal link from your sports app. If a typo broke this,
+                fix it here and we'll re-fetch the calendar.
+              </Text>
+            </>
+          ) : source?.scrape_url ? (
+            <View style={s.metaCard}>
+              <Text style={s.metaLabel}>Source URL (scrape)</Text>
+              <Text style={s.metaValue} numberOfLines={2}>
+                {source.scrape_url}
+              </Text>
+              <Text style={s.metaHelp}>
+                This calendar uses a scraping strategy that's web-only to
+                edit. Remove and re-add via the setup helper if needed.
+              </Text>
+            </View>
+          ) : null}
 
           <TouchableOpacity
             style={[s.saveBtn, saving && { opacity: 0.6 }]}
@@ -207,6 +261,13 @@ const s = StyleSheet.create({
     backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e8ecf4',
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
     fontSize: 15, color: '#0f1629',
+  },
+  // URL fields wrap in a monospace font + smaller size so long iCal
+  // tokens are readable and the textarea doesn't dominate the screen.
+  urlInput: {
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontSize: 12, lineHeight: 18,
+    minHeight: 60,
   },
   help: { fontSize: 12, color: '#8896b0', marginTop: 6, lineHeight: 16 },
 
