@@ -7,12 +7,24 @@ export default function TabsLayout() {
       screenOptions={{
         tabBarActiveTintColor:   '#00d68f',
         tabBarInactiveTintColor: '#8896b0',
+        // Floating-panel look: rounded top corners on the bottom tab
+        // bar reveal the screen bg behind them, matching the design
+        // mockups. Position absolute lets the tab bar sit cleanly above
+        // the screen content without an opaque base.
         tabBarStyle: {
           backgroundColor: '#0f1629',
           borderTopColor:  '#243050',
-          borderTopWidth:  1,
+          borderTopWidth:  0,
+          borderTopLeftRadius:  22,
+          borderTopRightRadius: 22,
         },
-        headerStyle:      { backgroundColor: '#0f1629' },
+        // Mirror move on the navigation header — rounded bottom corners
+        // make the dark navy title band feel like a pull-down sheet.
+        headerStyle: {
+          backgroundColor:         '#0f1629',
+          borderBottomLeftRadius:  22,
+          borderBottomRightRadius: 22,
+        },
         headerTintColor:  '#ffffff',
         headerTitleStyle: { fontWeight: '600' },
       }}

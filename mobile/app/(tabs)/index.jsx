@@ -170,8 +170,11 @@ const s = StyleSheet.create({
     marginTop: 4,
   },
   addEventBtnText: { color: '#0f1629', fontSize: 14, fontWeight: '600' },
-  hi:     { fontSize: 22, fontWeight: '600', color: '#0f1629' },
-  sub:    { fontSize: 13, color: '#8896b0', marginTop: 4 },
+  // Hero greeting — bigger and bolder than a typical iOS section title
+  // so the Calendar tab feels personal at a glance. Mirrors the design
+  // mockups (28px, weight 800).
+  hi:     { fontSize: 28, fontWeight: '800', color: '#0f1629', lineHeight: 30 },
+  sub:    { fontSize: 13, color: '#8896b0', marginTop: 6 },
   dayHeader: {
     backgroundColor: '#f4f6fa',
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6,

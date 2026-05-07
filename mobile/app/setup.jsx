@@ -659,15 +659,20 @@ const s = StyleSheet.create({
   bubbleText:     { fontSize: 15, color: '#0f1629', lineHeight: 21 },
   bubbleTextUser: { color: '#0f1629' },
 
+  // Light-green pill for status messages and the share-extension tip.
+  // #d8f5e6 + #047a47 from the design mockups — warm muted mint with
+  // strong-enough contrast that the green text reads cleanly on it.
+  // The bubble visually distinguishes "system / progress" content from
+  // the white assistant bubbles around it.
   systemRow: {
     alignSelf: 'center',
-    backgroundColor: 'rgba(0,214,143,0.10)',
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 10, marginVertical: 4, maxWidth: '92%',
-    alignItems: 'center', gap: 8,
+    backgroundColor: '#d8f5e6',
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderRadius: 14, marginVertical: 4, maxWidth: '92%',
+    alignItems: 'center', gap: 10,
   },
   systemRowError: { backgroundColor: 'rgba(255,107,107,0.10)' },
-  systemText:     { fontSize: 13, color: '#00845b', textAlign: 'center', fontWeight: '500' },
+  systemText:     { fontSize: 14, color: '#047a47', textAlign: 'center', fontWeight: '500', lineHeight: 19 },
   systemTextError:{ color: '#c44949' },
   systemApprove: {
     backgroundColor: '#00d68f', borderRadius: 8,
