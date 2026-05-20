@@ -1,4 +1,8 @@
-// Contacts page — ride contacts + Teams and Groups.
+// Carpool page (formerly "Contacts") — ride contacts + Teams and Groups.
+// Renamed in 2026-05-09 user-feedback batch: parents reach for "carpool"
+// as the verb, "Contacts" sounded like a phone address book. Inner H2s
+// (Ride contacts / Teams and Groups) stay as-is — descriptive within
+// the carpool framing.
 //
 // Split out from the Family page (which now contains just kids)
 // because these sections aren't really about the user's family —
@@ -35,11 +39,11 @@ export default function Contacts() {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px' }}>
       <h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 8 }}>
-        Contacts
+        Carpool
       </h1>
       <p style={{ color: 'var(--slate)', fontSize: 14, marginBottom: 28, lineHeight: 1.5 }}>
-        The people you coordinate with for rides — grandparents, carpool friends,
-        coaches, and groups of them you can ask for help all at once.
+        The people you coordinate rides with — grandparents, friends, coaches —
+        and groups of them you can ask for help all at once.
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
         <RideContacts />
