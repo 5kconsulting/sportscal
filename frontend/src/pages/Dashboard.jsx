@@ -385,6 +385,11 @@ function FeedUrlCard({ user, hasSources = false }) {
   }, [hasSources, manuallyToggled]);
 
   const feedUrl = user ? `${window.location.origin}/feed/${user.feed_token}.ics` : '';
+  // webcal:// triggers native Calendar subscription prompts on iOS and macOS
+  // Safari. Chrome/Firefox may not respect the scheme, but the most common
+  // parent flow (iPhone Safari, opening from a beta-invite email) does.
+  const webcalUrl = feedUrl.replace(/^https?:\/\//i, 'webcal://');
+  const [showRawUrl, setShowRawUrl] = useState(false);
 
   function copy() {
     navigator.clipboard.writeText(feedUrl);
@@ -417,7 +422,7 @@ function FeedUrlCard({ user, hasSources = false }) {
             ✓ Calendar feed connected
           </span>
           <span style={{ fontSize: 12, color: 'var(--slate-light)' }}>
-            Tap to view URL or rotate
+            Tap to view URL or share
           </span>
         </div>
         <span style={{ fontSize: 16, color: 'var(--slate-light)' }}>›</span>
@@ -425,53 +430,101 @@ function FeedUrlCard({ user, hasSources = false }) {
     );
   }
 
+  // EXPANDED state. Top user-feedback issue from the 2026-05-09 cohort:
+  // "do grandparents need to pay for an account to use this link?" The
+  // headline + explainer here exists primarily to answer that question
+  // before it gets asked. The actions row puts "Subscribe on this device"
+  // first because that's the verb 90% of users want; raw URL is hidden
+  // behind a disclosure so the developer-tool-looking 64-char hash doesn't
+  // dominate above-the-fold real estate.
   return (
     <>
       <div style={{
         background: 'var(--navy)',
         borderRadius: 'var(--radius-lg)',
-        padding: '16px 20px',
+        padding: '18px 20px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 12,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600,
-                        textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Your calendar feed URL
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', lineHeight: 1.3 }}>
+              📅 Your family calendar — ready to subscribe
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--slate-light)', marginTop: 6, lineHeight: 1.45 }}>
+              Subscribe once in Apple, Google, or Outlook Calendar and every
+              event below shows up automatically.{' '}
+              <strong style={{ color: '#fff', fontWeight: 600 }}>
+                Share the link with anyone — grandparents, the other parent,
+                coaches — they don't need a SportsCal account.
+              </strong>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button onClick={() => setShowGuide(true)}
-              style={{ fontSize: 12, color: 'var(--accent-dim)', background: 'none',
-                       border: 'none', cursor: 'pointer', fontWeight: 500, padding: 0 }}>
-              How to subscribe →
+          {hasSources && (
+            <button
+              onClick={() => { setManuallyToggled(true); setCollapsed(true); }}
+              style={{ fontSize: 12, color: 'var(--slate-light)', background: 'none',
+                       border: 'none', cursor: 'pointer', fontWeight: 500, padding: 0,
+                       flexShrink: 0, marginTop: 4 }}>
+              Hide
             </button>
-            {hasSources && (
-              <button
-                onClick={() => { setManuallyToggled(true); setCollapsed(true); }}
-                style={{ fontSize: 12, color: 'var(--slate-light)', background: 'none',
-                         border: 'none', cursor: 'pointer', fontWeight: 500, padding: 0 }}>
-                Hide
-              </button>
-            )}
-          </div>
+          )}
         </div>
-        <div style={{
-          fontSize: 12, color: 'var(--slate-light)',
-          fontFamily: 'var(--mono)',
-          wordBreak: 'break-all',
-          lineHeight: 1.5,
-        }}>
-          {feedUrl}
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+          <a
+            href={webcalUrl}
+            className="btn btn-sm"
+            style={{
+              background: 'var(--accent)',
+              color: 'var(--navy)',
+              border: 'none',
+              fontWeight: 600,
+              textDecoration: 'none',
+            }}
+          >
+            📱 Subscribe on this device
+          </a>
+          <button onClick={copy} className="btn btn-sm" style={{
+            background: copied ? 'var(--accent)' : 'var(--navy-mid)',
+            color: copied ? 'var(--navy)' : 'var(--slate-light)',
+            border: 'none',
+            fontWeight: 500,
+          }}>
+            {copied ? '✓ Copied' : '📋 Copy link to share'}
+          </button>
+          <button onClick={() => setShowGuide(true)}
+            style={{ fontSize: 13, color: 'var(--accent-dim)', background: 'none',
+                     border: 'none', cursor: 'pointer', fontWeight: 500, padding: '6px 4px' }}>
+            How does this work?
+          </button>
         </div>
-        <button onClick={copy} className="btn btn-sm" style={{
-          background: copied ? 'var(--accent)' : 'var(--navy-mid)',
-          color: copied ? 'var(--navy)' : 'var(--slate-light)',
-          border: 'none',
-          alignSelf: 'flex-start',
-        }}>
-          {copied ? '✓ Copied' : 'Copy URL'}
-        </button>
+
+        {/* Power-user escape hatch: reveals the raw https:// URL for users
+            who want to paste it directly into a non-Apple/non-Google calendar
+            client or share via a channel that doesn't preserve the webcal:// link. */}
+        <div style={{ marginTop: 4 }}>
+          <button onClick={() => setShowRawUrl(v => !v)}
+            style={{ fontSize: 12, color: 'var(--slate-light)', background: 'none',
+                     border: 'none', cursor: 'pointer', padding: 0, opacity: 0.7 }}>
+            {showRawUrl ? '▼ Hide link' : '▶ Show link'}
+          </button>
+          {showRawUrl && (
+            <div style={{
+              fontSize: 11, color: 'var(--slate-light)',
+              fontFamily: 'var(--mono)',
+              wordBreak: 'break-all',
+              lineHeight: 1.5,
+              marginTop: 8,
+              padding: '8px 10px',
+              background: 'var(--navy-mid)',
+              borderRadius: 6,
+            }}>
+              {feedUrl}
+            </div>
+          )}
+        </div>
       </div>
 
       {showGuide && <SubscribeGuide feedUrl={feedUrl} onClose={() => setShowGuide(false)} />}
