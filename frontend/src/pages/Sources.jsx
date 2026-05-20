@@ -597,11 +597,11 @@ export default function Sources() {
     <div style={{ padding: '40px', maxWidth: 720 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32 }}>
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 4 }}>Calendars</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 4 }}>My calendars</h1>
           <p style={{ color: 'var(--slate)', fontSize: 15 }}>
-            Connect your sports apps and assign kids to each calendar.{' '}
+            The calendars you've already connected. Rename, pause, or remove them here.{' '}
             <a href="/setup" style={{ color: 'var(--accent-dim)', fontWeight: 500, textDecoration: 'none' }}>
-                Want help? Use the setup agent →
+                Want to add another? →
             </a>
           </p>
         </div>

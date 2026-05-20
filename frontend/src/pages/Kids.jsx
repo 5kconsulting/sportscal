@@ -114,9 +114,9 @@ export default function Kids() {
     <div style={{ padding: '40px', maxWidth: 640 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32 }}>
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 4 }}>Family & friends</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 4 }}>My kids</h1>
           <p style={{ color: 'var(--slate)', fontSize: 15 }}>
-            Each member's name is prefixed on their calendar events.
+            Each kid's name is prefixed on their calendar events so you can tell whose game is whose.
           </p>
         </div>
         {!showForm && (
