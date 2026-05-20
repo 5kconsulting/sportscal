@@ -168,11 +168,15 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Feed URL card — auto-collapses once user has any sources */}
-      <FeedUrlCard
-        user={user}
-        hasSources={sources.filter(s => s.name !== '__manual__').length > 0}
-      />
+      {/* Feed URL card — only shows once the user has connected at least
+          one calendar. Before that, the feed would be empty so subscribing
+          shows nothing, the URL looks like a developer tool, and parents
+          end up confused about what they're meant to do with it. The
+          OnboardingBanner above carries the "what to do next" guidance
+          for fresh accounts. */}
+      {sources.filter(s => s.name !== '__manual__').length > 0 && (
+        <FeedUrlCard user={user} hasSources={true} />
+      )}
 
       {/* Kid filter */}
       {kids.length > 1 && (
@@ -259,9 +263,14 @@ function OnboardingBanner({ hasKids, hasSources, onDismiss }) {
     {
       num: 2,
       title: 'Add your first calendar',
-      desc: 'Paste an iCal link from TeamSnap, GameChanger, PlayMetrics, or any other app.',
+      // CTA points to /setup (the chat helper) not /sources (the manage
+      // list). New users don't want a list of what they don't have yet —
+      // they want a guided way to add the first thing. The chat helper
+      // also surfaces email-forwarding as a sibling option for parents
+      // who already have a schedule email open in their inbox.
+      desc: 'Walk through it with our setup helper — paste an iCal link, scan a printed schedule, or forward an email.',
       done: hasSources,
-      action: <Link to="/sources" className="btn btn-sm btn-primary" style={{ textDecoration: 'none' }}>Add calendar →</Link>,
+      action: <Link to="/setup" className="btn btn-sm btn-primary" style={{ textDecoration: 'none' }}>Add calendar →</Link>,
     },
     {
       num: 3,

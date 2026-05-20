@@ -3,13 +3,22 @@ import { useAuth } from '../hooks/useAuth.jsx';
 import { LogoMark } from './LogoMark.jsx';
 import { VerificationBanner } from './VerificationBanner.jsx';
 
+// Sidebar labels deliberately match the language parents actually use,
+// not internal data-model names. From the 2026-05-09 user feedback:
+//  - "Family" was ambiguous (could mean kids OR grandparents) → "My kids"
+//  - "Contacts" sounded like a phone address book → "Carpool" (the verb
+//    parents reach for is "set up a carpool")
+//  - "Setup" vs "Calendars" was confusing — both could be "add a calendar"
+//    in the user's head. Splitting into action-named "Add a calendar"
+//    (the SetupAgent chat) vs. inventory-named "My calendars" (manage
+//    what's connected) makes the distinction crisp.
 const NAV = [
-  { to: '/dashboard', label: 'Dashboard', icon: GridIcon },
-  { to: '/kids',      label: 'Family',    icon: UsersIcon },
-  { to: '/contacts',  label: 'Contacts',  icon: AddressBookIcon },
-  { to: '/setup',     label: 'Setup',     icon: SparkleIcon },
-  { to: '/sources',   label: 'Calendars', icon: LinkIcon },
-  { to: '/settings',  label: 'Settings',  icon: GearIcon },
+  { to: '/dashboard', label: 'Dashboard',      icon: GridIcon },
+  { to: '/kids',      label: 'My kids',        icon: UsersIcon },
+  { to: '/contacts',  label: 'Carpool',        icon: AddressBookIcon },
+  { to: '/setup',     label: 'Add a calendar', icon: SparkleIcon },
+  { to: '/sources',   label: 'My calendars',   icon: LinkIcon },
+  { to: '/settings',  label: 'Settings',       icon: GearIcon },
 ];
 
 export default function Layout() {

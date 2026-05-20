@@ -69,6 +69,13 @@ export default function SetupAgent({ onSourceAdded }) {
   const [kids, setKids] = useState([]);
   const [addedSources, setAddedSources] = useState([]);
   const [started, setStarted] = useState(false);
+  // Inbound forwarding address for the "or, forward an email" sibling
+  // affordance below the page header. The Setup chat is the primary way
+  // to add a calendar (URL paste / PDF / camera), but forwarding an iCal
+  // email is a real "I already have it open in Mail" shortcut that users
+  // were not discovering when it lived only in Settings.
+  const [inboundAddress, setInboundAddress] = useState('');
+  const [inboundCopied, setInboundCopied] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -81,6 +88,25 @@ export default function SetupAgent({ onSourceAdded }) {
   useEffect(() => {
     api.kids.list().then(({ kids }) => setKids(kids)).catch(() => {});
   }, []);
+
+  // Lazy-load the inbound forwarding address. The endpoint mints a fresh
+  // add+<token>@inbox.sportscalapp.com on first call if the user doesn't
+  // have one yet. Mirror's Settings.jsx's loading pattern. Best-effort —
+  // swallow errors silently so a flaky inbound endpoint doesn't block
+  // the chat flow which is the primary way to add a calendar.
+  useEffect(() => {
+    if (!user) return;
+    api.auth.inboundAddress()
+      .then(({ address }) => setInboundAddress(address || ''))
+      .catch(() => {});
+  }, [user]);
+
+  function copyInbound() {
+    if (!inboundAddress) return;
+    navigator.clipboard.writeText(inboundAddress);
+    setInboundCopied(true);
+    setTimeout(() => setInboundCopied(false), 2000);
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -372,7 +398,7 @@ export default function SetupAgent({ onSourceAdded }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 2 }}>
-              Calendar setup
+              Add a calendar
             </h1>
             {addedSources.length > 0 && (
               <p style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 500 }}>
@@ -386,6 +412,53 @@ export default function SetupAgent({ onSourceAdded }) {
             </a>
           )}
         </div>
+
+        {/* "Or, by email" sibling affordance. Was previously buried in
+            Settings; surfacing here matches the mental model "I have a
+            schedule, how do I get it into SportsCal?" The chat below
+            handles URL paste + PDF upload + camera; this card handles
+            the "schedule confirmation just hit my inbox" shortcut. */}
+        {inboundAddress ? (
+          <div style={{
+            marginTop: 14,
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            padding: '12px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            flexWrap: 'wrap',
+          }}>
+            <div style={{ fontSize: 13, color: 'var(--slate)', flex: '1 1 auto', minWidth: 200 }}>
+              <strong style={{ color: 'var(--text)', fontWeight: 600 }}>Or, forward an email.</strong>
+              {' '}Send any iCal-shaped schedule email to this address — we'll add it for you.
+            </div>
+            <div style={{
+              fontSize: 12, color: 'var(--text)',
+              fontFamily: 'var(--mono)',
+              background: 'var(--bg)',
+              padding: '6px 10px',
+              borderRadius: 6,
+              border: '1px solid var(--border)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              maxWidth: 280,
+            }}>
+              {inboundAddress}
+            </div>
+            <button onClick={copyInbound} className="btn btn-sm" style={{
+              background: inboundCopied ? 'var(--accent)' : 'var(--bg)',
+              color: inboundCopied ? 'var(--navy)' : 'var(--text)',
+              border: '1px solid var(--border)',
+              fontWeight: 500,
+              flexShrink: 0,
+            }}>
+              {inboundCopied ? '✓ Copied' : 'Copy'}
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div style={{
