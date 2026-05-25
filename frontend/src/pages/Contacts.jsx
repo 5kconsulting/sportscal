@@ -36,6 +36,79 @@ function parseRoster(text) {
 }
 
 export default function Contacts() {
+  // Feature flag for the painfully-simple chip welcome — same ?v=chips
+  // pattern we're A/B testing on /setup. Two big buttons (Add a person /
+  // Make a team) for brand-new users with zero contacts and zero teams.
+  // Tapping a chip transitions to the normal layout with that section's
+  // form pre-opened so the user continues directly into the action.
+  const variant = new URLSearchParams(window.location.search).get('v');
+  const useChipsVariant = variant === 'chips';
+
+  // Tracks whether the user is brand-new (no contacts AND no teams).
+  // null = still loading; false = has at least one of either; true = empty.
+  // A separate small fetch keeps the parent stateless w/r/t the actual
+  // contact/team lists (children still own their own data).
+  const [isFreshUser, setIsFreshUser] = useState(null);
+  // 'person' or 'team' once user picks. Drives initial form-open prop
+  // for the child section after we transition to the normal layout.
+  const [initialAction, setInitialAction] = useState(null);
+
+  useEffect(() => {
+    if (!useChipsVariant) return;
+    Promise.all([api.contacts.list(), api.teams.list()])
+      .then(([c, t]) => setIsFreshUser(
+        (c.contacts || []).length === 0 && (t.teams || []).length === 0
+      ))
+      .catch(() => setIsFreshUser(false)); // on error, fall back to normal layout
+  }, [useChipsVariant]);
+
+  // Chip welcome — only when the variant is on AND the user is brand-new
+  // AND they haven't already picked which action to take. Once they
+  // click a chip, initialAction is set and the normal layout renders
+  // with the form open.
+  if (useChipsVariant && isFreshUser === true && initialAction === null) {
+    const chipBtnStyle = {
+      background: 'var(--navy)',
+      color: 'var(--accent)',
+      border: 'none',
+      padding: '20px 24px',
+      fontSize: 18, fontWeight: 600,
+      borderRadius: 12,
+      textAlign: 'left',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      transition: 'transform 0.1s ease',
+    };
+    const press = {
+      onMouseDown: (e) => e.currentTarget.style.transform = 'scale(0.98)',
+      onMouseUp:   (e) => e.currentTarget.style.transform = 'scale(1)',
+      onMouseLeave:(e) => e.currentTarget.style.transform = 'scale(1)',
+    };
+    return (
+      <div style={{ padding: '40px', maxWidth: 480 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.01em',
+                     marginBottom: 28, color: 'var(--text)' }}>
+          How do you want to start?
+        </h1>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <button onClick={() => setInitialAction('person')} style={chipBtnStyle} {...press}>
+            <span>Add a person</span>
+            <span style={{ opacity: 0.7 }}>→</span>
+          </button>
+          <button onClick={() => setInitialAction('team')} style={chipBtnStyle} {...press}>
+            <span>Make a team / group</span>
+            <span style={{ opacity: 0.7 }}>→</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Normal layout. When initialAction is set (user just clicked a chip),
+  // hand it to the right child so its form opens immediately. Once the
+  // user saves or cancels, the form's internal state takes over.
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px' }}>
       <h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 8 }}>
@@ -46,8 +119,8 @@ export default function Contacts() {
         and groups of them you can ask for help all at once.
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-        <RideContacts />
-        <Teams />
+        <RideContacts initialShowForm={initialAction === 'person'} />
+        <Teams initialAdding={initialAction === 'team'} />
       </div>
     </div>
   );
@@ -57,10 +130,13 @@ export default function Contacts() {
 // RideContacts — individuals with name/phone/email plus their
 // SMS opt-in status (pending / confirmed / declined).
 // ============================================================
-function RideContacts() {
+// `initialShowForm` is set by the chip-variant welcome — when a brand-new
+// user taps "Add a person" we render this section with the contact form
+// already open so they don't need a second click.
+function RideContacts({ initialShowForm = false }) {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading]   = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(initialShowForm);
   const [editing, setEditing]   = useState(null);
   const [form, setForm]         = useState({ name: '', email: '', phone: '' });
   const [saving, setSaving]     = useState(false);
@@ -215,11 +291,16 @@ function RideContacts() {
 // iMessage with one tap-link per member to a SportsCal landing
 // page where the first person to claim wins.
 // ============================================================
-function Teams() {
+// `initialAdding` is set by the chip-variant welcome — when a brand-new
+// user taps "Make a team / group" we render this section with the
+// new-team form already open. They can build a team without contacts
+// yet (existing flow already supports creating member-less teams +
+// adding contacts inline via the in-team add-member input).
+function Teams({ initialAdding = false }) {
   const [teams, setTeams]       = useState([]);
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading]   = useState(true);
-  const [adding, setAdding]     = useState(false);
+  const [adding, setAdding]     = useState(initialAdding);
   const [newName, setNewName]   = useState('');
   const [newMemberIds, setNewMemberIds] = useState([]);
   const [expanded, setExpanded] = useState(null);
