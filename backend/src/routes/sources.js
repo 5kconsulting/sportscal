@@ -132,6 +132,12 @@ router.post('/',
     body('refresh_interval_minutes').optional().isInt({ min: 30, max: 1440 }),
     body('kid_ids').optional().isArray(),
     body('kid_ids.*').optional().isUUID(),
+    // kid_assignments is the richer shape that lets multi-kid feeds split
+    // events by title pattern. If both kid_ids and kid_assignments are
+    // present, kid_assignments wins. Each entry: { kid_id, title_contains? }.
+    body('kid_assignments').optional().isArray(),
+    body('kid_assignments.*.kid_id').optional().isUUID(),
+    body('kid_assignments.*.title_contains').optional({ nullable: true }).isString().isLength({ max: 200 }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -173,9 +179,13 @@ router.post('/',
       refreshIntervalMinutes:  req.body.refresh_interval_minutes || 120,
     });
 
-    // Assign kids if provided
-    if (req.body.kid_ids?.length) {
-      await validateAndAssignKids(source.id, req.body.kid_ids, req.user.id, res);
+    // Assign kids if provided. kid_assignments (rich) wins over kid_ids (legacy)
+    // when both are present. validateAndAssignKids accepts either shape.
+    const assignments = req.body.kid_assignments?.length
+      ? req.body.kid_assignments
+      : req.body.kid_ids;
+    if (assignments?.length) {
+      await validateAndAssignKids(source.id, assignments, req.user.id, res);
       if (res.headersSent) return;
     }
 
@@ -206,6 +216,9 @@ router.patch('/:id',
     body('enabled').optional().isBoolean(),
     body('kid_ids').optional().isArray(),
     body('kid_ids.*').optional().isUUID(),
+    body('kid_assignments').optional().isArray(),
+    body('kid_assignments.*.kid_id').optional().isUUID(),
+    body('kid_assignments.*.title_contains').optional({ nullable: true }).isString().isLength({ max: 200 }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -218,14 +231,22 @@ router.patch('/:id',
 
     const updated = await updateSource(req.params.id, req.user.id, req.body);
 
-    // If kid assignments changed, update them and rebuild display titles
-    if (req.body.kid_ids !== undefined) {
-      await validateAndAssignKids(source.id, req.body.kid_ids, req.user.id, res);
+    // If kid assignments changed, update them and rebuild display titles.
+    // kid_assignments (rich) wins over kid_ids (legacy). Either present in
+    // the body triggers the assignment-changed branch.
+    const assignmentsTouched = req.body.kid_assignments !== undefined
+                            || req.body.kid_ids !== undefined;
+    if (assignmentsTouched) {
+      const assignments = req.body.kid_assignments !== undefined
+        ? req.body.kid_assignments
+        : req.body.kid_ids;
+      await validateAndAssignKids(source.id, assignments || [], req.user.id, res);
       if (res.headersSent) return;
 
-      // Rebuild display titles for all events from this source
-      const kids = await getKidsForSource(source.id);
-      await rebuildDisplayTitles(source.id, (rawTitle, location) =>
+      // Rebuild display titles. rebuildDisplayTitles internally calls
+      // filterKidsByEventTitle per event using the freshly-saved patterns,
+      // so the closure here just receives the per-event-filtered kids.
+      await rebuildDisplayTitles(source.id, (rawTitle, location, kids) =>
         buildDisplayTitle(rawTitle, location, kids)
       );
 
@@ -274,16 +295,28 @@ router.post('/:id/refresh',
 // Helpers
 // ============================================================
 
-async function validateAndAssignKids(sourceId, kidIds, userId, res) {
+/**
+ * Validate + persist kid assignments. Accepts either:
+ *   - string[] of kid ids (legacy)
+ *   - { kid_id, title_contains? }[] objects (rich)
+ * Mixed shape (some strings, some objects) is also tolerated.
+ */
+async function validateAndAssignKids(sourceId, assignments, userId, res) {
+  const list = (assignments || []).map(a =>
+    typeof a === 'string'
+      ? { kid_id: a, title_contains: null }
+      : { kid_id: a.kid_id, title_contains: a.title_contains || null }
+  );
+
   // Verify all kid IDs belong to this user
-  for (const kidId of kidIds) {
-    const kid = await getKidById(kidId, userId);
+  for (const a of list) {
+    const kid = await getKidById(a.kid_id, userId);
     if (!kid) {
-      res.status(422).json({ error: `Kid ${kidId} not found` });
+      res.status(422).json({ error: `Kid ${a.kid_id} not found` });
       return false;
     }
   }
-  await setKidSources(sourceId, kidIds);
+  await setKidSources(sourceId, list);
   return true;
 }
 

@@ -29,7 +29,12 @@ export default function EditSource() {
   const [name, setName]       = useState('');
   const [icalUrl, setIcalUrl] = useState('');
   const [kids, setKids]       = useState([]);
-  const [kidIds, setKidIds]   = useState([]);
+  // Rich kid assignments: [{ kid_id, title_contains }]. title_contains is
+  // empty when the kid attends every event from this source. Non-empty
+  // means "this kid only on events whose title contains the substring."
+  // See db/index.js filterKidsByEventTitle for the matching semantics.
+  const [kidAssignments, setKidAssignments] = useState([]);
+  const [showSplit, setShowSplit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState('');
@@ -50,8 +55,15 @@ export default function EditSource() {
         setSource(src);
         setName(src.name || '');
         setIcalUrl(src.ical_url || '');
-        // Source's `kids` is the populated array; pull just the ids.
-        setKidIds((src.kids || []).map(k => k.id));
+        const initialAssignments = (src.kids || []).map(k => ({
+          kid_id:         k.id,
+          title_contains: k.title_contains || '',
+        }));
+        setKidAssignments(initialAssignments);
+        // Default the split section open if the source already has
+        // per-kid patterns — otherwise the user wouldn't realize
+        // they're set.
+        setShowSplit(initialAssignments.some(a => a.title_contains));
         setKids(kidsRes.kids || []);
       })
       .catch(err => { if (!cancelled) setError(err.message || 'Could not load'); })
@@ -59,8 +71,20 @@ export default function EditSource() {
     return () => { cancelled = true; };
   }, [id]);
 
+  function isKidSelected(kidId) {
+    return kidAssignments.some(a => a.kid_id === kidId);
+  }
+
   function toggleKid(kidId) {
-    setKidIds(prev => prev.includes(kidId) ? prev.filter(x => x !== kidId) : [...prev, kidId]);
+    setKidAssignments(prev => prev.some(a => a.kid_id === kidId)
+      ? prev.filter(a => a.kid_id !== kidId)
+      : [...prev, { kid_id: kidId, title_contains: '' }]);
+  }
+
+  function setKidPattern(kidId, pattern) {
+    setKidAssignments(prev => prev.map(a =>
+      a.kid_id === kidId ? { ...a, title_contains: pattern } : a
+    ));
   }
 
   async function handleSave() {
@@ -84,8 +108,13 @@ export default function EditSource() {
     setError('');
     try {
       const patch = {
-        name:    name.trim(),
-        kid_ids: kidIds,
+        name:            name.trim(),
+        // Rich shape: kid + optional per-event title pattern. Empty
+        // pattern → backend stores NULL → kid attends every event.
+        kid_assignments: kidAssignments.map(a => ({
+          kid_id:         a.kid_id,
+          title_contains: a.title_contains.trim() || null,
+        })),
       };
       // Only send ical_url if the source had one originally — avoids
       // accidentally setting it on a scrape-only source where the
@@ -151,7 +180,7 @@ export default function EditSource() {
               <Text style={s.label}>Whose calendar is this?</Text>
               <View style={s.chipWrap}>
                 {kids.map(kid => {
-                  const on    = kidIds.includes(kid.id);
+                  const on    = isKidSelected(kid.id);
                   const color = kid.color || '#6366f1';
                   return (
                     <TouchableOpacity
@@ -174,6 +203,57 @@ export default function EditSource() {
                 Pick one or more. We use this to label events ("Emma — Soccer
                 Practice") and to power the per-kid calendar links.
               </Text>
+
+              {/* Per-kid title pattern split. Only matters when 2+ kids are
+                  on the source — for one kid there's nothing to split.
+                  Collapsed by default since most users have one team per
+                  calendar and never need this. */}
+              {kidAssignments.length >= 2 ? (
+                <>
+                  <TouchableOpacity
+                    onPress={() => setShowSplit(v => !v)}
+                    activeOpacity={0.7}
+                    style={{ marginTop: 14 }}
+                  >
+                    <Text style={s.disclosure}>
+                      {showSplit ? '▼' : '▶'} Multi-kid feed? Split events by title
+                    </Text>
+                  </TouchableOpacity>
+
+                  {showSplit ? (
+                    <View style={s.splitCard}>
+                      <Text style={s.splitHelp}>
+                        If this feed mixes events for multiple kids (like a club
+                        calendar with both teams), enter a unique substring from
+                        each team's title. Example: "BU13" for your son's team,
+                        "GU15" for your daughter's. Leave blank if a kid attends
+                        every event.
+                      </Text>
+                      {kidAssignments.map(a => {
+                        const kid = kids.find(k => k.id === a.kid_id);
+                        if (!kid) return null;
+                        const color = kid.color || '#6366f1';
+                        return (
+                          <View key={a.kid_id} style={s.splitRow}>
+                            <Text style={[s.splitKidLabel, { color }]} numberOfLines={1}>
+                              {kid.name}
+                            </Text>
+                            <TextInput
+                              style={s.splitInput}
+                              value={a.title_contains}
+                              onChangeText={t => setKidPattern(a.kid_id, t)}
+                              placeholder="e.g. BU13 (or blank)"
+                              placeholderTextColor="#b8c4d8"
+                              autoCapitalize="characters"
+                              autoCorrect={false}
+                            />
+                          </View>
+                        );
+                      })}
+                    </View>
+                  ) : null}
+                </>
+              ) : null}
             </>
           ) : null}
 
@@ -278,6 +358,37 @@ const s = StyleSheet.create({
   },
   chipText: { fontSize: 13, color: '#0f1629', fontWeight: '500' },
   chipTextOn: { color: '#ffffff' },
+
+  // Per-kid title pattern split UI — collapsed by default, expands to a
+  // boxed help text + one input row per assigned kid.
+  disclosure: {
+    fontSize: 13, color: '#00d68f', fontWeight: '600',
+  },
+  splitCard: {
+    marginTop: 10,
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    borderWidth: 1, borderColor: '#e8ecf4',
+    paddingHorizontal: 14, paddingVertical: 12,
+  },
+  splitHelp: {
+    fontSize: 12, color: '#4a5670', lineHeight: 17, marginBottom: 10,
+  },
+  splitRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginTop: 8,
+  },
+  splitKidLabel: {
+    width: 84, fontSize: 14, fontWeight: '600',
+  },
+  splitInput: {
+    flex: 1,
+    backgroundColor: '#f4f6fa',
+    borderWidth: 1, borderColor: '#e8ecf4',
+    borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 8,
+    fontSize: 13, color: '#0f1629',
+  },
 
   metaCard: {
     backgroundColor: '#ffffff', borderRadius: 10,

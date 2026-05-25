@@ -1009,14 +1009,39 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
   const [app, setApp]         = useState(initialApp);
   const [name, setName]       = useState(initial?.name || '');
   const [icalUrl, setIcalUrl] = useState(initial?.ical_url || '');
-  const [kidIds, setKidIds]   = useState(initial?.kids?.map(k => k.id) || []);
+  // Rich kid assignments: [{ kid_id, title_contains }]. title_contains is
+  // empty-string when the kid attends every event from this source (the
+  // common single-team case). When the feed mixes events for multiple
+  // kids (e.g. a club feed with both BU13 + GU15 teams), the user fills
+  // in a substring per kid to filter.
+  const [kidAssignments, setKidAssignments] = useState(() =>
+    (initial?.kids || []).map(k => ({
+      kid_id: k.id,
+      title_contains: k.title_contains || '',
+    }))
+  );
+  const [showSplit, setShowSplit] = useState(() =>
+    (initial?.kids || []).some(k => k.title_contains)
+  );
   const [saving, setSaving]   = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
   const currentAppInfo = APP_OPTIONS.find(a => a.value === app);
 
+  function isKidSelected(id) {
+    return kidAssignments.some(a => a.kid_id === id);
+  }
+
   function toggleKid(id) {
-    setKidIds(ids => ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
+    setKidAssignments(arr => arr.some(a => a.kid_id === id)
+      ? arr.filter(a => a.kid_id !== id)
+      : [...arr, { kid_id: id, title_contains: '' }]);
+  }
+
+  function setKidPattern(id, pattern) {
+    setKidAssignments(arr => arr.map(a =>
+      a.kid_id === id ? { ...a, title_contains: pattern } : a
+    ));
   }
 
   async function handleSubmit(e) {
@@ -1024,11 +1049,16 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
     setSaving(true);
     const appLabels = { teamsnap:'TeamSnap', teamsnapone:'TeamSnap ONE', gamechanger:'GameChanger', playmetrics:'PlayMetrics', teamsideline:'TeamSideline', byga:'BYGA', sportsengine:'SportsEngine', teamreach:'TeamReach', leagueapps:'LeagueApps', demosphere:'Demosphere', '360player':'360Player', sportsyou:'SportsYou', band:'BAND', rankone:'RankOne', google_classroom:'Google Classroom', custom:'Custom' };
     await onSave({
-      name:       name || appLabels[app] || app,
+      name:            name || appLabels[app] || app,
       app,
-      fetch_type: currentAppInfo?.fetchType || 'ical',
-      ical_url:   icalUrl || null,
-      kid_ids:    kidIds,
+      fetch_type:      currentAppInfo?.fetchType || 'ical',
+      ical_url:        icalUrl || null,
+      // Send the rich shape. Backend normalizes empty-string patterns
+      // back to NULL so the kid attends every event from the source.
+      kid_assignments: kidAssignments.map(a => ({
+        kid_id:         a.kid_id,
+        title_contains: a.title_contains.trim() || null,
+      })),
     });
     setSaving(false);
   }
@@ -1083,15 +1113,78 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
                 <button key={kid.id} type="button" onClick={() => toggleKid(kid.id)}
                   style={{
                     padding: '6px 14px', borderRadius: 20, fontSize: 14, fontWeight: 500,
-                    border: `2px solid ${kidIds.includes(kid.id) ? kid.color : 'var(--border)'}`,
-                    background: kidIds.includes(kid.id) ? kid.color + '15' : 'transparent',
-                    color: kidIds.includes(kid.id) ? kid.color : 'var(--slate)',
+                    border: `2px solid ${isKidSelected(kid.id) ? kid.color : 'var(--border)'}`,
+                    background: isKidSelected(kid.id) ? kid.color + '15' : 'transparent',
+                    color: isKidSelected(kid.id) ? kid.color : 'var(--slate)',
                     cursor: 'pointer', transition: 'all 0.15s',
                   }}>
-                  {kidIds.includes(kid.id) ? '✓ ' : ''}{kid.name}
+                  {isKidSelected(kid.id) ? '✓ ' : ''}{kid.name}
                 </button>
               ))}
             </div>
+
+            {/* Per-kid title-pattern split. Only meaningful when 2+ kids
+                are on the source — for one kid there's nothing to split.
+                Collapsed by default since most users have a single-team
+                feed per source and never need this. */}
+            {kidAssignments.length >= 2 && (
+              <div style={{ marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowSplit(v => !v)}
+                  style={{
+                    fontSize: 13, color: 'var(--accent-dim)', fontWeight: 500,
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                  }}
+                >
+                  {showSplit ? '▼' : '▶'} Multi-kid feed? Split events by title (optional)
+                </button>
+
+                {showSplit && (
+                  <div style={{
+                    marginTop: 10,
+                    padding: '12px 14px',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                  }}>
+                    <div style={{ fontSize: 12, color: 'var(--slate)', lineHeight: 1.5, marginBottom: 10 }}>
+                      If this feed contains events for multiple kids (like a club
+                      calendar with both teams), put a unique substring from each
+                      team's title in the boxes below. Example: <code>BU13</code>{' '}
+                      for your son's team, <code>GU15</code> for your daughter's.
+                      Leave blank if a kid attends every event.
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {kidAssignments.map(a => {
+                        const kid = kids.find(k => k.id === a.kid_id);
+                        if (!kid) return null;
+                        return (
+                          <div key={a.kid_id} style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                          }}>
+                            <div style={{
+                              minWidth: 110, fontSize: 14, fontWeight: 500,
+                              color: kid.color,
+                            }}>
+                              {kid.name}
+                            </div>
+                            <input
+                              className="input"
+                              type="text"
+                              placeholder="e.g. BU13 (leave blank for all events)"
+                              value={a.title_contains}
+                              onChange={e => setKidPattern(a.kid_id, e.target.value)}
+                              style={{ flex: 1, fontSize: 14 }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

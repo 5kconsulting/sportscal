@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { filterKidsByEventTitle } from './db/index.js';
 
 // ============================================================
 // SportsCal Event Normalizer
@@ -150,7 +151,11 @@ export function normalizeIcalEvent(rawEvent, sourceId, userId, kids = []) {
   const sourceUid = rawEvent.uid || generateSourceUid(rawTitle, startsAt);
 
   const contentHash = hashEventContent(rawTitle, location, startsAt, endsAt);
-  const displayTitle = buildDisplayTitle(rawTitle, location, kids);
+  // Filter to just the kids whose title pattern matches this event (or
+  // all kids if no pattern is set). Drives per-event kid attribution
+  // for mixed-team feeds like a club calendar with both teams in one .ics.
+  const eventKids = filterKidsByEventTitle(kids, rawTitle);
+  const displayTitle = buildDisplayTitle(rawTitle, location, eventKids);
 
   return {
     userId,
@@ -241,7 +246,10 @@ export function normalizeScrapedEvent(scraped, sourceId, userId, kids = []) {
   // Scrapers must provide a stable uid (e.g. hash of URL+date, or a data-id attribute)
   const sourceUid = scraped.uid || generateSourceUid(rawTitle, startsAt);
   const contentHash = hashEventContent(rawTitle, location, startsAt, endsAt);
-  const displayTitle = buildDisplayTitle(rawTitle, location, kids);
+  // Same per-event kid filter as the iCal path — keeps display titles
+  // accurate for mixed-team scraped sources.
+  const eventKids = filterKidsByEventTitle(kids, rawTitle);
+  const displayTitle = buildDisplayTitle(rawTitle, location, eventKids);
 
   return {
     userId,

@@ -295,11 +295,23 @@ export async function deleteKid(id, userId) {
 
 // --- Sources ---
 
+// Per-kid title_contains is included in the response so clients can
+// render the per-event filter input. NULL means "all events from this
+// source go to this kid" (the common single-team case).
+const KIDS_AGG = `
+  json_agg(
+    json_build_object(
+      'id', k.id,
+      'name', k.name,
+      'color', k.color,
+      'title_contains', ks.title_contains
+    )
+  ) FILTER (WHERE k.id IS NOT NULL) AS kids
+`;
+
 export async function getSourcesByUser(userId) {
   return query(
-    `SELECT s.*,
-       json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
-         FILTER (WHERE k.id IS NOT NULL) AS kids
+    `SELECT s.*, ${KIDS_AGG}
      FROM sources s
      LEFT JOIN kid_sources ks ON ks.source_id = s.id
      LEFT JOIN kids k ON k.id = ks.kid_id
@@ -312,9 +324,7 @@ export async function getSourcesByUser(userId) {
 
 export async function getSourceById(id, userId) {
   return queryOne(
-    `SELECT s.*,
-       json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
-         FILTER (WHERE k.id IS NOT NULL) AS kids
+    `SELECT s.*, ${KIDS_AGG}
      FROM sources s
      LEFT JOIN kid_sources ks ON ks.source_id = s.id
      LEFT JOIN kids k ON k.id = ks.kid_id
@@ -463,14 +473,36 @@ export async function getSourcesDueForRefresh() {
 
 // --- Kid ↔ Source assignments ---
 
-export async function setKidSources(sourceId, kidIds) {
+/**
+ * Replace the kid assignments on a source.
+ *
+ * `assignments` is either:
+ *   - an array of kid_id strings (legacy shape — all kids get NULL patterns,
+ *     i.e. attend every event from the source); or
+ *   - an array of `{ kid_id, title_contains }` objects, where title_contains
+ *     is an optional case-insensitive substring pattern. When set, that kid
+ *     only attends events whose raw_title contains the pattern.
+ *
+ * Both shapes are accepted so existing clients (mobile + web that hit
+ * `kid_ids: [uuid, uuid]`) keep working. Mixed-source feeds (e.g. a club
+ * calendar with multiple teams) use the object form to split per-kid.
+ */
+export async function setKidSources(sourceId, assignments) {
+  // Normalize to object shape.
+  const rows = (assignments || []).map(a =>
+    typeof a === 'string'
+      ? { kid_id: a, title_contains: null }
+      : { kid_id: a.kid_id, title_contains: a.title_contains || null }
+  );
   return withTransaction(async (tx) => {
     await tx.query('DELETE FROM kid_sources WHERE source_id = $1', [sourceId]);
-    if (kidIds.length > 0) {
-      const values = kidIds.map((_, i) => `($1, $${i + 2})`).join(', ');
+    if (rows.length > 0) {
+      const values = rows.map((_, i) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`).join(', ');
+      const params = [sourceId];
+      for (const r of rows) params.push(r.kid_id, r.title_contains);
       await tx.query(
-        `INSERT INTO kid_sources (source_id, kid_id) VALUES ${values}`,
-        [sourceId, ...kidIds]
+        `INSERT INTO kid_sources (source_id, kid_id, title_contains) VALUES ${values}`,
+        params
       );
     }
   });
@@ -478,12 +510,38 @@ export async function setKidSources(sourceId, kidIds) {
 
 export async function getKidsForSource(sourceId) {
   return query(
-    `SELECT k.* FROM kids k
-     JOIN kid_sources ks ON ks.kid_id = k.id
-     WHERE ks.source_id = $1
-     ORDER BY k.sort_order, k.name`,
+    `SELECT k.*, ks.title_contains
+       FROM kids k
+       JOIN kid_sources ks ON ks.kid_id = k.id
+      WHERE ks.source_id = $1
+      ORDER BY k.sort_order, k.name`,
     [sourceId]
   );
+}
+
+/**
+ * Pick the subset of `kids` whose title_contains pattern matches the given
+ * event title. Used at event ingestion + display-title rebuild time.
+ *
+ * Semantics:
+ *   - kids with title_contains=NULL are "always on" — they attend every event
+ *   - kids with a non-NULL pattern attend only if rawTitle contains it
+ *     (case-insensitive substring)
+ *   - if NO kid matches via either condition (e.g. all kids have patterns
+ *     and none match an unusual event), fall back to ALL assigned kids
+ *     so the event still surfaces somewhere rather than vanishing
+ */
+export function filterKidsByEventTitle(kids, rawTitle) {
+  if (!kids || kids.length === 0) return [];
+  const title = (rawTitle || '').toLowerCase();
+  const matched = kids.filter(k => {
+    if (!k.title_contains) return true;
+    return title.includes(k.title_contains.toLowerCase());
+  });
+  if (matched.length > 0) return matched;
+  // Safety net: no kid pattern matched. Don't hide the event — assign
+  // to all kids on the source so the user sees it and can fix the rule.
+  return kids;
 }
 
 // --- Events ---
@@ -497,11 +555,28 @@ export async function getKidsForSource(sourceId) {
 // not just before it starts.
 export async function getUpcomingEvents(userId, { days = 30, kidId } = {}) {
   const params = [userId, days];
+  // When filtering by kid, mirror the in-app filterKidsByEventTitle()
+  // semantics in SQL: this kid is on event e2 if EITHER their
+  // kid_sources row has NULL title_contains (always-on), OR the
+  // pattern matches e2.raw_title (case-insensitive). The fallback
+  // case (all kids on source have patterns, none match) is handled
+  // by an additional clause: if no kid_sources row on this source
+  // matches via either rule, the kid still gets the event.
   const kidFilter = kidId
     ? `AND e.id IN (
          SELECT DISTINCT e2.id FROM events e2
          JOIN kid_sources ks ON ks.source_id = e2.source_id
          WHERE ks.kid_id = $3
+           AND (
+             ks.title_contains IS NULL
+             OR e2.raw_title ILIKE '%' || ks.title_contains || '%'
+             OR NOT EXISTS (
+               SELECT 1 FROM kid_sources ks_any
+               WHERE ks_any.source_id = e2.source_id
+                 AND (ks_any.title_contains IS NULL
+                      OR e2.raw_title ILIKE '%' || ks_any.title_contains || '%')
+             )
+           )
        )`
     : '';
   if (kidId) params.push(kidId);
@@ -564,16 +639,20 @@ export async function removeStaleEvents(sourceId, fetchStartedAt) {
   );
 }
 
-// Rebuild display_title for all events in a source
-// Called when kid assignments change
+// Rebuild display_title for all events in a source.
+// Called when kid assignments OR per-kid title patterns change.
+// Each event gets the kids list filtered by its own raw_title so that
+// shared-feed sources (e.g. a club calendar with BU13 + GU15 teams in
+// the same feed) get per-event-kid attribution correctly.
 export async function rebuildDisplayTitles(sourceId, displayTitleFn) {
   const events = await query(
     'SELECT id, raw_title, location FROM events WHERE source_id = $1',
     [sourceId]
   );
-  const kids = await getKidsForSource(sourceId);
+  const allKids = await getKidsForSource(sourceId);
 
   for (const event of events) {
+    const kids = filterKidsByEventTitle(allKids, event.raw_title);
     const displayTitle = displayTitleFn(event.raw_title, event.location, kids);
     await query(
       'UPDATE events SET display_title = $1 WHERE id = $2',

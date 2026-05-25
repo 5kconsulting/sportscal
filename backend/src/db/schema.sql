@@ -233,6 +233,15 @@ CREATE TABLE IF NOT EXISTS kid_sources (
 
 CREATE INDEX IF NOT EXISTS kid_sources_source_id_idx ON kid_sources(source_id);
 
+-- Per-event kid attribution. When a source has events that belong to
+-- different kids (e.g. a club feed with both "BU13 Academy" and
+-- "GU15 Academy" team events), set title_contains per kid_sources row.
+-- The kid is only assigned to events whose raw_title contains the
+-- pattern (case-insensitive substring). If NULL, the kid gets ALL
+-- events from this source (current behavior, the common single-team
+-- case). Backfill is implicit: existing rows have title_contains=NULL.
+ALTER TABLE kid_sources ADD COLUMN IF NOT EXISTS title_contains TEXT NULL;
+
 -- ============================================================
 -- EVENTS
 -- Normalized events pulled from all sources.
