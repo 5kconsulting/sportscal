@@ -402,6 +402,81 @@ export default function SetupAgent({ onSourceAdded }) {
   const QUICK_APPS = ['TeamSnap', 'GameChanger', 'PlayMetrics', 'SportsEngine', 'TeamSideline', 'BYGA'];
 
   if (!started) {
+    // -----------------------------------------------------------------
+    // VARIANT B — "Painfully simple" tappable-chip picker.
+    // Drops the headline robot illustration, the 2 description
+    // paragraphs, the decorative chip-pill row, and the "PICK YOUR APP"
+    // section header. What remains: one micro-prompt, three big
+    // vertically-stacked buttons, one subdued fallback link. That's it.
+    // -----------------------------------------------------------------
+    if (useChipsVariant) {
+      return (
+        <div style={{ padding: '40px', maxWidth: 480, margin: '0 auto' }}>
+          <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.01em',
+                       marginBottom: 28, color: 'var(--text)' }}>
+            Which app does your team use?
+          </h1>
+
+          {appCatalog ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+              {FEATURED_APPS.map(key => {
+                const info = appCatalog[key];
+                if (!info) return null;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => startWithApp(key)}
+                    style={{
+                      background: 'var(--navy)',
+                      color: 'var(--accent)',
+                      border: 'none',
+                      padding: '20px 24px',
+                      fontSize: 18, fontWeight: 600,
+                      borderRadius: 12,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      transition: 'transform 0.1s ease',
+                    }}
+                    onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+                    onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    <span>{info.label}</span>
+                    <span style={{ opacity: 0.7 }}>→</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            // Tiny loading placeholder; the API call is fast and this
+            // usually flashes for <100ms. No spinner — just keeps the
+            // layout stable.
+            <div style={{ height: 232, marginBottom: 24 }} />
+          )}
+
+          <button
+            onClick={startSetup}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              fontSize: 14,
+              color: 'var(--slate)',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              textUnderlineOffset: 3,
+            }}
+          >
+            Other app or PDF? Open chat →
+          </button>
+        </div>
+      );
+    }
+
+    // VARIANT A — original welcome screen (unchanged).
     return (
       <div style={{ padding: '40px', maxWidth: 640 }}>
         <div style={{ marginBottom: 32 }}>
@@ -442,50 +517,8 @@ export default function SetupAgent({ onSourceAdded }) {
             }}>📄 PDF</span>
           </div>
 
-          {/* Variant B: tappable-chip picker. Renders when ?v=chips is in
-              the URL. Skips the free-form "which app?" ask by letting the
-              user one-tap into a deterministic step list. The "or something
-              else" generic button below covers users whose app isn't in
-              FEATURED_APPS yet. */}
-          {useChipsVariant && appCatalog ? (
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--slate)',
-                            textTransform: 'uppercase', letterSpacing: '0.06em',
-                            marginBottom: 12 }}>
-                Pick your app
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10,
-                            justifyContent: 'center', marginBottom: 18 }}>
-                {FEATURED_APPS.map(key => {
-                  const info = appCatalog[key];
-                  if (!info) return null;
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => startWithApp(key)}
-                      className="btn"
-                      style={{
-                        background: 'var(--navy)',
-                        color: 'var(--accent)',
-                        border: '1px solid rgba(0,214,143,0.3)',
-                        padding: '12px 22px',
-                        fontSize: 15, fontWeight: 600,
-                        borderRadius: 10,
-                      }}
-                    >
-                      {info.label} →
-                    </button>
-                  );
-                })}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--slate)' }}>
-                Or something else:
-              </div>
-            </div>
-          ) : null}
-
           <button className="btn btn-primary" onClick={startSetup} style={{ fontSize: 15, padding: '12px 32px' }}>
-            {useChipsVariant ? 'Open chat' : "Let's set up my calendars →"}
+            Let's set up my calendars →
           </button>
         </div>
       </div>
