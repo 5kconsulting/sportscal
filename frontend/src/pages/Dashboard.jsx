@@ -178,7 +178,9 @@ export default function Dashboard() {
         <FeedUrlCard user={user} hasSources={true} />
       )}
 
-      {/* Kid filter */}
+      {/* Kid filter — only meaningful with 2+ kids on the account.
+          Implicitly hidden for 0-kid accounts since `kids.length > 1`
+          covers both 0 and 1. */}
       {kids.length > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', margin: '28px 0 0' }}>
           {[null, ...kids].map(kid => {
@@ -213,21 +215,26 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Date range filter */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 20px' }}>
-        <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--slate)' }}>Show</span>
-        {[7, 14, 30].map(d => (
-          <button key={d} onClick={() => setDays(d)}
-            className="btn btn-sm"
-            style={{
-              background: days === d ? 'var(--navy)' : 'var(--white)',
-              color:      days === d ? 'var(--white)' : 'var(--slate)',
-              border:     `1px solid ${days === d ? 'var(--navy)' : 'var(--border)'}`,
-            }}>
-            {d} days
-          </button>
-        ))}
-      </div>
+      {/* Date range filter — hidden for fresh accounts so the dashboard
+          middle doesn't look like a hollow shell of the product (the
+          filter is useless when there's nothing to filter). Reappears
+          as soon as the user has at least one connected calendar. */}
+      {sources.filter(s => s.name !== '__manual__').length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 20px' }}>
+          <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--slate)' }}>Show</span>
+          {[7, 14, 30].map(d => (
+            <button key={d} onClick={() => setDays(d)}
+              className="btn btn-sm"
+              style={{
+                background: days === d ? 'var(--navy)' : 'var(--white)',
+                color:      days === d ? 'var(--white)' : 'var(--slate)',
+                border:     `1px solid ${days === d ? 'var(--navy)' : 'var(--border)'}`,
+              }}>
+              {d} days
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Events */}
       {loading ? (
@@ -235,7 +242,7 @@ export default function Dashboard() {
           <div className="spinner" style={{ width: 28, height: 28 }} />
         </div>
       ) : !hasEvents ? (
-        <EmptyState />
+        <EmptyState hasSources={sources.filter(s => s.name !== '__manual__').length > 0} />
       ) : (
         <div className="fade-up">
           {Object.entries(grouped).map(([day, dayEvents]) => (
@@ -1437,17 +1444,53 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
   , document.body);
 }
 
-function EmptyState() {
+// Two empty-state flavors:
+//   - First-run (sources=0): a single big CTA that teaches what the
+//     app does and points at the chat helper. This is what a brand-
+//     new account sees immediately after signup. The dashboard should
+//     teach on first run, not display a hollow shell of empty filters.
+//   - Off-season (sources>0, no upcoming events): the current generic
+//     "no events" copy. Means the user has set things up but their
+//     teams have nothing on the calendar in the visible window.
+function EmptyState({ hasSources }) {
+  if (!hasSources) {
+    return (
+      <div className="card" style={{ padding: '64px 32px', textAlign: 'center' }}>
+        <div style={{ fontSize: 48, marginBottom: 20 }}>📅</div>
+        <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 10, letterSpacing: '-0.01em' }}>
+          Let's add your first calendar.
+        </h3>
+        <p style={{
+          fontSize: 15, color: 'var(--slate)', marginBottom: 28,
+          lineHeight: 1.5, maxWidth: 420, marginLeft: 'auto', marginRight: 'auto',
+        }}>
+          Tell us which app your kid's team uses — TeamSnap, GameChanger,
+          PlayMetrics, or any other — and we'll walk you through it.
+        </p>
+        <Link
+          to="/setup"
+          className="btn btn-primary"
+          style={{
+            textDecoration: 'none',
+            fontSize: 15, fontWeight: 600,
+            padding: '12px 28px',
+          }}
+        >
+          Get started →
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="card" style={{ padding: '60px 40px', textAlign: 'center' }}>
       <div style={{ fontSize: 40, marginBottom: 16 }}>🏆</div>
       <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No events yet</h3>
       <p style={{ fontSize: 14, color: 'var(--slate)', marginBottom: 24 }}>
-        Add your kids and connect your sports apps to get started.
+        Nothing scheduled in the next month. Add more calendars or check back later.
       </p>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-        <Link to="/kids" className="btn btn-primary">Add a member</Link>
-        <Link to="/sources" className="btn btn-ghost">Add a calendar</Link>
+        <Link to="/setup" className="btn btn-primary">Add another calendar</Link>
+        <Link to="/sources" className="btn btn-ghost">Manage calendars</Link>
       </div>
     </div>
   );
