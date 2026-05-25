@@ -17,7 +17,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 import { requireAuth } from '../middleware/auth.js';
 import { getKidsByUser, query } from '../db/index.js';
-import { buildSystemPrompt } from '../lib/setupAgentPrompt.js';
+import { buildSystemPrompt, APP_INSTRUCTIONS } from '../lib/setupAgentPrompt.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -43,6 +43,20 @@ const setupAgentLimiter = rateLimit({
   skip: (req) => process.env.NODE_ENV === 'development',
   standardHeaders: true,
   legacyHeaders: false,
+});
+
+// ============================================================
+// GET /api/setup-agent/apps
+//
+// Returns the APP_INSTRUCTIONS map so clients can render
+// deterministic per-app step lists (e.g. tappable "I use TeamSnap"
+// chips on the SetupAgent welcome screen) without duplicating the
+// instruction data on the frontend. Single source of truth lives in
+// lib/setupAgentPrompt.js. No rate-limit needed — small payload,
+// auth-gated, and the data only changes when we ship a code update.
+// ============================================================
+router.get('/apps', (req, res) => {
+  res.json({ apps: APP_INSTRUCTIONS });
 });
 
 // ============================================================

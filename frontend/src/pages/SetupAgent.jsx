@@ -159,6 +159,64 @@ export default function SetupAgent({ onSourceAdded }) {
     setTimeout(() => inputRef.current?.focus(), 100);
   }
 
+  // -----------------------------------------------------------------
+  // Feature flag: ?v=chips — tappable-app-picker welcome variant.
+  // When the user lands on /setup?v=chips, they get a 3-chip picker
+  // (TeamSnap / GameChanger / PlayMetrics) instead of the generic
+  // "Let's set up my calendars" button. Tapping a chip skips the
+  // free-form ask and seeds the chat with a deterministic step list
+  // for that app, eliminating "I don't know what to type" bail.
+  //
+  // Both code paths live in main during the A/B; we'll delete the
+  // loser when Patton picks a winner.
+  // -----------------------------------------------------------------
+  const variant = new URLSearchParams(window.location.search).get('v');
+  const useChipsVariant = variant === 'chips';
+
+  // Featured apps for the chip picker. Limited to apps Patton has
+  // personally verified the step instructions for. Adding another app
+  // is one entry here — the step text comes from the backend via
+  // api.setupAgent.apps().
+  const FEATURED_APPS = ['teamsnap', 'gamechanger', 'playmetrics'];
+  const [appCatalog, setAppCatalog] = useState(null);
+
+  useEffect(() => {
+    // Lazy-load only when the variant is active so we don't add an
+    // API call to the current production path.
+    if (!useChipsVariant || appCatalog) return;
+    api.setupAgent.apps()
+      .then(({ apps }) => setAppCatalog(apps))
+      .catch(() => setAppCatalog({})); // empty map → falls back to button-less state, button row hides itself
+  }, [useChipsVariant, appCatalog]);
+
+  // Tap a chip → skip the welcome → enter chat already populated
+  // with (a) the user's pick as a user bubble, and (b) the deterministic
+  // step list as an assistant bubble. The chat then continues normally;
+  // the AI agent has the full APP_INSTRUCTIONS in its system prompt so
+  // any follow-ups stay coherent.
+  function startWithApp(appKey) {
+    const info = appCatalog?.[appKey];
+    if (!info) return; // catalog still loading or unknown key — bail silently
+
+    const userMsg = { role: 'user', content: `I use ${info.label}.` };
+
+    const numberedSteps = (info.steps || [])
+      .map((s, i) => `${i + 1}. ${s}`)
+      .join('\n');
+    const noteLine = info.note ? `\n\nTip: ${info.note}` : '';
+    const assistantText =
+      `Perfect — here's how to find your ${info.label} iCal URL:\n\n` +
+      `${numberedSteps}${noteLine}\n\n` +
+      `Paste the URL here when you've got it and I'll add it to your account.`;
+
+    setStarted(true);
+    setMessages([
+      userMsg,
+      { role: 'assistant', content: assistantText, display: assistantText },
+    ]);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }
+
   async function sendMessage(text) {
     if (!text.trim() || loading) return;
     const userMsg = { role: 'user', content: text };
@@ -384,8 +442,50 @@ export default function SetupAgent({ onSourceAdded }) {
             }}>📄 PDF</span>
           </div>
 
+          {/* Variant B: tappable-chip picker. Renders when ?v=chips is in
+              the URL. Skips the free-form "which app?" ask by letting the
+              user one-tap into a deterministic step list. The "or something
+              else" generic button below covers users whose app isn't in
+              FEATURED_APPS yet. */}
+          {useChipsVariant && appCatalog ? (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--slate)',
+                            textTransform: 'uppercase', letterSpacing: '0.06em',
+                            marginBottom: 12 }}>
+                Pick your app
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10,
+                            justifyContent: 'center', marginBottom: 18 }}>
+                {FEATURED_APPS.map(key => {
+                  const info = appCatalog[key];
+                  if (!info) return null;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => startWithApp(key)}
+                      className="btn"
+                      style={{
+                        background: 'var(--navy)',
+                        color: 'var(--accent)',
+                        border: '1px solid rgba(0,214,143,0.3)',
+                        padding: '12px 22px',
+                        fontSize: 15, fontWeight: 600,
+                        borderRadius: 10,
+                      }}
+                    >
+                      {info.label} →
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--slate)' }}>
+                Or something else:
+              </div>
+            </div>
+          ) : null}
+
           <button className="btn btn-primary" onClick={startSetup} style={{ fontSize: 15, padding: '12px 32px' }}>
-            Let's set up my calendars →
+            {useChipsVariant ? 'Open chat' : "Let's set up my calendars →"}
           </button>
         </div>
       </div>

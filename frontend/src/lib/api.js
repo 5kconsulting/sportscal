@@ -58,6 +58,11 @@ export const api = {
     // from the deploy. System prompt + kid roster + persistence all
     // live server-side now.
     message: (data) => post('/setup-agent/message', data),
+    // Returns the APP_INSTRUCTIONS map (per-app step lists). Used by
+    // the SetupAgent's tappable-chip welcome variant to inject
+    // deterministic step-by-step instructions when the user picks an
+    // app, rather than relying on the model to recite them.
+    apps:    ()     => get('/setup-agent/apps'),
   },
   sources: {
     list:    ()          => get('/sources'),
