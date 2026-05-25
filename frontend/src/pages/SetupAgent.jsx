@@ -410,68 +410,66 @@ export default function SetupAgent({ onSourceAdded }) {
     // vertically-stacked buttons, one subdued fallback link. That's it.
     // -----------------------------------------------------------------
     if (useChipsVariant) {
+      // Shared chip-button style so the 3 app buttons + "Other / PDF"
+      // fallback look identical. User shouldn't have to think about
+      // which is primary vs alternative — just pick what matches.
+      const chipBtnStyle = {
+        background: 'var(--navy)',
+        color: 'var(--accent)',
+        border: 'none',
+        padding: '20px 24px',
+        fontSize: 18, fontWeight: 600,
+        borderRadius: 12,
+        textAlign: 'left',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        transition: 'transform 0.1s ease',
+      };
+      const press = {
+        onMouseDown: (e) => e.currentTarget.style.transform = 'scale(0.98)',
+        onMouseUp:   (e) => e.currentTarget.style.transform = 'scale(1)',
+        onMouseLeave:(e) => e.currentTarget.style.transform = 'scale(1)',
+      };
       return (
-        <div style={{ padding: '40px', maxWidth: 480, margin: '0 auto' }}>
+        // No margin:0 auto — container sits flush left under the page's
+        // 40px gutter, matching the rest of the dashboard pages.
+        <div style={{ padding: '40px', maxWidth: 480 }}>
           <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.01em',
                        marginBottom: 28, color: 'var(--text)' }}>
             Which app does your team use?
           </h1>
 
-          {appCatalog ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-              {FEATURED_APPS.map(key => {
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {appCatalog ? (
+              FEATURED_APPS.map(key => {
                 const info = appCatalog[key];
                 if (!info) return null;
                 return (
-                  <button
-                    key={key}
-                    onClick={() => startWithApp(key)}
-                    style={{
-                      background: 'var(--navy)',
-                      color: 'var(--accent)',
-                      border: 'none',
-                      padding: '20px 24px',
-                      fontSize: 18, fontWeight: 600,
-                      borderRadius: 12,
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      transition: 'transform 0.1s ease',
-                    }}
-                    onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
-                    onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                  >
+                  <button key={key} onClick={() => startWithApp(key)} style={chipBtnStyle} {...press}>
                     <span>{info.label}</span>
                     <span style={{ opacity: 0.7 }}>→</span>
                   </button>
                 );
-              })}
-            </div>
-          ) : (
-            // Tiny loading placeholder; the API call is fast and this
-            // usually flashes for <100ms. No spinner — just keeps the
-            // layout stable.
-            <div style={{ height: 232, marginBottom: 24 }} />
-          )}
+              })
+            ) : (
+              // Reserve the chips' vertical space while the catalog
+              // loads (usually <100ms) so the layout doesn't jump.
+              <div style={{ height: 232 }} />
+            )}
 
-          <button
-            onClick={startSetup}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              fontSize: 14,
-              color: 'var(--slate)',
-              cursor: 'pointer',
-              textDecoration: 'underline',
-              textUnderlineOffset: 3,
-            }}
-          >
-            Other app or PDF? Open chat →
-          </button>
+            {/* 4th chip — fallback for users whose app isn't in
+                FEATURED_APPS, or who have a PDF instead. Same visual
+                weight as the app chips because forcing the user to
+                evaluate "is this a primary or fallback action?" is
+                the kind of micro-friction the painfully-simple
+                redesign is trying to kill. */}
+            <button onClick={startSetup} style={chipBtnStyle} {...press}>
+              <span>Other / PDF</span>
+              <span style={{ opacity: 0.7 }}>→</span>
+            </button>
+          </div>
         </div>
       );
     }
