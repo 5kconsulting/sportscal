@@ -10,6 +10,18 @@ function getToken() {
   return localStorage.getItem('sc_token');
 }
 
+// AuthProvider registers a callback here on mount. When any authed
+// request comes back 401, we fire this so the app can force-logout
+// + redirect to /login. Mirrors mobile/lib/api.js's _onUnauthorized
+// pattern.
+//
+// Without this, an expired JWT manifests as a "ghost session": the
+// sidebar still shows the cached user because it's hydrated from
+// localStorage, but every API call silently 401s and nothing actually
+// works. Patton hit this 2026-05-25 and had to manually sign out +
+// in to recover. This makes the recovery automatic.
+let _onUnauthorized = null;
+
 async function request(method, path, body) {
   const token = getToken();
   const headers = { 'Content-Type': 'application/json' };
@@ -24,11 +36,22 @@ async function request(method, path, body) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
+    // Only force-logout when (a) we sent a token AND (b) the server
+    // rejected it. Bare 401s from /auth/login or /auth/signup (e.g.
+    // bad password) carry no token, so they fall through to the
+    // normal Error throw and are handled by the calling form.
+    if (res.status === 401 && token && _onUnauthorized) {
+      try { _onUnauthorized(); } catch {}
+    }
     const message = data.error || data.errors?.[0]?.msg || 'Something went wrong';
     throw new Error(message);
   }
 
   return data;
+}
+
+export function setUnauthorizedHandler(fn) {
+  _onUnauthorized = fn;
 }
 
 const get  = (path)        => request('GET',    path);
