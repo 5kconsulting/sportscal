@@ -151,13 +151,41 @@ async function start() {
 
   // In production run workers in the same process to save resources.
   // When you scale, move workers to a separate Railway service.
+  // Capture the workers array so the SIGTERM handler below can drain
+  // them — otherwise Railway's deploy signal would SIGKILL them mid-
+  // job and the dashboard reports the old container as "crashed."
+  let workers = [];
   if (process.env.NODE_ENV === 'production') {
-    const { default: startWorkers } = await import('./workers/runner.js');
+    const m = await import('./workers/runner.js');
+    workers = m.workers || [];
   }
 
-  app.listen(PORT, () => {
+  const httpServer = app.listen(PORT, () => {
     console.log(`[server] listening on port ${PORT}`);
   });
+
+  // Graceful shutdown: Railway sends SIGTERM at the start of a deploy
+  // and SIGKILLs ~10s later if the process hasn't exited. We:
+  //   1. Stop accepting new HTTP connections (httpServer.close)
+  //   2. Tell BullMQ workers to finish their active job + stop polling
+  //      (worker.close), with an 8s race so we beat the SIGKILL
+  //   3. Exit cleanly so the dashboard shows "stopped" not "crashed"
+  let shuttingDown = false;
+  async function shutdown(signal) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[server] received ${signal}, draining...`);
+    httpServer.close();
+    await Promise.race([
+      Promise.allSettled(workers.map((w) => w.close())),
+      new Promise((resolve) => setTimeout(resolve, 8000)),
+    ]);
+    console.log('[server] drained, exiting 0');
+    process.exit(0);
+  }
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT',  () => shutdown('SIGINT'));
 }
 
 start().catch((err) => {
