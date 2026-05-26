@@ -13,6 +13,13 @@ export default function Calendar() {
   const router = useRouter();
   const [events, setEvents]       = useState([]);
   const [overrides, setOverrides] = useState({}); // { [eventId]: { [kidId]: attending } }
+  // Onboarding-checklist state. Tracked here (vs. inside the chips
+  // component) because the chip checklist replaces the events list
+  // entirely for fresh users — same load lifecycle, no extra fetches
+  // beyond the three small list endpoints.
+  const [kids, setKids]           = useState([]);
+  const [sources, setSources]     = useState([]);
+  const [contacts, setContacts]   = useState([]);
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError]         = useState('');
@@ -20,9 +27,17 @@ export default function Calendar() {
   const load = useCallback(async () => {
     setError('');
     try {
-      const [eventsRes, overridesRes] = await Promise.all([
+      // Five parallel reads. kids/sources/contacts power the chip
+      // checklist for fresh users; events/overrides power the normal
+      // calendar list once they're set up. All five are small and
+      // already-indexed by user_id — cheap enough to fetch on every
+      // focus-effect re-run without optimizing.
+      const [eventsRes, overridesRes, kidsRes, sourcesRes, contactsRes] = await Promise.all([
         api.get('/api/events?days=30'),
         api.get('/api/overrides'),
+        api.get('/api/kids'),
+        api.get('/api/sources'),
+        api.get('/api/contacts'),
       ]);
       setEvents(eventsRes.events || []);
       const map = {};
@@ -31,6 +46,11 @@ export default function Calendar() {
         map[o.event_id][o.kid_id] = o.attending;
       });
       setOverrides(map);
+      setKids(kidsRes.kids || []);
+      // Filter out the synthetic __manual__ source — it represents
+      // hand-entered events, not a connected calendar feed.
+      setSources((sourcesRes.sources || []).filter(s => s.name !== '__manual__'));
+      setContacts(contactsRes.contacts || []);
     } catch (err) {
       setError(err.message || 'Could not load events');
     }
@@ -83,6 +103,84 @@ export default function Calendar() {
         <TouchableOpacity onPress={onRefresh} style={s.retry}>
           <Text style={s.retryText}>Try again</Text>
         </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Onboarding checklist gate. New users land on the Calendar tab with
+  // nothing connected — instead of dumping a vague "No upcoming events"
+  // empty state on them, walk them through the three setup actions
+  // explicitly. Once they have ≥1 kid AND ≥1 calendar (real source,
+  // not the synthetic __manual__), the normal Calendar list renders.
+  // The 3rd step (drivers) is genuinely optional, reachable from the
+  // Carpool tab — we don't gate the dashboard on it.
+  const hasKids    = kids.length > 0;
+  const hasSources = sources.length > 0;
+  const hasDrivers = contacts.length > 0;
+  const needsOnboarding = !hasKids || !hasSources;
+
+  if (needsOnboarding) {
+    // Personalize headline + subtitle based on progress.
+    const kidNames = kids.map(k => k.name).join(' & ');
+    const greeting = `Hi ${user?.name?.split(' ')[0] || 'there'}`;
+    const subtitle = !hasKids
+      ? "Let's set up SportsCal. Start by adding a kid."
+      : hasKids && !hasSources
+        ? `Nice — ${kidNames} on the team. Now add a calendar.`
+        : 'Almost there.';
+
+    return (
+      <View style={s.root}>
+        <View style={s.header}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.hi}>{greeting}</Text>
+            <Text style={s.sub}>{subtitle}</Text>
+          </View>
+        </View>
+
+        <View style={s.onboardingList}>
+          {/* Step 1: Add a kid */}
+          <OnboardingChip
+            done={hasKids}
+            num={1}
+            doneLabel={hasKids ? (kids.length === 1 ? kidNames : `${kids.length} kids — ${kidNames}`) : ''}
+            todoLabel="Add your first kid"
+            onPress={() => router.push('/kids/new')}
+          />
+
+          {/* Step 2: Add a calendar */}
+          <OnboardingChip
+            done={hasSources}
+            num={2}
+            doneLabel={hasSources
+              ? (sources.length === 1
+                  ? `${sources[0].name} connected`
+                  : `${sources.length} calendars connected`)
+              : ''}
+            todoLabel={hasKids
+              ? (kids.length === 1
+                  ? `Add ${kidNames}'s calendar`
+                  : 'Add a calendar')
+              : 'Add a calendar'}
+            onPress={() => router.push('/setup')}
+            // Calendar step depends on a kid existing for proper
+            // assignment, but the setup chat handles "no kids" by
+            // prompting the user to add one. Still tappable to keep
+            // the chips internally consistent — never disabled.
+          />
+
+          {/* Step 3: Add a driver (optional, doesn't block dashboard) */}
+          <OnboardingChip
+            done={hasDrivers}
+            num={3}
+            doneLabel={hasDrivers
+              ? `${contacts.length} ${contacts.length === 1 ? 'driver' : 'drivers'} added`
+              : ''}
+            todoLabel="Add a carpool driver"
+            sublabel="optional"
+            onPress={() => router.push('/contacts/new')}
+          />
+        </View>
       </View>
     );
   }
@@ -141,6 +239,34 @@ export default function Calendar() {
   );
 }
 
+// Chip-style onboarding row. When `done`, renders as a green-tinted
+// "✓ <doneLabel>" card with no chevron. When not done, renders as a
+// dark navy tappable chip matching the chip-welcome pattern on
+// /setup and /contacts — same visual language across all first-run
+// surfaces so the user learns the shape once.
+function OnboardingChip({ done, num, doneLabel, todoLabel, sublabel, onPress }) {
+  if (done) {
+    return (
+      <View style={s.chipDone}>
+        <Text style={s.chipDoneCheck}>✓</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.chipDoneLabel} numberOfLines={1}>{doneLabel}</Text>
+        </View>
+      </View>
+    );
+  }
+  return (
+    <TouchableOpacity style={s.chipTodo} onPress={onPress} activeOpacity={0.8}>
+      <Text style={s.chipTodoNum}>{num}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={s.chipTodoLabel} numberOfLines={1}>{todoLabel}</Text>
+        {sublabel ? <Text style={s.chipTodoSublabel}>{sublabel}</Text> : null}
+      </View>
+      <Text style={s.chipTodoArrow}>→</Text>
+    </TouchableOpacity>
+  );
+}
+
 function DayHeader({ date }) {
   const today = new Date();
   const isToday = date.toDateString() === today.toDateString();
@@ -175,6 +301,45 @@ const s = StyleSheet.create({
   // mockups (28px, weight 800).
   hi:     { fontSize: 28, fontWeight: '800', color: '#0f1629', lineHeight: 30 },
   sub:    { fontSize: 13, color: '#8896b0', marginTop: 6 },
+
+  // Onboarding-checklist styles. Stacked chip cards under the header
+  // with same visual language as the chip welcomes on /setup and
+  // /contacts. Done chips lose the chevron + flip to a green tint.
+  onboardingList: {
+    paddingHorizontal: 20, paddingTop: 24,
+    gap: 12,
+  },
+  chipTodo: {
+    backgroundColor: '#0f1629',
+    paddingHorizontal: 20, paddingVertical: 18,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  chipTodoNum: {
+    color: '#00d68f', fontSize: 14, fontWeight: '700',
+    width: 22, textAlign: 'center',
+    opacity: 0.6,
+  },
+  chipTodoLabel:    { color: '#00d68f', fontSize: 17, fontWeight: '600' },
+  chipTodoSublabel: { color: '#8896b0', fontSize: 12, marginTop: 2 },
+  chipTodoArrow:    { color: '#00d68f', fontSize: 17, opacity: 0.7 },
+
+  chipDone: {
+    backgroundColor: 'rgba(0,214,143,0.10)',
+    borderWidth: 1, borderColor: 'rgba(0,214,143,0.25)',
+    paddingHorizontal: 20, paddingVertical: 18,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  chipDoneCheck: {
+    color: '#047a47', fontSize: 17, fontWeight: '700',
+    width: 22, textAlign: 'center',
+  },
+  chipDoneLabel: { color: '#047a47', fontSize: 16, fontWeight: '500' },
   dayHeader: {
     backgroundColor: '#f4f6fa',
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6,
