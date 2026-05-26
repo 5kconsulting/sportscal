@@ -76,6 +76,37 @@ export default function ContactsScreen() {
     );
   }
 
+  // Fresh-user chip welcome — zero contacts AND zero teams. Two big
+  // tappable buttons skip the dual-section page that would otherwise
+  // show two parallel empty states to a brand-new carpool user.
+  // Tapping a chip navigates to the matching create-modal — same
+  // destinations as the section "+ Add" buttons in the normal layout.
+  if (contacts.length === 0 && teams.length === 0) {
+    return (
+      <View style={s.root}>
+        <Text style={s.chipHeadline}>How do you want to start?</Text>
+        <View style={{ paddingHorizontal: 20, gap: 12 }}>
+          <TouchableOpacity
+            style={s.chipBtn}
+            onPress={() => router.push('/contacts/new')}
+            activeOpacity={0.8}
+          >
+            <Text style={s.chipBtnText}>Add a driver</Text>
+            <Text style={s.chipBtnArrow}>→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.chipBtn}
+            onPress={() => router.push('/teams/new')}
+            activeOpacity={0.8}
+          >
+            <Text style={s.chipBtnText}>Setup team carpool</Text>
+            <Text style={s.chipBtnArrow}>→</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <ScrollView
       style={s.root}
@@ -179,6 +210,24 @@ export default function ContactsScreen() {
 
 const s = StyleSheet.create({
   root:   { flex: 1, backgroundColor: '#f4f6fa' },
+  // Fresh-user chip welcome (mirrors web /contacts chip variant +
+  // mobile /setup chips). H1 prompt + two big stacked tappable
+  // buttons, navy bg with green accent text.
+  chipHeadline: {
+    fontSize: 22, fontWeight: '600', color: '#0f1629',
+    paddingHorizontal: 20, paddingTop: 32, paddingBottom: 24,
+    letterSpacing: -0.3,
+  },
+  chipBtn: {
+    backgroundColor: '#0f1629',
+    paddingHorizontal: 22, paddingVertical: 20,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  chipBtnText:  { color: '#00d68f', fontSize: 17, fontWeight: '600' },
+  chipBtnArrow: { color: '#00d68f', fontSize: 17, opacity: 0.7 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f4f6fa' },
   errorBanner: {
     backgroundColor: 'rgba(255,107,107,0.08)', marginHorizontal: 16, marginTop: 12,

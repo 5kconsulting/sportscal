@@ -77,6 +77,15 @@ export default function SetupAgentScreen() {
   const { shareIntent, hasShareIntent, resetShareIntent } = useShareIntentContext();
   const consumedShareRef = useRef(null);
 
+  // Fresh-user chip-picker state. Mirrors the web /setup pattern: when
+  // the user has zero calendars connected AND isn't arriving via a
+  // share-intent payload, show 4 big tappable chips (TeamSnap /
+  // GameChanger / PlayMetrics / Other-PDF) before the chat starts.
+  // Returning users skip straight to the chat intro.
+  const [isFreshUser, setIsFreshUser] = useState(null);
+  const [appCatalog, setAppCatalog]   = useState(null);
+  const FEATURED_APPS = ['teamsnap', 'gamechanger', 'playmetrics'];
+
   // Bootstrap: fetch kids + sources, then drop in a tailored intro message.
   useEffect(() => {
     let cancelled = false;
@@ -97,8 +106,19 @@ export default function SetupAgentScreen() {
 
       setKids(kidsList);
 
+      const isNew = sourceCount === 0;
+      setIsFreshUser(isNew);
+
+      // Fresh users see the chip welcome instead of an immediate chat
+      // intro. We hold off seeding messages so the welcome renders.
+      // Share-intent users skip the chip welcome — they explicitly
+      // came here to drop a payload, so jump straight into chat flow.
+      if (isNew && !hasShareIntent) {
+        setBooting(false);
+        return;
+      }
+
       const kidNames = kidsList.map(k => k.name).join(', ');
-      const isNew    = sourceCount === 0;
       const intro = isNew
         ? `Hi${kidsList.length > 0 ? `, I see ${kidsList.length > 1 ? kidsList.length + ' kids' : '1 kid'}: ${kidNames}` : ''}! I'll help you connect your sports calendars. Which apps do you use? (TeamSnap, GameChanger, PlayMetrics, SportsEngine, and others — or paste an iCal URL if you already have one.)`
         : `Hi${kidsList.length > 0 ? ` — I see you already have ${sourceCount} calendar${sourceCount !== 1 ? 's' : ''} set up` : ''}! Want to add more? Which app are we working with?`;
@@ -122,6 +142,57 @@ export default function SetupAgentScreen() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Lazy-load the per-app catalog only when we're going to render the
+  // chip welcome. Fetched from /api/setup-agent/apps, populated server-
+  // side from APP_INSTRUCTIONS in lib/setupAgentPrompt.js — same source
+  // of truth as the web variant.
+  useEffect(() => {
+    if (isFreshUser !== true || appCatalog) return;
+    api.get('/api/setup-agent/apps')
+      .then(({ apps }) => setAppCatalog(apps))
+      .catch(() => setAppCatalog({}));
+  }, [isFreshUser, appCatalog]);
+
+  // Chip tap → seed chat with a user message naming the app + an
+  // assistant message containing the deterministic step list. Then
+  // transition to normal chat flow (the agent has the full
+  // APP_INSTRUCTIONS in its system prompt so follow-ups stay coherent).
+  function startWithApp(appKey) {
+    const info = appCatalog?.[appKey];
+    if (!info) return;
+    const numberedSteps = (info.steps || []).map((s, i) => `${i + 1}. ${s}`).join('\n');
+    const noteLine = info.note ? `\n\nTip: ${info.note}` : '';
+    const assistantText =
+      `Perfect — here's how to find your ${info.label} iCal URL:\n\n` +
+      `${numberedSteps}${noteLine}\n\n` +
+      `Paste the URL here when you've got it and I'll add it to your account.`;
+
+    setMessages([
+      { role: 'user',      content: `I use ${info.label}.` },
+      { role: 'assistant', content: assistantText, display: assistantText },
+    ]);
+    setIsFreshUser(false); // transitions render to the chat view
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }
+
+  // "Other / PDF" chip tap — drops them into the chat with the
+  // standard returning-user prompt so they can type/paste/share
+  // whatever they have.
+  function startWithChat() {
+    const kidNames = kids.map(k => k.name).join(', ');
+    const intro = `Hi${kids.length > 0 ? `, I see ${kids.length > 1 ? kids.length + ' kids' : '1 kid'}: ${kidNames}` : ''}! Tell me which app you use or paste an iCal URL — I can also read a PDF schedule if you have one.`;
+    const initialMessages = [{ role: 'assistant', content: intro, display: intro }];
+    if (!hasShareIntent) {
+      initialMessages.push({
+        role: 'system',
+        content: '💡 Tip: in Safari, Photos, or Mail, tap iOS\'s share button → SportsCal. We\'ll grab the URL or photo and add it for you.',
+      });
+    }
+    setMessages(initialMessages);
+    setIsFreshUser(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }
 
   // Auto-scroll to the newest message every render that changes it.
   useEffect(() => {
@@ -489,6 +560,62 @@ export default function SetupAgentScreen() {
     );
   }
 
+  // Chip welcome — fresh users (zero calendars connected) who haven't
+  // arrived via share-intent. Matches the web /setup chip-picker
+  // pattern: 4 big tappable buttons (TeamSnap / GameChanger /
+  // PlayMetrics / Other-PDF) skip the "what do I type?" friction.
+  // Returning users + share-intent arrivals fall through to the
+  // standard chat view below.
+  if (!booting && isFreshUser === true && messages.length === 0) {
+    return (
+      <SafeAreaView style={s.root} edges={['top']}>
+        <View style={s.header}>
+          <TouchableOpacity onPress={confirmDone} hitSlop={16}>
+            <Text style={s.headerClose}>Done</Text>
+          </TouchableOpacity>
+          <Text style={s.headerTitle}>Setup helper</Text>
+          <View style={{ width: 56 }} />
+        </View>
+
+        <ScrollView contentContainerStyle={s.chipBody} keyboardShouldPersistTaps="handled">
+          <Text style={s.chipHeadline}>Which app does your team use?</Text>
+
+          {appCatalog ? (
+            <View style={{ flexDirection: 'column', gap: 12 }}>
+              {FEATURED_APPS.map(key => {
+                const info = appCatalog[key];
+                if (!info) return null;
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={s.chipBtn}
+                    onPress={() => startWithApp(key)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={s.chipBtnText}>{info.label}</Text>
+                    <Text style={s.chipBtnArrow}>→</Text>
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity
+                style={s.chipBtn}
+                onPress={startWithChat}
+                activeOpacity={0.8}
+              >
+                <Text style={s.chipBtnText}>Other / PDF</Text>
+                <Text style={s.chipBtnArrow}>→</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            // Reserve the chips' vertical space while the catalog
+            // loads (usually <100ms) so the layout doesn't jump.
+            <View style={{ height: 280 }} />
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={s.root} edges={['top']}>
       <View style={s.header}>
@@ -634,6 +761,29 @@ const s = StyleSheet.create({
   scroll:        { flex: 1 },
   scrollContent: { padding: 14, paddingBottom: 20, gap: 8 },
   bootCenter:    { paddingTop: 80, alignItems: 'center' },
+
+  // Fresh-user chip welcome (mirrors web /setup chip variant). Big
+  // tappable buttons, navy-on-mint accent, vertically stacked. No
+  // robot illustration, no descriptive paragraphs — just the H1
+  // question, 4 chips, that's it.
+  chipBody: {
+    padding: 24,
+    paddingTop: 32,
+  },
+  chipHeadline: {
+    fontSize: 22, fontWeight: '600', color: '#0f1629',
+    marginBottom: 24, letterSpacing: -0.3,
+  },
+  chipBtn: {
+    backgroundColor: '#0f1629',
+    paddingHorizontal: 22, paddingVertical: 20,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  chipBtnText:  { color: '#00d68f', fontSize: 17, fontWeight: '600' },
+  chipBtnArrow: { color: '#00d68f', fontSize: 17, opacity: 0.7 },
 
   bubbleRow:      { flexDirection: 'row', marginBottom: 2 },
   bubbleRowLeft:  { justifyContent: 'flex-start' },
