@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ShareIntentProvider, useShareIntentContext } from 'expo-share-intent';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { requestTrackingPermission } from '../lib/analytics';
+import { subscribeToNotificationTaps } from '../lib/push';
 
 function AuthGate() {
   const { user, loading } = useAuth();
@@ -56,6 +57,23 @@ function AuthGate() {
     if (first === 'setup') return; // already there
     router.push('/setup');
   }, [hasShareIntent, user, loading, segments]);
+
+  // Push-notification tap handler. Payloads we currently send (see
+  // backend/src/workers/pushWorker.js):
+  //   { type: 'night_digest', date: 'YYYY-MM-DD' }
+  // For now we just route to the Calendar tab; date-jumping can come
+  // later once the tab supports a scroll-to-date prop. Cold-launch
+  // taps are handled by getLastNotificationResponseAsync inside the
+  // listener — addNotificationResponseReceivedListener fires for both.
+  useEffect(() => {
+    if (!user) return;
+    const sub = subscribeToNotificationTaps((data) => {
+      if (data?.type === 'night_digest') {
+        router.push('/(tabs)');
+      }
+    });
+    return () => sub?.remove?.();
+  }, [user]);
 
   if (loading) {
     return (

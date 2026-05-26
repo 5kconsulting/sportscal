@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { api } from './api';
+import { registerForPush, unregisterPushOnLogout } from './push';
 
 const TOKEN_KEY = 'sc_token';
 const AuthContext = createContext(null);
@@ -17,6 +18,10 @@ export function AuthProvider({ children }) {
         api.setToken(token);
         const { user } = await api.get('/api/auth/me');
         setUser(user);
+        // Fire-and-forget push registration on returning-user launch.
+        // Won't ask permission again if already granted; will silently
+        // skip on simulators (see lib/push.js).
+        registerForPush();
       } catch (err) {
         await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
         api.setToken(null);
@@ -31,6 +36,7 @@ export function AuthProvider({ children }) {
     await SecureStore.setItemAsync(TOKEN_KEY, token);
     api.setToken(token);
     setUser(user);
+    registerForPush();
   }
 
   async function signup(name, email, password) {
@@ -41,6 +47,9 @@ export function AuthProvider({ children }) {
     await SecureStore.setItemAsync(TOKEN_KEY, token);
     api.setToken(token);
     setUser(user);
+    // Permission prompt fires here on first signup — Apple's HIG is fine
+    // with this since the user just intentionally created an account.
+    registerForPush();
   }
 
   function updateUser(patch) {
@@ -48,6 +57,10 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
+    // Awaited so the backend stops targeting this device before we
+    // wipe the token. Failure is non-fatal — the next login will
+    // overwrite the row anyway.
+    await unregisterPushOnLogout().catch(() => {});
     await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
     api.setToken(null);
     setUser(null);

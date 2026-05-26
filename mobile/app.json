@@ -106,6 +106,13 @@
           },
           "androidIntentFilters": ["text/*", "image/*"]
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#0f1629"
+        }
       ]
     ],
     "experiments": {
