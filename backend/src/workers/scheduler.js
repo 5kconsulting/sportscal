@@ -1,6 +1,6 @@
 import cron from 'node-cron';
-import { getSourcesDueForRefresh, query } from '../db/index.js';
-import { enqueueIcalFetch, enqueueScrapeFetch, enqueueDigest, enqueueReminder } from './queue.js';
+import { getSourcesDueForRefresh, query, getUsersDueForPushDigest } from '../db/index.js';
+import { enqueueIcalFetch, enqueueScrapeFetch, enqueueDigest, enqueueReminder, enqueuePushDigest } from './queue.js';
 import { checkSourceHealth } from './healthWorker.js';
 
 export function startScheduler() {
@@ -46,5 +46,22 @@ export function startScheduler() {
     }
   });
 
-  console.log('[scheduler] started — source refresh, digests, reminders, health checks active');
+  // Push night-digest — fires every hour on the hour. The query
+  // returns users whose local time right now is 8pm (the digest hour)
+  // and who have push_enabled + at least one registered token. The
+  // jobId is deduped per-day-per-user in enqueuePushDigest, so even
+  // if a clock blip caused two ticks in the matching hour we'd only
+  // send once.
+  cron.schedule('0 * * * *', async () => {
+    try {
+      const users = await getUsersDueForPushDigest(20);
+      if (users.length === 0) return;
+      console.log(`[scheduler] ${users.length} user(s) due for push digest`);
+      for (const user of users) await enqueuePushDigest(user.id);
+    } catch (err) {
+      console.error('[scheduler] push digest error:', err.message);
+    }
+  });
+
+  console.log('[scheduler] started — source refresh, digests, reminders, push, health checks active');
 }

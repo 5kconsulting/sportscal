@@ -744,4 +744,69 @@ export async function countUserSources(userId) {
   return parseInt(row.count, 10);
 }
 
+// ============================================================
+// PUSH TOKENS
+// ============================================================
+
+// Register or refresh an Expo push token. Token strings are globally
+// unique (per Expo); ON CONFLICT (token) lets us rebind to the current
+// user if a device was previously used by another account and updates
+// last_seen_at on every call so we can later prune stale rows.
+export async function upsertPushToken({ userId, token, platform }) {
+  return queryOne(
+    `INSERT INTO push_tokens (user_id, token, platform)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (token)
+     DO UPDATE SET user_id = EXCLUDED.user_id,
+                   platform = EXCLUDED.platform,
+                   last_seen_at = NOW()
+     RETURNING *`,
+    [userId, token, platform]
+  );
+}
+
+// Called by the push worker when Expo returns DeviceNotRegistered.
+// The user uninstalled the app or revoked permission — token is dead.
+export async function deletePushToken(token) {
+  return query('DELETE FROM push_tokens WHERE token = $1', [token]);
+}
+
+// Called by the mobile app on explicit sign-out so the previously
+// linked account stops getting pushes after a different user signs in.
+export async function deletePushTokensForUser(userId) {
+  return query('DELETE FROM push_tokens WHERE user_id = $1', [userId]);
+}
+
+export async function getPushTokensForUser(userId) {
+  return query(
+    'SELECT token, platform FROM push_tokens WHERE user_id = $1',
+    [userId]
+  );
+}
+
+// Find every user whose local time right now matches the night-digest
+// hour (hardcoded 20 = 8pm), has push enabled, and has at least one
+// registered token. The scheduler calls this once an hour on the hour.
+//
+// EXTRACT(HOUR FROM NOW() AT TIME ZONE u.timezone) converts UTC NOW to
+// the user's local clock so a user in America/New_York gets matched
+// at 00:00 UTC (= 8pm EST) and a user in America/Los_Angeles gets
+// matched at 03:00 UTC (= 8pm PST). The hour-bucket means the cron
+// only needs to tick once an hour, not every 30 min like the email
+// digest job does.
+export async function getUsersDueForPushDigest(localHour = 20) {
+  return query(
+    `SELECT DISTINCT u.id, u.timezone
+     FROM users u
+     JOIN push_tokens pt ON pt.user_id = u.id
+     WHERE u.push_enabled = true
+       AND EXTRACT(HOUR FROM NOW() AT TIME ZONE u.timezone) = $1`,
+    [localHour]
+  );
+}
+
+export async function setUserPushEnabled(userId, enabled) {
+  return query('UPDATE users SET push_enabled = $2 WHERE id = $1', [userId, enabled]);
+}
+
 export default pool;

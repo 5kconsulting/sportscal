@@ -2,6 +2,7 @@ import './icalWorker.js';
 import './scrapeWorker.js';
 import './emailWorker.js';
 import './pdfWorker.js';
+import './pushWorker.js';
 import { startScheduler } from './scheduler.js';
 
 startScheduler();

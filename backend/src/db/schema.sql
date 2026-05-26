@@ -670,3 +670,36 @@ ALTER TABLE setup_agent_messages ADD  CONSTRAINT setup_agent_messages_role_check
 
 CREATE INDEX IF NOT EXISTS setup_agent_messages_user_idx
   ON setup_agent_messages(user_id, created_at DESC);
+
+-- ============================================================
+-- PUSH_TOKENS — Expo push tokens registered by the mobile app.
+-- One row per (user, device) pair. The same user can have
+-- multiple tokens (iPhone + iPad, or after reinstalling the app
+-- which mints a new token). Token strings are unique globally.
+--
+-- On DeviceNotRegistered errors from the Expo Push API, the
+-- worker deletes the row (the user uninstalled or revoked
+-- permission). On token refresh from the device, we upsert.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS push_tokens (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token        TEXT NOT NULL UNIQUE,    -- ExponentPushToken[xxx]
+  platform     TEXT NOT NULL,           -- 'ios' | 'android'
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS push_tokens_user_id_idx ON push_tokens(user_id);
+
+ALTER TABLE push_tokens DROP CONSTRAINT IF EXISTS push_tokens_platform_check;
+ALTER TABLE push_tokens ADD  CONSTRAINT push_tokens_platform_check
+  CHECK (platform IN ('ios', 'android'));
+
+-- Master per-user push toggle. Default false; flipped to true when
+-- the mobile app successfully registers a token (= user granted iOS
+-- permission). That's the "Default ON post-permission" design — the
+-- iOS permission ask IS the opt-in; no separate in-app toggle needed
+-- until a settings screen lands. The nightly-digest scheduler joins
+-- on this flag.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS push_enabled BOOLEAN NOT NULL DEFAULT false;
