@@ -36,37 +36,34 @@ function parseRoster(text) {
 }
 
 export default function Contacts() {
-  // Feature flag for the painfully-simple chip welcome — same ?v=chips
-  // pattern we're A/B testing on /setup. Two big buttons (Add a person /
-  // Make a team) for brand-new users with zero contacts and zero teams.
-  // Tapping a chip transitions to the normal layout with that section's
-  // form pre-opened so the user continues directly into the action.
-  const variant = new URLSearchParams(window.location.search).get('v');
-  const useChipsVariant = variant === 'chips';
-
-  // Tracks whether the user is brand-new (no contacts AND no teams).
-  // null = still loading; false = has at least one of either; true = empty.
-  // A separate small fetch keeps the parent stateless w/r/t the actual
-  // contact/team lists (children still own their own data).
+  // Chip welcome triggers automatically for brand-new carpool users
+  // (zero contacts AND zero teams). State-driven, not URL-gated:
+  // "user has nothing yet" IS the signal that they need a guided
+  // first-action picker. Returning users with any contact/team see
+  // the normal multi-section layout immediately.
+  //
+  // isFreshUser: null while the fetch is in flight, true if both
+  // lists are empty, false if either has at least one entry.
+  // Default layout renders during the null/false window so returning
+  // users never see the chip welcome flash.
   const [isFreshUser, setIsFreshUser] = useState(null);
   // 'person' or 'team' once user picks. Drives initial form-open prop
   // for the child section after we transition to the normal layout.
   const [initialAction, setInitialAction] = useState(null);
 
   useEffect(() => {
-    if (!useChipsVariant) return;
     Promise.all([api.contacts.list(), api.teams.list()])
       .then(([c, t]) => setIsFreshUser(
         (c.contacts || []).length === 0 && (t.teams || []).length === 0
       ))
       .catch(() => setIsFreshUser(false)); // on error, fall back to normal layout
-  }, [useChipsVariant]);
+  }, []);
 
-  // Chip welcome — only when the variant is on AND the user is brand-new
-  // AND they haven't already picked which action to take. Once they
-  // click a chip, initialAction is set and the normal layout renders
-  // with the form open.
-  if (useChipsVariant && isFreshUser === true && initialAction === null) {
+  // Chip welcome — only when the user is brand-new AND they haven't
+  // already picked which action to take. Once they click a chip,
+  // initialAction is set and the normal layout renders with the form
+  // open in the right section.
+  if (isFreshUser === true && initialAction === null) {
     const chipBtnStyle = {
       background: 'var(--navy)',
       color: 'var(--accent)',

@@ -166,18 +166,18 @@ export default function SetupAgent({ onSourceAdded }) {
   }
 
   // -----------------------------------------------------------------
-  // Feature flag: ?v=chips — tappable-app-picker welcome variant.
-  // When the user lands on /setup?v=chips, they get a 3-chip picker
-  // (TeamSnap / GameChanger / PlayMetrics) instead of the generic
-  // "Let's set up my calendars" button. Tapping a chip skips the
-  // free-form ask and seeds the chat with a deterministic step list
-  // for that app, eliminating "I don't know what to type" bail.
+  // Welcome variant decision: chip-picker for fresh users (zero
+  // calendars connected), default chat-first welcome for everyone
+  // else. State-driven — no URL flag — because "user has no calendars
+  // yet" is the actual signal that determines who needs the highly-
+  // guided picker vs who just wants to add another to a working setup.
   //
-  // Both code paths live in main during the A/B; we'll delete the
-  // loser when Patton picks a winner.
+  // isFreshUser: null while sources fetch is in flight, true if zero
+  // calendars (excluding the synthetic __manual__), false otherwise.
+  // The default welcome renders during the null/false window so
+  // returning users never see the chip variant flash.
   // -----------------------------------------------------------------
-  const variant = new URLSearchParams(window.location.search).get('v');
-  const useChipsVariant = variant === 'chips';
+  const [isFreshUser, setIsFreshUser] = useState(null);
 
   // Featured apps for the chip picker. Limited to apps Patton has
   // personally verified the step instructions for. Adding another app
@@ -187,13 +187,27 @@ export default function SetupAgent({ onSourceAdded }) {
   const [appCatalog, setAppCatalog] = useState(null);
 
   useEffect(() => {
-    // Lazy-load only when the variant is active so we don't add an
-    // API call to the current production path.
-    if (!useChipsVariant || appCatalog) return;
+    // Determine whether to show the chip variant by counting non-synthetic
+    // sources. The __manual__ source is excluded because it represents
+    // hand-entered events, not a connected calendar feed — a user with
+    // ONLY manual events is still fresh w/r/t the "connect a calendar"
+    // onboarding goal.
+    api.sources.list()
+      .then(({ sources }) => {
+        const real = (sources || []).filter(s => s.name !== '__manual__');
+        setIsFreshUser(real.length === 0);
+      })
+      .catch(() => setIsFreshUser(false)); // on error, fall back to default welcome
+  }, []);
+
+  useEffect(() => {
+    // Lazy-load the app catalog only when the chip variant is going to
+    // render, so we don't add an unnecessary API call for returning users.
+    if (isFreshUser !== true || appCatalog) return;
     api.setupAgent.apps()
       .then(({ apps }) => setAppCatalog(apps))
-      .catch(() => setAppCatalog({})); // empty map → falls back to button-less state, button row hides itself
-  }, [useChipsVariant, appCatalog]);
+      .catch(() => setAppCatalog({})); // empty map → chip section degrades gracefully
+  }, [isFreshUser, appCatalog]);
 
   // Tap a chip → skip the welcome → enter chat already populated
   // with (a) the user's pick as a user bubble, and (b) the deterministic
@@ -415,7 +429,7 @@ export default function SetupAgent({ onSourceAdded }) {
     // section header. What remains: one micro-prompt, three big
     // vertically-stacked buttons, one subdued fallback link. That's it.
     // -----------------------------------------------------------------
-    if (useChipsVariant) {
+    if (isFreshUser === true) {
       // Shared chip-button style so the 3 app buttons + "Other / PDF"
       // fallback look identical. User shouldn't have to think about
       // which is primary vs alternative — just pick what matches.
