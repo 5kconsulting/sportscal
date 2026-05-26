@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../lib/api';
 import { selectionStore } from '../../lib/selectionStore';
 import { useAuth } from '../../lib/auth';
@@ -334,7 +335,10 @@ export default function EventDetail() {
               hitSlop={8}
               style={({ pressed }) => [{ marginTop: 8, opacity: pressed ? 0.6 : 1 }]}
             >
-              <Text style={[s.meta, s.locationLink]}>📍 {event.location}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="location-outline" size={14} color="#00b377" />
+                <Text style={[s.meta, s.locationLink, { marginTop: 0 }]}>{event.location}</Text>
+              </View>
             </Pressable>
           ) : null}
           {event.source_name ? (

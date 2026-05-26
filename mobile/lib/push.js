@@ -16,29 +16,49 @@
 // any push is delivered or the notification falls through silently.
 // ============================================================
 
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { api } from './api.js';
 
+// expo-notifications + expo-device pull in native modules that are only
+// present in dev clients (and production builds) compiled AFTER push
+// support landed. Older dev clients on disk (e.g. simulator builds left
+// over from before 2026-05-26) crash on import with "Cannot find native
+// module 'ExpoPushTokenManager'." Wrap the import so an outdated client
+// degrades gracefully — push functions become no-ops instead of taking
+// down the whole app. New builds get the real native modules.
+let Notifications, Device;
+try {
+  Notifications = require('expo-notifications');
+  Device        = require('expo-device');
+} catch (err) {
+  console.warn('[push] native modules unavailable, push disabled:', err.message);
+}
+
 // Foreground behavior: when the app is in the foreground and a push
 // lands, we want it to show as a banner (default iOS behavior) instead
 // of being swallowed silently. setNotificationHandler runs once per
-// process; doing it at module load is fine.
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList:   true,
-    shouldPlaySound:  true,
-    shouldSetBadge:   false,
-  }),
-});
+// process; doing it at module load is fine. Skipped when the native
+// module is missing.
+if (Notifications) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList:   true,
+      shouldPlaySound:  true,
+      shouldSetBadge:   false,
+    }),
+  });
+}
 
 let _registered = false; // process-local debounce so re-renders don't spam the backend
 
 export async function registerForPush() {
   if (_registered) return;
+  if (!Notifications || !Device) {
+    console.log('[push] native modules missing — skipping registration');
+    return;
+  }
   // Expo push tokens only mint on real devices — simulators get nothing
   // back, which would otherwise turn into a stuck Promise on iOS.
   if (!Device.isDevice) {
@@ -96,6 +116,7 @@ export async function registerForPush() {
 // Called from useAuth on sign-out so the device stops getting pushes
 // targeted at the previous account.
 export async function unregisterPushOnLogout() {
+  if (!Notifications || !Device) return;
   if (!Device.isDevice) return;
   try {
     const projectId =
@@ -116,6 +137,7 @@ export async function unregisterPushOnLogout() {
 // can dispose it on unmount. The handler gets the notification's
 // `data` payload (see pushWorker.js — we send { type, date }).
 export function subscribeToNotificationTaps(handler) {
+  if (!Notifications) return { remove: () => {} };
   return Notifications.addNotificationResponseReceivedListener((response) => {
     const data = response?.notification?.request?.content?.data || {};
     try { handler(data); } catch (e) { console.warn('[push] tap handler threw:', e.message); }
