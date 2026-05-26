@@ -339,3 +339,31 @@ router.post('/test-reminder', requireAuth, requireAdmin, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ============================================================
+// POST /api/admin/test-push
+// Immediately enqueues a night-digest push to user_id (default: self).
+// Bypasses the 8pm-local scheduler — for verifying the full path
+// (queue → worker → Expo Push API → device tap) before the scheduled
+// fire time. The worker still does its normal "events for tomorrow"
+// lookup, so the body content reflects real data; no events tomorrow
+// = no push (the job logs `skipped: no events tomorrow`).
+//
+// The jobId dedupe in enqueuePushDigest is per-(user, UTC-date), so
+// hitting this endpoint twice in a day will no-op on the second call.
+// Pass force=true in the body to bypass that.
+// ============================================================
+router.post('/test-push', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { user_id, force } = req.body;
+    const target = user_id || req.user.id;
+
+    const { enqueuePushDigest } = await import('../workers/queue.js');
+    // Force bypasses the per-day dedupe by passing a unique jobId.
+    const opts = force ? { jobId: `push-digest-${target}-test-${Date.now()}` } : {};
+    await enqueuePushDigest(target, opts);
+    res.json({ ok: true, message: `Push digest queued for user ${target}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
