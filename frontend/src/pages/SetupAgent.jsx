@@ -69,6 +69,12 @@ export default function SetupAgent({ onSourceAdded }) {
   const [kids, setKids] = useState([]);
   const [addedSources, setAddedSources] = useState([]);
   const [started, setStarted] = useState(false);
+  // Banner-style affordance: collapsed shows a one-line "Got a schedule
+  // in your email? Forward it →" pitch with an email icon. Click expands
+  // to reveal the actual inbox address + copy button + a sentence on what
+  // it accepts. Keeps the chat below visually dominant while still
+  // surfacing the email path for users who think "I have it in my inbox."
+  const [inboundExpanded, setInboundExpanded] = useState(false);
   // Inbound forwarding address for the "or, forward an email" sibling
   // affordance below the page header. The Setup chat is the primary way
   // to add a calendar (URL paste / PDF / camera), but forwarding an iCal
@@ -544,50 +550,93 @@ export default function SetupAgent({ onSourceAdded }) {
           )}
         </div>
 
-        {/* "Or, by email" sibling affordance. Was previously buried in
-            Settings; surfacing here matches the mental model "I have a
-            schedule, how do I get it into SportsCal?" The chat below
-            handles URL paste + PDF upload + camera; this card handles
-            the "schedule confirmation just hit my inbox" shortcut. */}
+        {/* "Or, by email" sibling affordance, banner-style. Collapsed by
+            default so the chat below stays visually dominant. Click the
+            banner row to expand and reveal the inbox address + copy
+            button. Matches the user mental model "I already have it in
+            my email — what now?" without dumping the full how-to onto
+            users who didn't ask. */}
         {inboundAddress ? (
           <div style={{
             marginTop: 14,
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border)',
+            background: 'rgba(0,214,143,0.06)',
+            border: '1px solid rgba(0,214,143,0.2)',
             borderRadius: 'var(--radius)',
-            padding: '12px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            flexWrap: 'wrap',
+            overflow: 'hidden',
           }}>
-            <div style={{ fontSize: 13, color: 'var(--slate)', flex: '1 1 auto', minWidth: 200 }}>
-              <strong style={{ color: 'var(--text)', fontWeight: 600 }}>Or, forward an email.</strong>
-              {' '}Send any iCal-shaped schedule email to this address — we'll add it for you.
-            </div>
-            <div style={{
-              fontSize: 12, color: 'var(--text)',
-              fontFamily: 'var(--mono)',
-              background: 'var(--bg)',
-              padding: '6px 10px',
-              borderRadius: 6,
-              border: '1px solid var(--border)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              maxWidth: 280,
-            }}>
-              {inboundAddress}
-            </div>
-            <button onClick={copyInbound} className="btn btn-sm" style={{
-              background: inboundCopied ? 'var(--accent)' : 'var(--bg)',
-              color: inboundCopied ? 'var(--navy)' : 'var(--text)',
-              border: '1px solid var(--border)',
-              fontWeight: 500,
-              flexShrink: 0,
-            }}>
-              {inboundCopied ? '✓ Copied' : 'Copy'}
+            {/* Banner row — always visible, clickable to toggle. */}
+            <button
+              type="button"
+              onClick={() => setInboundExpanded(v => !v)}
+              style={{
+                width: '100%',
+                background: 'none',
+                border: 'none',
+                padding: '12px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                cursor: 'pointer',
+                textAlign: 'left',
+                color: 'var(--text)',
+                fontSize: 14, fontWeight: 500,
+              }}
+              aria-expanded={inboundExpanded}
+            >
+              <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>✉️</span>
+              <span style={{ flex: 1 }}>
+                Have a schedule in your email? Forward it to us.
+              </span>
+              <span style={{
+                fontSize: 14, color: 'var(--slate)', flexShrink: 0,
+                transition: 'transform 0.15s ease',
+                transform: inboundExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+              }}>
+                ›
+              </span>
             </button>
+
+            {/* Expanded panel — reveals address + copy button + a one-line
+                explanation of what the system actually accepts. */}
+            {inboundExpanded ? (
+              <div style={{
+                padding: '0 14px 14px',
+                display: 'flex', flexDirection: 'column', gap: 10,
+              }}>
+                <div style={{ fontSize: 13, color: 'var(--slate)', lineHeight: 1.45 }}>
+                  Forward any league email, calendar invite, or PDF schedule
+                  to this address and we'll add it to your account.
+                </div>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+                }}>
+                  <div style={{
+                    fontSize: 12, color: 'var(--text)',
+                    fontFamily: 'var(--mono)',
+                    background: 'var(--bg)',
+                    padding: '8px 10px',
+                    borderRadius: 6,
+                    border: '1px solid var(--border)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    flex: '1 1 240px',
+                    minWidth: 200,
+                  }}>
+                    {inboundAddress}
+                  </div>
+                  <button onClick={copyInbound} className="btn btn-sm" style={{
+                    background: inboundCopied ? 'var(--accent)' : 'var(--navy)',
+                    color: inboundCopied ? 'var(--navy)' : 'var(--accent)',
+                    border: 'none',
+                    fontWeight: 600,
+                    flexShrink: 0,
+                  }}>
+                    {inboundCopied ? '✓ Copied' : '📋 Copy'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
