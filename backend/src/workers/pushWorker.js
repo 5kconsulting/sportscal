@@ -27,7 +27,7 @@ const worker = new Worker('push-send', async (job) => {
   // where a 11pm-local game on Saturday looks like a Sunday event in UTC.
   const tomorrowLocal = tomorrowDateInTz(user.timezone);
   const events = (await getUpcomingEvents(userId, { days: 2 })).filter((e) => {
-    const localDate = dateInTz(new Date(e.start_at), user.timezone);
+    const localDate = dateInTz(new Date(e.starts_at), user.timezone);
     return localDate === tomorrowLocal;
   });
 
@@ -116,7 +116,7 @@ function renderDigest(events, tz) {
   // Mobile push body is small (~178 chars before truncation on iOS).
   // Show up to 3 events, then "+N more" if it overflows.
   const lines = events.slice(0, 3).map((e) => {
-    const time = e.all_day ? 'All day' : fmt.format(new Date(e.start_at));
+    const time = e.all_day ? 'All day' : fmt.format(new Date(e.starts_at));
     const who  = e.display_title || e.title || 'Event';
     return `${time} · ${who}`;
   });
