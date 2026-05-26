@@ -94,11 +94,11 @@ export default function Contacts() {
         </h1>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <button onClick={() => setInitialAction('person')} style={chipBtnStyle} {...press}>
-            <span>Add a person</span>
+            <span>Add a driver</span>
             <span style={{ opacity: 0.7 }}>→</span>
           </button>
           <button onClick={() => setInitialAction('team')} style={chipBtnStyle} {...press}>
-            <span>Make a team / group</span>
+            <span>Setup team carpool</span>
             <span style={{ opacity: 0.7 }}>→</span>
           </button>
         </div>
