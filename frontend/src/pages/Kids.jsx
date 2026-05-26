@@ -121,7 +121,7 @@ export default function Kids() {
         </div>
         {!showForm && (
           <button className="btn btn-primary" onClick={() => { setShowForm(true); setEditingId(null); }}>
-            + Add member
+            + Add a kid
           </button>
         )}
       </div>
@@ -159,11 +159,11 @@ export default function Kids() {
       ) : kids.length === 0 && !showForm ? (
         <div className="card" style={{ padding: '60px 40px', textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>👨‍👩‍👧‍👦</div>
-          <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No family members yet</h3>
+          <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No kids yet</h3>
           <p style={{ fontSize: 14, color: 'var(--slate)', marginBottom: 24 }}>
-            Add your first family member to get started.
+            Add your first kid to get started.
           </p>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>Add a member</button>
+          <button className="btn btn-primary" onClick={() => setShowForm(true)}>Add a kid</button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -268,7 +268,7 @@ function KidForm({ onSave, onCancel, initial }) {
           <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving
               ? <span className="spinner" style={{ width: 14, height: 14 }} />
-              : initial ? 'Save changes' : 'Add member'}
+              : initial ? 'Save changes' : 'Add kid'}
           </button>
           <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
         </div>
