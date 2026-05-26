@@ -155,9 +155,31 @@ async function start() {
     const { default: startWorkers } = await import('./workers/runner.js');
   }
 
-  app.listen(PORT, () => {
+  const httpServer = app.listen(PORT, () => {
     console.log(`[server] listening on port ${PORT}`);
   });
+
+  // Minimal SIGTERM handler: stop accepting new HTTP connections and
+  // exit 0 so Railway's dashboard reports a clean stop instead of
+  // "crashed" during deploys. We intentionally do NOT try to drain
+  // BullMQ workers here — a previous attempt to do so caused a crash
+  // ~4min after deploy (commit 9aa93c3, reverted in 8a12d9c). Worker
+  // jobs that are mid-flight when SIGTERM fires will be reclaimed by
+  // BullMQ's stalled-job mechanism on the new container (~30s), same
+  // as today. The only behavior change here is the exit code.
+  let shuttingDown = false;
+  function shutdown(signal) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[server] received ${signal}, exiting cleanly`);
+    httpServer.close();
+    // Give in-flight HTTP requests a brief moment to finish before
+    // we hard-exit. Railway SIGKILLs at ~10s so 5s is conservative.
+    setTimeout(() => process.exit(0), 5000).unref();
+  }
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT',  () => shutdown('SIGINT'));
 }
 
 start().catch((err) => {
