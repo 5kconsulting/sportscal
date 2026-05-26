@@ -174,6 +174,7 @@ export function buildSystemPrompt(kids, { platform = 'web' } = {}) {
     + '1. Start by asking which apps the parent uses (list them or let them type). You can also mention: ' + pdfMention + '\n'
     + '2. For iCal URL flow: walk through each app one at a time. When the user pastes a URL, validate it looks like an iCal URL.\n'
     + '3. Ask what to name the calendar and which kid(s) it\'s for.\n'
+    + '   • If the kid roster above is "(no kids yet)" or doesn\'t contain the name they mention, just ask for the kid\'s first name conversationally ("Whose schedule is this? What\'s their first name?") and put that name in the kid_names array of the add_source action. The system creates the kid automatically — DO NOT tell the user they need to "add a kid first" or use a separate flow. Inline kid creation is the design.\n'
     + '4. Confirm details before adding: "Ready to add \'Tualatin Baseball\' for James from GameChanger - sound right?"\n'
     + '5. After user confirms, respond with this action block:\n\n'
     + 'ACTION:{"action":"add_source","name":"<n>","app":"<app_value>","ical_url":"<url>","kid_names":[<names>]}\n\n'

@@ -309,10 +309,41 @@ export default function SetupAgent({ onSourceAdded }) {
 
   async function executeAddSource(action) {
     try {
-      const kidIds = (action.kid_names || [])
-        .map(name => kids.find(k => k.name.toLowerCase() === name.toLowerCase()))
-        .filter(Boolean)
-        .map(k => k.id);
+      // Resolve kid names → kid IDs. For names that don't match any
+      // existing kid, auto-create the kid inline. Lets the SetupAgent
+      // conversation handle "I have no kids yet" gracefully: the model
+      // asks "whose schedule?", the user types a name, and we create
+      // the kid + source together without forcing the user through a
+      // separate "add a kid first" flow. Default color cycles through
+      // a small palette; user can change in /kids later.
+      const wantedNames = (action.kid_names || [])
+        .map(n => String(n).trim())
+        .filter(Boolean);
+      const kidIds = [];
+      const liveKids = [...kids];
+      const palette = ['#ef4444','#3b82f6','#22c55e','#8b5cf6','#f97316','#06b6d4','#ec4899','#eab308'];
+      for (const wantedName of wantedNames) {
+        const existing = liveKids.find(k => k.name.toLowerCase() === wantedName.toLowerCase());
+        if (existing) {
+          kidIds.push(existing.id);
+          continue;
+        }
+        try {
+          const { kid: newKid } = await api.kids.create({
+            name:  wantedName,
+            color: palette[liveKids.length % palette.length],
+          });
+          kidIds.push(newKid.id);
+          liveKids.push(newKid);
+        } catch (createErr) {
+          setMessages(prev => [...prev, {
+            role: 'system',
+            content: 'Couldn\'t add "' + wantedName + '": ' + (createErr.message || 'unknown error'),
+            error: true,
+          }]);
+        }
+      }
+      if (liveKids.length !== kids.length) setKids(liveKids);
 
       const { source } = await api.sources.create({
         name: action.name,

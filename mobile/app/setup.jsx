@@ -17,7 +17,7 @@ import {
   ActionSheetIOS,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useShareIntentContext } from 'expo-share-intent';
 import Constants from 'expo-constants';
@@ -51,6 +51,12 @@ const HEADER_HEIGHT = 49;
 export default function SetupAgentScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // Deep-link from the Calendar tab's app chips routes to /setup with
+  // ?app=teamsnap (or gamechanger / playmetrics). When set + valid +
+  // user is fresh, we auto-tap that chip on mount so the user lands
+  // already inside the step-list — saves one redundant tap.
+  const params = useLocalSearchParams();
+  const deepLinkApp = typeof params.app === 'string' ? params.app : null;
   const scrollRef = useRef(null);
   const inputRef  = useRef(null);
 
@@ -153,6 +159,21 @@ export default function SetupAgentScreen() {
       .then(({ apps }) => setAppCatalog(apps))
       .catch(() => setAppCatalog({}));
   }, [isFreshUser, appCatalog]);
+
+  // Deep-link auto-tap: if the Calendar tab sent us here with
+  // ?app=teamsnap (etc.), skip the chip welcome and seed the chat
+  // with the matching step-list immediately. Guarded on all the
+  // preconditions for startWithApp to succeed so we don't fire it
+  // with stale state.
+  const autoTappedRef = useRef(false);
+  useEffect(() => {
+    if (autoTappedRef.current) return;
+    if (!deepLinkApp || !appCatalog?.[deepLinkApp]) return;
+    if (isFreshUser !== true) return;
+    if (messages.length > 0) return;
+    autoTappedRef.current = true;
+    startWithApp(deepLinkApp);
+  }, [deepLinkApp, appCatalog, isFreshUser, messages.length]);
 
   // Chip tap → seed chat with a user message naming the app + an
   // assistant message containing the deterministic step list. Then
@@ -511,11 +532,45 @@ export default function SetupAgentScreen() {
   const runAction = useCallback(async (action) => {
     if (action.action === 'add_source') {
       try {
-        const wantedNames = (action.kid_names || []).map(n => String(n).toLowerCase());
-        const kidIds = wantedNames
-          .map(name => kids.find(k => k.name.toLowerCase() === name))
-          .filter(Boolean)
-          .map(k => k.id);
+        // Resolve kid names → kid IDs. For names that don't match any
+        // existing kid, auto-create the kid inline so first-time users
+        // never need to "add a kid first" as a separate step — they
+        // just answer the agent's "whose schedule?" question and we
+        // take care of the rest. Default color is cycled from a small
+        // palette based on current kid count; user can change in
+        // Settings → Kid calendars later.
+        const wantedNames = (action.kid_names || [])
+          .map(n => String(n).trim())
+          .filter(Boolean);
+        const kidIds = [];
+        const liveKids = [...kids];
+        const palette = ['#ef4444','#3b82f6','#22c55e','#8b5cf6','#f97316','#06b6d4','#ec4899','#eab308'];
+        for (const wantedName of wantedNames) {
+          const existing = liveKids.find(k => k.name.toLowerCase() === wantedName.toLowerCase());
+          if (existing) {
+            kidIds.push(existing.id);
+            continue;
+          }
+          try {
+            const { kid: newKid } = await api.post('/api/kids', {
+              name:  wantedName,
+              color: palette[liveKids.length % palette.length],
+            });
+            kidIds.push(newKid.id);
+            liveKids.push(newKid);
+          } catch (createErr) {
+            setMessages(prev => [...prev, {
+              role: 'system',
+              content: `Couldn't add "${wantedName}": ${createErr.message || 'unknown error'}`,
+              error: true,
+            }]);
+            // Continue — at least save the source with whatever kids we
+            // did resolve, so the user doesn't lose their iCal URL.
+          }
+        }
+        // Refresh local kids state so future actions in this session
+        // see the newly-created kids without a page reload.
+        if (liveKids.length !== kids.length) setKids(liveKids);
 
         const { source } = await api.post('/api/sources', {
           name: action.name,
