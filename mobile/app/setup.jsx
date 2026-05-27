@@ -22,7 +22,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { useShareIntentContext } from 'expo-share-intent';
 import Constants from 'expo-constants';
 import { api } from '../lib/api';
-import TutorialVideo, { hasTutorial } from '../components/TutorialVideo';
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl
   || 'https://sportscal-production.up.railway.app';
@@ -190,17 +189,10 @@ export default function SetupAgentScreen() {
       `${numberedSteps}${noteLine}\n\n` +
       `Paste the URL here when you've got it and I'll add it to your account.`;
 
-    // Sequence the messages: user → (optional video) → text instructions.
-    // Video bubble only renders if we have a bundled tutorial for this app
-    // (see TUTORIAL_VIDEOS in components/TutorialVideo.jsx). Apps without
-    // a video gracefully degrade to text-only.
-    const seq = [{ role: 'user', content: `I use ${info.label}.` }];
-    if (hasTutorial(appKey)) {
-      seq.push({ role: 'assistant', _video: appKey });
-    }
-    seq.push({ role: 'assistant', content: assistantText, display: assistantText });
-
-    setMessages(seq);
+    setMessages([
+      { role: 'user',      content: `I use ${info.label}.` },
+      { role: 'assistant', content: assistantText, display: assistantText },
+    ]);
     setIsFreshUser(false); // transitions render to the chat view
     setTimeout(() => inputRef.current?.focus(), 100);
   }
@@ -763,20 +755,8 @@ export default function SetupAgentScreen() {
 // ----- bubble ---------------------------------------------------------------
 
 function Bubble({ message, onApprove, approving }) {
-  const { role, display, content, error, _typing, _eventCount, _video } = message;
+  const { role, display, content, error, _typing, _eventCount } = message;
   const text = display || content || '';
-
-  // Tutorial video bubble — rendered as a full-width card with no
-  // chat-bubble wrapper so the video can hold visual focus. Falls
-  // back to nothing (TutorialVideo returns null) if the app key
-  // isn't in the bundled catalog.
-  if (_video) {
-    return (
-      <View style={s.videoRow}>
-        <TutorialVideo appKey={_video} />
-      </View>
-    );
-  }
 
   if (role === 'system') {
     return (
@@ -863,7 +843,6 @@ const s = StyleSheet.create({
   bubbleRow:      { flexDirection: 'row', marginBottom: 2 },
   bubbleRowLeft:  { justifyContent: 'flex-start' },
   bubbleRowRight: { justifyContent: 'flex-end' },
-  videoRow:       { marginVertical: 8, alignSelf: 'stretch' },
   bubble: {
     maxWidth: '82%',
     paddingHorizontal: 14, paddingVertical: 10,

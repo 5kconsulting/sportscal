@@ -31,7 +31,6 @@
     "expo-status-bar": "~3.0.9",
     "expo-tracking-transparency": "~6.0.8",
     "expo-updates": "~29.0.17",
-    "expo-video": "~3.0.16",
     "patch-package": "^8.0.1",
     "react": "19.1.0",
     "react-native": "0.81.5",

@@ -104,10 +104,7 @@
             "NSExtensionActivationSupportsText": true,
             "NSExtensionActivationSupportsImageWithMaxCount": 1
           },
-          "androidIntentFilters": [
-            "text/*",
-            "image/*"
-          ]
+          "androidIntentFilters": ["text/*", "image/*"]
         }
       ],
       [
@@ -116,8 +113,7 @@
           "icon": "./assets/icon.png",
           "color": "#0f1629"
         }
-      ],
-      "expo-video"
+      ]
     ],
     "experiments": {
       "typedRoutes": false
