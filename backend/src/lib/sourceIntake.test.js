@@ -57,6 +57,7 @@ const appCases = [
   ['https://gc.com/teams/foo/schedule.ics',             'gamechanger'],
   ['https://www.gamechanger.io/x.ics',                  'gamechanger'],
   ['https://playmetrics.com/x.ics',                     'playmetrics'],
+  ['https://www.parentsquare.com/feeds/abc.ics',        'parentsquare'],
   ['https://league.teamsideline.com/x.ics',             'teamsideline'],
   ['https://x.byga.net/foo.ics',                        'byga'],
   ['https://soccer.sportsengine.com/x.ics',             'sportsengine'],

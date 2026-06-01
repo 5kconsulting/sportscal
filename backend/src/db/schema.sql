@@ -199,6 +199,7 @@ ALTER TABLE sources DROP CONSTRAINT IF EXISTS sources_app_check;
 ALTER TABLE sources ADD  CONSTRAINT sources_app_check
   CHECK (app IN (
     'teamsnap', 'teamsnapone', 'gamechanger', 'playmetrics',
+    'parentsquare',
     'teamsideline', 'byga', 'sportsengine', 'teamreach',
     'leagueapps', 'demosphere', '360player', 'sportsyou',
     'band', 'rankone', 'custom',

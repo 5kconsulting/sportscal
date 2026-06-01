@@ -1047,7 +1047,7 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setSaving(true);
-    const appLabels = { teamsnap:'TeamSnap', teamsnapone:'TeamSnap ONE', gamechanger:'GameChanger', playmetrics:'PlayMetrics', teamsideline:'TeamSideline', byga:'BYGA', sportsengine:'SportsEngine', teamreach:'TeamReach', leagueapps:'LeagueApps', demosphere:'Demosphere', '360player':'360Player', sportsyou:'SportsYou', band:'BAND', rankone:'RankOne', google_classroom:'Google Classroom', custom:'Custom' };
+    const appLabels = { teamsnap:'TeamSnap', teamsnapone:'TeamSnap ONE', gamechanger:'GameChanger', playmetrics:'PlayMetrics', parentsquare:'ParentSquare', teamsideline:'TeamSideline', byga:'BYGA', sportsengine:'SportsEngine', teamreach:'TeamReach', leagueapps:'LeagueApps', demosphere:'Demosphere', '360player':'360Player', sportsyou:'SportsYou', band:'BAND', rankone:'RankOne', google_classroom:'Google Classroom', custom:'Custom' };
     await onSave({
       name:            name || appLabels[app] || app,
       app,

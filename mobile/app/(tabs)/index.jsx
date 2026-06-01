@@ -121,10 +121,11 @@ export default function Calendar() {
     // Tapping deep-links into /setup with the app pre-selected so
     // the chat opens already on the step-list for that app.
     const calendarChips = [
-      { key: 'teamsnap',    label: 'TeamSnap'    },
-      { key: 'gamechanger', label: 'GameChanger' },
-      { key: 'playmetrics', label: 'PlayMetrics' },
-      { key: '__other__',   label: 'Other / PDF' },
+      { key: 'teamsnap',     label: 'TeamSnap'     },
+      { key: 'gamechanger',  label: 'GameChanger'  },
+      { key: 'playmetrics',  label: 'PlayMetrics'  },
+      { key: 'parentsquare', label: 'ParentSquare' },
+      { key: '__other__',    label: 'Other / PDF'  },
     ];
     return (
       <View style={s.root}>

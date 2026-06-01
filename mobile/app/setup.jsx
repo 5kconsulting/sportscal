@@ -90,7 +90,7 @@ export default function SetupAgentScreen() {
   // Returning users skip straight to the chat intro.
   const [isFreshUser, setIsFreshUser] = useState(null);
   const [appCatalog, setAppCatalog]   = useState(null);
-  const FEATURED_APPS = ['teamsnap', 'gamechanger', 'playmetrics'];
+  const FEATURED_APPS = ['teamsnap', 'gamechanger', 'playmetrics', 'parentsquare'];
 
   // Bootstrap: fetch kids + sources, then drop in a tailored intro message.
   useEffect(() => {

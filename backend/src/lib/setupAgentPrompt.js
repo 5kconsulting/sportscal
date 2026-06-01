@@ -33,6 +33,14 @@ export const APP_INSTRUCTIONS = {
     label: 'PlayMetrics',
     steps: ['Open PlayMetrics and go to your team.','Tap "Calendar" in the navigation.','Tap the settings/gear icon.','Select "Subscribe" or "Export Calendar".','Copy the iCal link.','Paste it in the chat below.'],
   },
+  // Best-guess flow as of 2026-05-31 — verify against the live ParentSquare
+  // app and update before users actually hit this. Common ParentSquare
+  // calendar surfaces: school-level, classroom-level, and child-specific.
+  parentsquare: {
+    label: 'ParentSquare',
+    steps: ['Sign in to ParentSquare at parentsquare.com (the web works best for finding the iCal link).','Open the school or classroom whose calendar you want.','Click "Calendar" in the left navigation.','Look for "Subscribe", a calendar/RSS icon, or a "Sync to Calendar" button — usually at the top-right of the calendar view.','Copy the link it gives you (it starts with https:// or webcal://).','Paste it in the chat below.'],
+    note: 'If you have kids in multiple classrooms or schools, you may need to subscribe to each one separately.',
+  },
   teamsideline: {
     label: 'TeamSideline',
     steps: ['Go to your TeamSideline team page in a browser.','Click on "Schedule" in the navigation.','Look for a calendar icon or "Subscribe to Calendar" link.','Right-click the calendar icon → "Copy Link Address".','Paste it in the chat below.'],
