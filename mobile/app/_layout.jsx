@@ -132,6 +132,13 @@ function AuthGate() {
         name="setup"
         options={{ presentation: 'modal', headerShown: false }}
       />
+      {/* Tutorial video player — fullScreenModal so it fills the whole
+          screen and the underlying nav doesn't peek through during
+          playback. router.replace's into the next route on video end. */}
+      <Stack.Screen
+        name="tutorial/[key]"
+        options={{ presentation: 'fullScreenModal', headerShown: false, animation: 'fade' }}
+      />
     </Stack>
   );
 }

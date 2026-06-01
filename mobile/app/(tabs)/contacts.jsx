@@ -12,6 +12,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../lib/api';
+import { shouldShowTutorial } from '../../lib/tutorialSeen';
 
 export default function ContactsScreen() {
   const router = useRouter();
@@ -88,7 +89,17 @@ export default function ContactsScreen() {
         <View style={{ paddingHorizontal: 20, gap: 12 }}>
           <TouchableOpacity
             style={s.chipBtn}
-            onPress={() => router.push('/contacts/new')}
+            onPress={async () => {
+              // Show the tutorial ONCE per device for first-time
+              // discovery; subsequent taps skip straight to the form.
+              // shouldShowTutorial flips this based on tutorialSeen's
+              // ONCE_TUTORIALS set + the persisted seen flag.
+              const show = await shouldShowTutorial('add-driver');
+              const next = encodeURIComponent('/contacts/new');
+              router.push(show
+                ? `/tutorial/add-driver?next=${next}`
+                : '/contacts/new');
+            }}
             activeOpacity={0.8}
           >
             <Text style={s.chipBtnText}>Add a driver</Text>
@@ -96,7 +107,13 @@ export default function ContactsScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={s.chipBtn}
-            onPress={() => router.push('/teams/new')}
+            onPress={async () => {
+              const show = await shouldShowTutorial('setup-team');
+              const next = encodeURIComponent('/teams/new');
+              router.push(show
+                ? `/tutorial/setup-team?next=${next}`
+                : '/teams/new');
+            }}
             activeOpacity={0.8}
           >
             <Text style={s.chipBtnText}>Setup team carpool</Text>

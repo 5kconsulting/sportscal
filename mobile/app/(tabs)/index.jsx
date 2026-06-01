@@ -142,11 +142,18 @@ export default function Calendar() {
               key={chip.key}
               style={s.appChip}
               activeOpacity={0.8}
-              onPress={() => router.push(
-                chip.key === '__other__'
-                  ? '/setup'
-                  : `/setup?app=${chip.key}`
-              )}
+              onPress={() => {
+                // Route source chips through the tutorial player first;
+                // it plays the per-app screen-recording (if bundled) then
+                // auto-dismisses into /setup. For "Other / PDF" there's
+                // no app-specific tutorial — skip straight to /setup.
+                if (chip.key === '__other__') {
+                  router.push('/setup');
+                  return;
+                }
+                const next = encodeURIComponent(`/setup?app=${chip.key}`);
+                router.push(`/tutorial/${chip.key}?next=${next}`);
+              }}
             >
               <Text style={s.appChipLabel}>{chip.label}</Text>
               <Text style={s.appChipArrow}>→</Text>
