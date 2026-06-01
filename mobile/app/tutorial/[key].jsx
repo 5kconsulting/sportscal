@@ -42,11 +42,10 @@ try {
 // adding a new tutorial is a single-file diff.
 const TUTORIAL_VIDEOS = {
   teamsnap:     require('../../assets/tutorials/onboarding-teamsnap.mp4'),
+  gamechanger:  require('../../assets/tutorials/onboarding-gamechanger.mp4'),
+  playmetrics:  require('../../assets/tutorials/onboarding-playmetrics.mp4'),
   'add-driver': require('../../assets/tutorials/add-driver.mp4'),
   'setup-team': require('../../assets/tutorials/setup-team.mp4'),
-  // Add as new recordings land:
-  // gamechanger: require('../../assets/tutorials/onboarding-gamechanger.mp4'),
-  // playmetrics: require('../../assets/tutorials/onboarding-playmetrics.mp4'),
 };
 
 export default function TutorialPlayer() {
