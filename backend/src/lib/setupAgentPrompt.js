@@ -33,13 +33,17 @@ export const APP_INSTRUCTIONS = {
     label: 'PlayMetrics',
     steps: ['Open PlayMetrics and go to your team.','Tap "Calendar" in the navigation.','Tap the settings/gear icon.','Select "Subscribe" or "Export Calendar".','Copy the iCal link.','Paste it in the chat below.'],
   },
-  // Best-guess flow as of 2026-05-31 — verify against the live ParentSquare
-  // app and update before users actually hit this. Common ParentSquare
-  // calendar surfaces: school-level, classroom-level, and child-specific.
+  // ParentSquare buries the iCal URL behind a "Yes, I'm Positive"
+  // confirmation button — the link IS the button's href, so you have to
+  // right-click it to copy. That makes this a desktop-browser flow;
+  // ParentSquare's mobile app has a "Automatically add events to the
+  // calendar" toggle that bypasses iCal entirely and pushes events
+  // straight to iOS Calendar, which doesn't give us a URL we can subscribe
+  // to. Steps verified against the IUSD support article 2026-05-31.
   parentsquare: {
     label: 'ParentSquare',
-    steps: ['Sign in to ParentSquare at parentsquare.com (the web works best for finding the iCal link).','Open the school or classroom whose calendar you want.','Click "Calendar" in the left navigation.','Look for "Subscribe", a calendar/RSS icon, or a "Sync to Calendar" button — usually at the top-right of the calendar view.','Copy the link it gives you (it starts with https:// or webcal://).','Paste it in the chat below.'],
-    note: 'If you have kids in multiple classrooms or schools, you may need to subscribe to each one separately.',
+    steps: ['Open ParentSquare on a computer at parentsquare.com (the iCal link only comes from the web — not the mobile app).','Sign in and open your school.','Click "Calendar" in the left navigation.','Click the "Subscribe" button. A confirmation popup appears.','Right-click the "Yes, I\'m Positive" button → "Copy link address". That copied URL is your iCal feed.','Paste it in the chat below.'],
+    note: 'If you have kids at multiple schools, repeat once per school — each gives its own iCal URL.',
   },
   teamsideline: {
     label: 'TeamSideline',
