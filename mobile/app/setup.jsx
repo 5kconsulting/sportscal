@@ -57,6 +57,10 @@ export default function SetupAgentScreen() {
   // already inside the step-list — saves one redundant tap.
   const params = useLocalSearchParams();
   const deepLinkApp = typeof params.app === 'string' ? params.app : null;
+  // ?screenshot=1 from the Calendar tab's "Screenshot of a calendar"
+  // chip — auto-fires the photo-library picker on mount so the user
+  // skips the chat intro entirely.
+  const deepLinkScreenshot = params.screenshot === '1';
   const scrollRef = useRef(null);
   const inputRef  = useRef(null);
 
@@ -174,6 +178,30 @@ export default function SetupAgentScreen() {
     autoTappedRef.current = true;
     startWithApp(deepLinkApp);
   }, [deepLinkApp, appCatalog, isFreshUser, messages.length]);
+
+  // Screenshot deep-link: the Calendar tab's "Screenshot of a calendar"
+  // chip routes here with ?screenshot=1 — auto-fire the photo-library
+  // picker so the user skips the chat intro entirely. They already know
+  // they want to upload an image; presenting the chip welcome would be
+  // an extra tap for nothing. After the picker returns, ingestImageAsset
+  // takes over and the user lands in the chat with the upload in flight.
+  const autoScreenshotRef = useRef(false);
+  useEffect(() => {
+    if (autoScreenshotRef.current) return;
+    if (!deepLinkScreenshot) return;
+    // Wait for bootstrap to finish so kids list is populated (needed
+    // for the pickKidForUpload step inside ingestImageAsset).
+    if (booting) return;
+    autoScreenshotRef.current = true;
+    // We bypass pickImageSource (Camera vs Library action sheet) and
+    // go straight to the library — the chip is screenshot-specific.
+    // ingestImageAsset handles kid-picking and upload internally.
+    (async () => {
+      const asset = await launchPicker('library');
+      if (!asset) return;
+      await ingestImageAsset(asset);
+    })();
+  }, [deepLinkScreenshot, booting]);
 
   // Chip tap → seed chat with a user message naming the app + an
   // assistant message containing the deterministic step list. Then

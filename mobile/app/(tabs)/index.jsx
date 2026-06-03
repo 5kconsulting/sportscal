@@ -121,11 +121,16 @@ export default function Calendar() {
     // Tapping deep-links into /setup with the app pre-selected so
     // the chat opens already on the step-list for that app.
     const calendarChips = [
-      { key: 'teamsnap',     label: 'TeamSnap'     },
-      { key: 'gamechanger',  label: 'GameChanger'  },
-      { key: 'playmetrics',  label: 'PlayMetrics'  },
-      { key: 'parentsquare', label: 'ParentSquare' },
-      { key: '__other__',    label: 'Other / PDF'  },
+      { key: 'teamsnap',     label: 'TeamSnap'                  },
+      { key: 'gamechanger',  label: 'GameChanger'               },
+      { key: 'playmetrics',  label: 'PlayMetrics'               },
+      { key: 'parentsquare', label: 'ParentSquare'              },
+      // Screenshot route — different shape from the app chips above
+      // (method-based, not app-based). Bypasses the tutorial router
+      // and jumps straight into the iOS photo library so the user
+      // doesn't waste taps if they already have the screenshot saved.
+      { key: '__screenshot__', label: 'Screenshot of a calendar' },
+      { key: '__other__',    label: 'Other / PDF'                },
     ];
     return (
       <View style={s.root}>
@@ -146,10 +151,17 @@ export default function Calendar() {
               onPress={() => {
                 // Route source chips through the tutorial player first;
                 // it plays the per-app screen-recording (if bundled) then
-                // auto-dismisses into /setup. For "Other / PDF" there's
-                // no app-specific tutorial — skip straight to /setup.
+                // auto-dismisses into /setup. Special-shape chips bypass
+                // the tutorial since they're method-based, not app-based.
                 if (chip.key === '__other__') {
                   router.push('/setup');
+                  return;
+                }
+                if (chip.key === '__screenshot__') {
+                  // setup.jsx watches for ?screenshot=1 and auto-fires the
+                  // photo-library picker on mount, skipping the chat intro
+                  // — the user already knows they want to send an image.
+                  router.push('/setup?screenshot=1');
                   return;
                 }
                 const next = encodeURIComponent(`/setup?app=${chip.key}`);
