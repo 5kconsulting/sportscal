@@ -1501,11 +1501,24 @@ function EmptyState({ hasSources }) {
 function groupByDay(events) {
   const groups = {};
   for (const e of events) {
-    const day = formatDay(new Date(e.starts_at));
+    const day = formatDayLabel(e.starts_at, e.all_day);
     if (!groups[day]) groups[day] = [];
     groups[day].push(e);
   }
   return groups;
+}
+
+// Bucket label for an event. Timed events use local-time date. All-day
+// events use UTC date components — the iCal source stores all-day events
+// as midnight UTC, and converting through local time would shift the day
+// back by 1 for anyone west of UTC (the bug Patton hit on iPhone where a
+// Saturday all-day baseball event showed up under Friday's "Today" header).
+function formatDayLabel(startsAt, allDay) {
+  const d = new Date(startsAt);
+  const local = allDay
+    ? new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+    : d;
+  return formatDay(local);
 }
 
 function formatDay(date) {

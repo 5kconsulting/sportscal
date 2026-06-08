@@ -70,19 +70,30 @@ export default function Calendar() {
     setRefreshing(false);
   }, [load]);
 
-  // Group events by YYYY-MM-DD so we can show date headers
+  // Group events by YYYY-MM-DD so we can show date headers. The date
+  // bucketing needs to match what the user expects to see, which differs
+  // between timed and all-day events:
+  //   • Timed event (e.g. "Saturday 9am Pacific"): bucket by the LOCAL
+  //     calendar date of the event's start moment.
+  //   • All-day event (e.g. iCal "DTSTART;VALUE=DATE:20260606"): the
+  //     calendar date IS the canonical value — there's no time zone
+  //     attached. node-ical parses these as midnight UTC, which a Pacific
+  //     user's `toDateString()` would render as the PREVIOUS day. So we
+  //     read the UTC date components directly to recover the intended date.
+  // Before this fix, both used UTC-truncated grouping (toISOString slice)
+  // but DayHeader used local-date for "Today"/"Tomorrow" — inconsistent,
+  // and all-day events shipped a day early everywhere west of UTC.
   const grouped = useMemo(() => {
     const byDay = {};
     for (const ev of events) {
-      const d = new Date(ev.starts_at);
-      const key = d.toISOString().slice(0, 10);
-      if (!byDay[key]) byDay[key] = { date: d, items: [] };
+      const key = displayDateKey(ev.starts_at, ev.all_day);
+      if (!byDay[key]) byDay[key] = { dateKey: key, items: [] };
       byDay[key].items.push(ev);
     }
     // Flatten into a list for FlatList with { type: 'header' | 'event' }
     const out = [];
     Object.keys(byDay).sort().forEach(k => {
-      out.push({ type: 'header', key: 'h-' + k, date: byDay[k].date });
+      out.push({ type: 'header', key: 'h-' + k, dateKey: byDay[k].dateKey });
       byDay[k].items.forEach(ev => out.push({ type: 'event', key: ev.id, event: ev }));
     });
     return out;
@@ -223,7 +234,7 @@ export default function Calendar() {
           </View>
         }
         renderItem={({ item }) => {
-          if (item.type === 'header') return <DayHeader date={item.date} />;
+          if (item.type === 'header') return <DayHeader dateKey={item.dateKey} />;
           return <EventCard event={item.event} overrides={overrides[item.event.id] || {}} />;
         }}
       />
@@ -231,14 +242,47 @@ export default function Calendar() {
   );
 }
 
-function DayHeader({ date }) {
+// Helpers for date-key math. We pass YYYY-MM-DD strings around (not Date
+// objects) because string comparison is unambiguous and dodges the all-day
+// timezone trap: an all-day event stored as midnight UTC would render as
+// the previous day for any user west of UTC if we converted it through a
+// local-Date round trip.
+function pad(n) { return String(n).padStart(2, '0'); }
+
+function localDateKey(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function utcDateKey(d) {
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
+// Canonical "bucket date" for an event:
+//   • All-day events → the UTC date components (which iCal stores as the
+//     intended calendar date, with no real time/zone meaning).
+//   • Timed events  → the LOCAL date of the start moment.
+function displayDateKey(startsAt, allDay) {
+  const d = new Date(startsAt);
+  return allDay ? utcDateKey(d) : localDateKey(d);
+}
+
+function DayHeader({ dateKey }) {
   const today = new Date();
-  const isToday = date.toDateString() === today.toDateString();
+  const todayKey = localDateKey(today);
   const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-  const isTomorrow = date.toDateString() === tomorrow.toDateString();
+  const tomorrowKey = localDateKey(tomorrow);
+
+  // Reconstruct a Date for pretty-printing (e.g. "Sat, Jun 6"). Building
+  // from local year/month/day means the resulting Date is at local midnight
+  // on the intended date — toLocaleDateString won't shift it.
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const displayDate = new Date(y, m - 1, d);
+
+  const isToday    = dateKey === todayKey;
+  const isTomorrow = dateKey === tomorrowKey;
   const label = isToday   ? 'Today'
               : isTomorrow ? 'Tomorrow'
-              : date.toLocaleDateString(undefined,
+              : displayDate.toLocaleDateString(undefined,
                   { weekday: 'short', month: 'short', day: 'numeric' });
   return (
     <View style={s.dayHeader}>
