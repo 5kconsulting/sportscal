@@ -136,7 +136,11 @@ export default function Signup() {
                 : <Text style={s.btnText}>Create account</Text>}
             </TouchableOpacity>
 
-            <Text style={s.freeNote}>Free plan: 2 family members and 2 sources.</Text>
+            {/* Plan reference removed for iOS App Store compliance with
+                3.1.1 — Apple flags ANY in-app mention of "Free plan"
+                because it implies a paid tier exists. Soft cap still
+                enforced server-side; users discover paid options on web. */}
+            <Text style={s.freeNote}>Get started with up to 2 kids and 2 calendars.</Text>
 
             <TouchableOpacity
               onPress={() => router.replace('/login')}

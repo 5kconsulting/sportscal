@@ -190,28 +190,14 @@ export default function Settings() {
         <Text style={s.sub}>{user?.email}</Text>
       </View>
 
-      <View style={s.section}>
-        <Text style={s.label}>Plan</Text>
-        <Text style={s.value}>
-          {user?.plan === 'premium' ? 'Premium' : 'Free'}
-        </Text>
-        {/* Apple App Store policy 3.1.1: in-app *purchase* of digital
-            subs requires IAP, but linking out to manage an existing plan
-            is allowed. The "Upgrade to Premium" wording was on the line
-            of "in-app purchase intent" — softened to "Manage your plan"
-            so the same string serves both Premium (cancel / change card)
-            and Free (view options / upgrade) users without inviting a
-            purchase from inside iOS. */}
-        <TouchableOpacity
-          onPress={() => Linking.openURL('https://www.sportscalapp.com/settings').catch(() => {})}
-          activeOpacity={0.7}
-          style={s.planManageBtn}
-        >
-          <Text style={s.planManageText}>
-            Manage your plan on the web →
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* Plan section removed for iOS App Store compliance with Guideline
+          3.1.1 (rejection 2026-06-09). Apple flags ANY in-app reference to
+          a paid plan — including a soft "Manage on the web" link — as
+          accessing digital content outside IAP. The premium features
+          (SMS notifications for ride requests) still work for users who
+          purchased on the web; we just don't surface ANY premium UI from
+          inside iOS. Spotify/Netflix pattern. To manage their subscription,
+          users sign in to sportscalapp.com directly. */}
 
       <TouchableOpacity
         style={s.setupBtn}
@@ -447,11 +433,6 @@ const s = StyleSheet.create({
   },
   feedCollapsedSub: { fontSize: 13, color: '#4a5670' },
   feedCollapsedChevron: { fontSize: 22, color: '#b8c4d8', fontWeight: '300', marginLeft: 8 },
-  planManageBtn: {
-    marginTop: 10, paddingTop: 8,
-    borderTopWidth: 1, borderTopColor: '#e8ecf4',
-  },
-  planManageText: { fontSize: 13, color: '#00d68f', fontWeight: '600' },
   setupBtn: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#0f1629', borderRadius: 12,

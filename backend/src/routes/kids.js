@@ -45,9 +45,12 @@ router.post('/',
       countUserKids(req.user.id),
     ]);
 
+    // iOS App Store 3.1.1 compliance — neutralized "Upgrade to add more"
+    // copy that Apple flagged on 2026-06-09. Web users still find purchase
+    // CTAs in Settings; the inline error just states the limit.
     if (count >= limits.max_kids) {
       return res.status(403).json({
-        error: `Your ${req.user.plan} plan supports up to ${limits.max_kids} kids. Upgrade to add more.`,
+        error: `You've reached the limit of ${limits.max_kids} kids. Remove one to add a new one.`,
         limit: limits.max_kids,
         current: count,
       });

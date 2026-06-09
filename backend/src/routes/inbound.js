@@ -449,7 +449,10 @@ router.post('/mail', async (req, res) => {
     for (const r of urlFailed) {
       const why =
         r.reason === 'plan-limit'
-          ? `you've hit your ${r.limits?.max_sources}-source plan limit — upgrade to add more`
+          // iOS 3.1.1 compliance: no "upgrade" wording, since this email
+          // can be read on the iPhone Mail app and surface in-app-equivalent
+          // purchase intent. Neutral phrasing for everyone.
+          ? `you've reached the limit of ${r.limits?.max_sources} calendars`
           : r.reason === 'not-a-calendar-url'
             ? 'that URL didn\'t look like a calendar feed'
             : (r.message || 'unexpected error');

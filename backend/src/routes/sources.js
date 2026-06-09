@@ -160,9 +160,14 @@ router.post('/',
       countUserSources(req.user.id),
     ]);
 
+    // The iOS App Store flagged any in-app upsell copy (rejection
+    // 2026-06-09 under Guideline 3.1.1) — the error used to say
+    // "Upgrade to add more", which Apple read as purchase intent outside
+    // StoreKit. Now neutral: tell the user they hit the limit. Web users
+    // discover purchase via Settings → Premium on their own.
     if (count >= limits.max_sources) {
       return res.status(403).json({
-        error: `Your ${req.user.plan} plan supports up to ${limits.max_sources} sources. Upgrade to add more.`,
+        error: `You've reached the limit of ${limits.max_sources} calendars. Remove one to add a new one.`,
         limit: limits.max_sources,
         current: count,
       });
