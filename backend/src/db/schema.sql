@@ -339,6 +339,37 @@ CREATE INDEX IF NOT EXISTS event_overrides_event_idx ON event_overrides(event_id
 CREATE INDEX IF NOT EXISTS event_overrides_user_idx  ON event_overrides(user_id);
 
 -- ============================================================
+-- HIDDEN_EVENTS — per-user, per-source "Remove from SportsCal"
+-- Keyed on (user_id, source_id, source_uid) so the hide survives
+-- iCal feed refreshes — the events table is rebuilt every 5 min by
+-- the worker, but source_uid is the stable iCal UID, so we re-apply
+-- the hide on each refresh by JOINing this table.
+--
+-- Use case: a shared TeamSnap account that has both JV and Varsity
+-- games in one feed. The parent only follows one. Without this they'd
+-- have to filter mentally on every glance.
+--
+-- We snapshot the title + starts_at at hide-time so the management
+-- screen can show "Junior Varsity vs Tigard" instead of an opaque UID
+-- — the underlying event row may have been deleted by the worker
+-- (upstream removed it) but the hide should still be inspectable.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS hidden_events (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  source_id       UUID NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+  source_uid      TEXT NOT NULL,
+  hidden_title    TEXT,
+  hidden_starts_at TIMESTAMPTZ,
+  hidden_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, source_id, source_uid)
+);
+
+CREATE INDEX IF NOT EXISTS hidden_events_user_idx ON hidden_events(user_id);
+CREATE INDEX IF NOT EXISTS hidden_events_lookup_idx
+  ON hidden_events(user_id, source_id, source_uid);
+
+-- ============================================================
 -- INGESTIONS
 -- One row per uploaded blob (PDF today, email/photo later).
 -- Tracks the extraction lifecycle and the LLM's output until

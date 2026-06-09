@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { query as dbQuery, queryOne } from '../db/index.js';
+import { query as dbQuery, queryOne, hideEvent, unhideEvent, getHiddenEvents } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
@@ -51,7 +51,12 @@ router.get('/', async (req, res) => {
      JOIN sources s ON s.id = e.source_id
      LEFT JOIN kid_sources ks ON ks.source_id = e.source_id
      LEFT JOIN kids k ON k.id = ks.kid_id
+     LEFT JOIN hidden_events he
+       ON he.user_id    = e.user_id
+      AND he.source_id  = e.source_id
+      AND he.source_uid = e.source_uid
      WHERE e.user_id = $1
+       AND he.id IS NULL
        -- Keep events visible through their effective end. ends_at if set,
        -- or starts_at+24h for all-day, or starts_at+2h for untimed events.
        AND CASE
@@ -83,7 +88,12 @@ router.get('/today', async (req, res) => {
      JOIN sources s ON s.id = e.source_id
      LEFT JOIN kid_sources ks ON ks.source_id = e.source_id
      LEFT JOIN kids k ON k.id = ks.kid_id
+     LEFT JOIN hidden_events he
+       ON he.user_id    = e.user_id
+      AND he.source_id  = e.source_id
+      AND he.source_uid = e.source_uid
      WHERE e.user_id = $1
+       AND he.id IS NULL
        AND e.starts_at::date = NOW()::date
      GROUP BY e.id, s.name, s.app
      ORDER BY e.starts_at`,
@@ -91,6 +101,41 @@ router.get('/today', async (req, res) => {
   );
 
   res.json({ events, count: events.length });
+});
+
+// ============================================================
+// GET /api/events/hidden
+// List events the user has hidden via "Remove from SportsCal".
+// Used by the Settings → Hidden events management screen.
+// MUST be declared BEFORE GET /:id or Express will route /hidden
+// into the parameterized handler.
+// ============================================================
+router.get('/hidden', async (req, res) => {
+  const hidden = await getHiddenEvents(req.user.id);
+  res.json({ hidden, count: hidden.length });
+});
+
+// ============================================================
+// DELETE /api/events/hidden/:id
+// Un-hide. Restores the event to the user's calendar on next render.
+// Returns 204 even if the hidden row doesn't exist — DELETE is idempotent.
+// ============================================================
+router.delete('/hidden/:id', async (req, res) => {
+  await unhideEvent(req.params.id, req.user.id);
+  res.status(204).end();
+});
+
+// ============================================================
+// DELETE /api/events/:id
+// "Remove from SportsCal." Soft-hides the event by inserting into
+// hidden_events keyed on source_uid — so the hide survives the next
+// iCal feed refresh, which would otherwise drop+re-insert the row.
+// Returns 404 if the event doesn't exist (or belongs to another user).
+// ============================================================
+router.delete('/:id', async (req, res) => {
+  const hidden = await hideEvent(req.params.id, req.user.id);
+  if (!hidden) return res.status(404).json({ error: 'Event not found' });
+  res.json({ hidden });
 });
 
 // ============================================================

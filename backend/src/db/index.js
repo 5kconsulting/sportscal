@@ -585,7 +585,12 @@ export async function getUpcomingEvents(userId, { days = 30, kidId } = {}) {
     `SELECT e.*, s.name AS source_name, s.app
      FROM events e
      JOIN sources s ON s.id = e.source_id
+     LEFT JOIN hidden_events he
+       ON he.user_id    = e.user_id
+      AND he.source_id  = e.source_id
+      AND he.source_uid = e.source_uid
      WHERE e.user_id = $1
+       AND he.id IS NULL
        AND CASE
              WHEN e.ends_at IS NOT NULL THEN e.ends_at
              WHEN e.all_day            THEN e.starts_at + INTERVAL '1 day'
@@ -595,6 +600,57 @@ export async function getUpcomingEvents(userId, { days = 30, kidId } = {}) {
        ${kidFilter}
      ORDER BY e.starts_at`,
     params
+  );
+}
+
+// ============================================================
+// HIDDEN EVENTS
+// ============================================================
+
+// Mark an event as hidden for this user. Returns the hidden_events row.
+// We look up the event to grab source_id + source_uid + title snapshot,
+// then UPSERT so re-hiding a re-appeared event doesn't fail. Returns null
+// if the event doesn't exist or doesn't belong to the user.
+export async function hideEvent(eventId, userId) {
+  const event = await queryOne(
+    `SELECT id, source_id, source_uid, raw_title, starts_at
+     FROM events WHERE id = $1 AND user_id = $2`,
+    [eventId, userId]
+  );
+  if (!event) return null;
+  return queryOne(
+    `INSERT INTO hidden_events (user_id, source_id, source_uid, hidden_title, hidden_starts_at)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (user_id, source_id, source_uid)
+     DO UPDATE SET hidden_title = EXCLUDED.hidden_title,
+                   hidden_starts_at = EXCLUDED.hidden_starts_at,
+                   hidden_at = NOW()
+     RETURNING *`,
+    [userId, event.source_id, event.source_uid, event.raw_title, event.starts_at]
+  );
+}
+
+// List a user's currently-hidden events, newest first. We snapshotted
+// title + starts_at at hide-time so this works even if the upstream feed
+// has since dropped the events.
+export async function getHiddenEvents(userId) {
+  return query(
+    `SELECT he.*, s.name AS source_name, s.app
+     FROM hidden_events he
+     JOIN sources s ON s.id = he.source_id
+     WHERE he.user_id = $1
+     ORDER BY he.hidden_at DESC`,
+    [userId]
+  );
+}
+
+// Un-hide. We key by the hidden_events row id (NOT the event id) so the
+// management screen can call this without needing to look up the original
+// event — which may have been deleted from the upstream feed.
+export async function unhideEvent(hiddenId, userId) {
+  return query(
+    `DELETE FROM hidden_events WHERE id = $1 AND user_id = $2`,
+    [hiddenId, userId]
   );
 }
 
