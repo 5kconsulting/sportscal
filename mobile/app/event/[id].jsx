@@ -24,6 +24,34 @@ export default function EventDetail() {
   const [error, setError]         = useState('');
   const [savingRole, setSavingRole] = useState(null); // 'pickup' | 'dropoff' | null
   const [savingKidId, setSavingKidId] = useState(null);
+  const [removing, setRemoving] = useState(false);
+
+  // "Remove from SportsCal" — soft-hides this event for this user. The
+  // backend keys the hide on source_uid (not events.id) so it survives
+  // the next iCal feed refresh, which UPSERTs and would otherwise un-hide.
+  function confirmRemove() {
+    Alert.alert(
+      'Remove from SportsCal?',
+      `"${event?.display_title || event?.raw_title || 'This event'}" will be hidden from your calendar. The original stays in the source app. Restore from Settings → Hidden events.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setRemoving(true);
+            try {
+              await api.del(`/api/events/${id}`);
+              router.back();
+            } catch (err) {
+              Alert.alert('Could not remove', err.message || 'Try again.');
+              setRemoving(false);
+            }
+          },
+        },
+      ],
+    );
+  }
 
   const load = useCallback(async () => {
     setError('');
@@ -414,6 +442,29 @@ export default function EventDetail() {
             onClear={() => clearRole('dropoff')}
           />
         </View>
+
+        {/* Remove from SportsCal — destructive, last in the scroll so it
+            doesn't get tapped by accident. Server-side soft-hides the
+            event keyed on source_uid so the next feed refresh won't
+            re-create it. Manage hidden events via Settings → Hidden events. */}
+        <View style={s.section}>
+          <TouchableOpacity
+            style={s.removeBtn}
+            onPress={confirmRemove}
+            activeOpacity={0.8}
+            disabled={removing}
+          >
+            {removing ? (
+              <ActivityIndicator color="#ef4444" />
+            ) : (
+              <Text style={s.removeBtnText}>Remove from SportsCal</Text>
+            )}
+          </TouchableOpacity>
+          <Text style={s.removeHelp}>
+            Hides this event from your calendar. The original stays in the
+            source app. Restore from Settings → Hidden events.
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -526,6 +577,14 @@ const s = StyleSheet.create({
   description: { fontSize: 14, color: '#4a5670', lineHeight: 21 },
 
   sectionHint: { fontSize: 12, color: '#8896b0', marginTop: -4, marginBottom: 10, lineHeight: 16 },
+  removeBtn: {
+    paddingVertical: 14, borderRadius: 10,
+    borderWidth: 1, borderColor: '#ef4444',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  removeBtnText: { color: '#ef4444', fontSize: 15, fontWeight: '600' },
+  removeHelp: { fontSize: 12, color: '#8896b0', marginTop: 8, lineHeight: 16, textAlign: 'center' },
   kidDot:  { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
   kidAttendRow: {
     flexDirection: 'row', alignItems: 'center',

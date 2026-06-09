@@ -241,6 +241,20 @@ export default function Settings() {
         <Text style={s.manageChevron}>›</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={s.manageBtn}
+        onPress={() => router.push('/settings/hidden')}
+        activeOpacity={0.7}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={s.manageTitle}>Hidden events</Text>
+          <Text style={s.manageSub}>
+            Events you removed from SportsCal. Restore any you want back.
+          </Text>
+        </View>
+        <Text style={s.manageChevron}>›</Text>
+      </TouchableOpacity>
+
       {inboundAddress ? (
         <View style={s.section}>
           <Text style={s.label}>Forward emails to add a calendar</Text>

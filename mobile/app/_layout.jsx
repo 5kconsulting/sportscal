@@ -132,6 +132,12 @@ function AuthGate() {
         name="setup"
         options={{ presentation: 'modal', headerShown: false }}
       />
+      {/* Hidden events management — Settings entry. Modal presentation so
+          the back arrow returns to Settings without remounting the tab. */}
+      <Stack.Screen
+        name="settings/hidden"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
       {/* Tutorial video player — fullScreenModal so it fills the whole
           screen and the underlying nav doesn't peek through during
           playback. router.replace's into the next route on video end. */}
