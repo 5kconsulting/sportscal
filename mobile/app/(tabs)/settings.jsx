@@ -190,14 +190,27 @@ export default function Settings() {
         <Text style={s.sub}>{user?.email}</Text>
       </View>
 
-      {/* Plan section removed for iOS App Store compliance with Guideline
-          3.1.1 (rejection 2026-06-09). Apple flags ANY in-app reference to
-          a paid plan — including a soft "Manage on the web" link — as
-          accessing digital content outside IAP. The premium features
-          (SMS notifications for ride requests) still work for users who
-          purchased on the web; we just don't surface ANY premium UI from
-          inside iOS. Spotify/Netflix pattern. To manage their subscription,
-          users sign in to sportscalapp.com directly. */}
+      {/* SportsCal Premium — opens the StoreKit-backed IAP screen.
+          After 3.1.1 rejection round 2 (2026-06-10) the only compliant
+          path is in-app purchase via StoreKit + RevenueCat. The screen
+          itself handles the "already subscribed" state, so showing it
+          unconditionally is fine. */}
+      <TouchableOpacity
+        style={s.upgradeBtn}
+        onPress={() => router.push('/upgrade')}
+        activeOpacity={0.85}
+      >
+        <View style={s.upgradeIcon}>
+          <Text style={s.upgradeIconText}>✨</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.upgradeTitle}>SportsCal Premium</Text>
+          <Text style={s.upgradeSub}>
+            Unlimited kids & calendars, SMS ride requests, weekly digest.
+          </Text>
+        </View>
+        <Text style={s.upgradeChevron}>›</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={s.setupBtn}
@@ -433,6 +446,21 @@ const s = StyleSheet.create({
   },
   feedCollapsedSub: { fontSize: 13, color: '#4a5670' },
   feedCollapsedChevron: { fontSize: 22, color: '#b8c4d8', fontWeight: '300', marginLeft: 8 },
+  upgradeBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fff', borderRadius: 12,
+    borderWidth: 1.5, borderColor: '#00d68f',
+    padding: 14, marginHorizontal: 16, marginVertical: 8,
+  },
+  upgradeIcon: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#f0fbf6', alignItems: 'center', justifyContent: 'center',
+    marginRight: 12,
+  },
+  upgradeIconText: { fontSize: 22 },
+  upgradeTitle:    { fontSize: 16, fontWeight: '700', color: '#0f1629' },
+  upgradeSub:      { fontSize: 12, color: '#5b6478', marginTop: 3, lineHeight: 17 },
+  upgradeChevron:  { fontSize: 22, color: '#00d68f', marginLeft: 8, fontWeight: '300' },
   setupBtn: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#0f1629', borderRadius: 12,

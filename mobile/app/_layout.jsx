@@ -7,6 +7,7 @@ import { ShareIntentProvider, useShareIntentContext } from 'expo-share-intent';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { requestTrackingPermission } from '../lib/analytics';
 import { subscribeToNotificationTaps } from '../lib/push';
+import { configureIap, logOutIap } from '../lib/iap';
 
 function AuthGate() {
   const { user, loading } = useAuth();
@@ -28,10 +29,36 @@ function AuthGate() {
   // after the user has seen the brand splash + login screen, which
   // satisfies Apple's "in context" expectation. requestTrackingPermission
   // dedupes per-process, so this useEffect is safe to fire repeatedly.
+  //
+  // The 1500ms delay lets iOS finish any pending navigation/animation
+  // before queueing the ATT prompt — without it, the prompt can get
+  // swallowed when the app transitions from login → tabs in the same
+  // frame. Apple's reviewer flagged "permission request not appearing
+  // on iPadOS 26.5" in rejection 2026-06-10; this delay is the most
+  // common root cause + fix per Apple's own developer forums.
   useEffect(() => {
     if (loading) return;
-    requestTrackingPermission();
+    const t = setTimeout(() => {
+      requestTrackingPermission().then((status) => {
+        console.log('[att] requestTrackingPermission resolved:', status);
+      });
+    }, 1500);
+    return () => clearTimeout(t);
   }, [loading]);
+
+  // Configure RevenueCat once auth resolves. Passing user.id lets RC
+  // identify the same user across devices — and merge any prior Stripe
+  // purchases if RC's Stripe import is wired up server-side. On sign-out
+  // we call logOutIap so the next sign-in starts fresh entitlement state.
+  useEffect(() => {
+    if (loading) return;
+    if (user?.id) {
+      configureIap(user.id);
+    } else {
+      // No user — make sure RC isn't holding the prior user's identity.
+      logOutIap();
+    }
+  }, [loading, user?.id]);
 
   useEffect(() => {
     if (loading) return;
@@ -136,6 +163,12 @@ function AuthGate() {
           the back arrow returns to Settings without remounting the tab. */}
       <Stack.Screen
         name="settings/hidden"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
+      {/* Premium upgrade — modal so dismiss returns user to where they
+          were (Settings, a paywall trigger, etc.) without re-mounting. */}
+      <Stack.Screen
+        name="upgrade"
         options={{ presentation: 'modal', headerShown: false }}
       />
       {/* Tutorial video player — fullScreenModal so it fills the whole

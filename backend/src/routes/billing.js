@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import express from 'express';
 import Stripe from 'stripe';
 import { requireAuth } from '../middleware/auth.js';
 import { query, queryOne, getUserById } from '../db/index.js';
@@ -204,5 +205,93 @@ async function activatePremium(customerId, subscriptionId) {
   );
   console.log('[billing] activated premium for customer:', customerId, 'interval:', interval);
 }
+
+// ============================================================
+// POST /api/billing/revenuecat/webhook
+//
+// RevenueCat sends webhooks for every iOS in-app purchase event:
+// INITIAL_PURCHASE, RENEWAL, CANCELLATION, EXPIRATION, PRODUCT_CHANGE,
+// TRANSFER, BILLING_ISSUE, etc. We treat any event that leaves the user
+// with an active "premium" entitlement as plan='premium' (with the
+// expiry mirrored into plan_expires_at), and any event that leaves the
+// entitlement inactive as plan='free'.
+//
+// app_user_id on the event matches the userId we passed to RevenueCat.configure
+// on the mobile side (which is our internal users.id UUID).
+//
+// Auth: RevenueCat dashboard lets you set an Authorization header sent
+// with every webhook. Configure REVENUECAT_WEBHOOK_AUTH in Railway env
+// to whatever string you set there; we just compare equality.
+//
+// PUBLIC route — no requireAuth — RevenueCat doesn't have a session.
+// ============================================================
+router.post('/revenuecat/webhook', express.json(), async (req, res) => {
+  const expected = process.env.REVENUECAT_WEBHOOK_AUTH;
+  if (!expected || req.headers.authorization !== expected) {
+    console.warn('[revenuecat] webhook auth failed');
+    return res.status(401).end();
+  }
+
+  // RevenueCat payload shape: { event: { type, app_user_id,
+  //   entitlement_ids[], expiration_at_ms, product_id, ... } }
+  const event = req.body?.event;
+  if (!event) return res.status(400).json({ error: 'No event payload' });
+
+  const userId   = event.app_user_id;
+  const type     = event.type;
+  const entIds   = event.entitlement_ids || [];
+  const expMs    = event.expiration_at_ms;
+  const productId = event.product_id || null;
+
+  // Validate user exists (RevenueCat may send a stale app_user_id if the
+  // user was deleted; just no-op rather than 500).
+  const user = await queryOne(`SELECT id FROM users WHERE id = $1`, [userId]);
+  if (!user) {
+    console.warn('[revenuecat] unknown app_user_id, ignoring:', userId);
+    return res.status(200).json({ ok: true, ignored: true });
+  }
+
+  // Entitlement-active events vs entitlement-inactive events.
+  // The official RC docs list these as "ACTIVE" / "INACTIVE" lifecycle
+  // markers; we just check if the premium entitlement is in the list.
+  const grantsPremium = entIds.includes('premium') &&
+    ['INITIAL_PURCHASE','RENEWAL','PRODUCT_CHANGE','TRANSFER','UNCANCELLATION']
+      .includes(type);
+
+  const revokesPremium =
+    ['CANCELLATION','EXPIRATION','REFUND','SUBSCRIPTION_PAUSED']
+      .includes(type);
+
+  if (grantsPremium) {
+    const expiresAt = expMs ? new Date(expMs) : null;
+    await query(
+      `UPDATE users
+          SET plan = 'premium',
+              apple_product_id = $1,
+              plan_expires_at = $2
+        WHERE id = $3`,
+      [productId, expiresAt, userId]
+    );
+    console.log('[revenuecat] premium granted to', userId, 'via', type);
+  } else if (revokesPremium) {
+    // Cancellation just stops auto-renewal — the subscription remains
+    // active until expiration. Only EXPIRATION/REFUND should flip the
+    // plan back; CANCELLATION just leaves the expiration date in place
+    // and lets the cron OR the next entitlement check downgrade later.
+    if (type === 'EXPIRATION' || type === 'REFUND') {
+      await query(
+        `UPDATE users SET plan = 'free', plan_expires_at = NULL WHERE id = $1`,
+        [userId]
+      );
+      console.log('[revenuecat] premium revoked from', userId, 'via', type);
+    } else {
+      console.log('[revenuecat]', type, 'received — leaving active subscription until expiration');
+    }
+  } else {
+    console.log('[revenuecat] unhandled event type:', type);
+  }
+
+  res.json({ ok: true });
+});
 
 export default router;

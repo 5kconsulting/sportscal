@@ -735,3 +735,11 @@ ALTER TABLE push_tokens ADD  CONSTRAINT push_tokens_platform_check
 -- until a settings screen lands. The nightly-digest scheduler joins
 -- on this flag.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS push_enabled BOOLEAN NOT NULL DEFAULT false;
+
+-- RevenueCat-driven iOS in-app purchase tracking. Stripe-driven web
+-- purchases continue to set stripe_subscription_id; an iOS user has
+-- apple_product_id instead. plan_expires_at is shared (set by whichever
+-- channel granted the entitlement). A user can never be subscribed via
+-- both channels at once because RC's product detection routes through
+-- the single users.id.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS apple_product_id TEXT;
