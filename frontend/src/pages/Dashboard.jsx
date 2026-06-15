@@ -783,9 +783,21 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogist
   const [logistics, setLogistics] = useState(initialLogistics);
   const [overrides, setOverrides] = useState(eventOverrides);
 
-  // Sync overrides when the parent loads them asynchronously
+  // Sync overrides when the parent loads them asynchronously.
+  //
+  // Guard against clobbering local optimistic state with an empty/stale
+  // prop. The parent passes `allOverrides[event.id] || {}` — a fresh `{}`
+  // literal each render until the parent's fetch lands. Before the fix,
+  // every parent re-render during in-flight load would reset this card's
+  // overrides to `{}`, dropping any "not going" marks until the user
+  // re-tapped the row to trigger toggleAttendance's explicit re-fetch.
+  // We only overwrite when the parent has actual data; an empty prop is
+  // ambiguous (could mean "no overrides" OR "haven't loaded yet"), so we
+  // leave local state alone in that case.
   useEffect(() => {
-    setOverrides(eventOverrides);
+    if (Object.keys(eventOverrides).length > 0) {
+      setOverrides(eventOverrides);
+    }
   }, [eventOverrides]);
 
   // Sync logistics when the parent's bulk fetch completes (or refreshes
