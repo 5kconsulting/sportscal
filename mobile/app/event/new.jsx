@@ -25,6 +25,12 @@ export default function NewEvent() {
 
   const [title, setTitle]     = useState('');
   const [allDay, setAllDay]   = useState(false);
+  // Whether this event goes into the family iCal feed. Default true
+  // (shared) matches behavior before the column existed and matches
+  // the common case of adding a soccer practice that the whole family
+  // needs to see. Toggle off for personal stuff — doctor visits,
+  // date nights — that should stay in SportsCal only.
+  const [shareWithFamily, setShareWithFamily] = useState(true);
   // Default the date to "now rounded up to the next half hour" so the
   // first-screen state is a plausible event the user just nudges, not
   // 12:00am today which is never what they want.
@@ -95,6 +101,7 @@ export default function NewEvent() {
         all_day:   allDay,
         kid_ids:   kidIds,
         recurrence: 'none',
+        is_private: !shareWithFamily,
       });
       router.back();
     } catch (err) {
@@ -260,6 +267,24 @@ export default function NewEvent() {
             </>
           )}
 
+          <View style={s.allDayRow}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={s.allDayLabel}>Share with family</Text>
+              <Text style={s.shareHint}>
+                {shareWithFamily
+                  ? "Adds to the calendar feed your family subscribes to."
+                  : "Personal — visible only in your SportsCal app."}
+              </Text>
+            </View>
+            <Switch
+              value={shareWithFamily}
+              onValueChange={setShareWithFamily}
+              trackColor={{ false: '#d9dfe9', true: '#00d68f' }}
+              thumbColor="#ffffff"
+              ios_backgroundColor="#d9dfe9"
+            />
+          </View>
+
           <TouchableOpacity
             style={[s.saveBtn, saving && { opacity: 0.6 }]}
             onPress={handleSave}
@@ -364,6 +389,7 @@ const s = StyleSheet.create({
     marginTop: 14,
   },
   allDayLabel: { fontSize: 15, color: '#0f1629', fontWeight: '500' },
+  shareHint:   { fontSize: 12, color: '#5b6478', marginTop: 2, lineHeight: 16 },
 
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {

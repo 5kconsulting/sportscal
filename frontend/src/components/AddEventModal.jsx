@@ -27,6 +27,9 @@ export function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) 
     recurrence:        'none',
     recurrence_days:   [],
     recurrence_until:  '',
+    // Default to shared (matches behavior before is_private existed).
+    // When editing an existing event, preserve its current value.
+    is_private:  existingEvent?.is_private || false,
   });
 
   const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -214,6 +217,31 @@ export function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) 
                   required />
               </div>
             </>
+          )}
+
+          {!isEditing && (
+            <div className="field" style={{
+              background: 'var(--off-white)', borderRadius: 8, padding: '10px 12px',
+              display: 'flex', alignItems: 'flex-start', gap: 10,
+            }}>
+              <input
+                id="is_private"
+                type="checkbox"
+                checked={!form.is_private}
+                onChange={e => setField('is_private', !e.target.checked)}
+                style={{ marginTop: 3, width: 16, height: 16, accentColor: 'var(--accent)', cursor: 'pointer' }}
+              />
+              <label htmlFor="is_private" style={{ flex: 1, cursor: 'pointer' }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--navy)' }}>
+                  Share with family
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--slate)', marginTop: 2, lineHeight: 1.4 }}>
+                  {form.is_private
+                    ? 'Personal — visible only to you in SportsCal.'
+                    : 'Adds to the calendar feed your family subscribes to.'}
+                </div>
+              </label>
+            </div>
           )}
 
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>

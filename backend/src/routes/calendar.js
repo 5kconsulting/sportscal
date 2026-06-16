@@ -59,8 +59,9 @@ router.get('/:token.ics', feedLimiter, async (req, res) => {
       .send(cache.ical_content);
   }
 
-  // Build fresh .ics — apply attendance overrides
-  const events = await getUpcomingEvents(user.id, { days: 90 });
+  // Build fresh .ics — apply attendance overrides. excludePrivate=true
+  // keeps user-marked private events out of the family-shared feed.
+  const events = await getUpcomingEvents(user.id, { days: 90, excludePrivate: true });
 
   // Fetch all overrides for this user in one query
   const overrides = await query(
@@ -148,8 +149,9 @@ router.get('/kid/:token.ics', feedLimiter, async (req, res) => {
   }
 
   // Filter events to just this kid via getUpcomingEvents' kidId
-  // option (which joins through kid_sources).
-  const events = await getUpcomingEvents(kid.user_id, { days: 90, kidId: kid.id });
+  // option (which joins through kid_sources). excludePrivate=true keeps
+  // owner-marked private events out of the per-kid feed too.
+  const events = await getUpcomingEvents(kid.user_id, { days: 90, kidId: kid.id, excludePrivate: true });
 
   // Apply this-kid attendance overrides only — if the kid is
   // marked not-attending for an event, drop it entirely from

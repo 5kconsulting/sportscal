@@ -553,8 +553,13 @@ export function filterKidsByEventTitle(kids, rawTitle) {
 //   - starts_at + 2 hours otherwise.
 // This keeps long events (track meets, tournaments) visible during the event,
 // not just before it starts.
-export async function getUpcomingEvents(userId, { days = 30, kidId } = {}) {
+export async function getUpcomingEvents(userId, { days = 30, kidId, excludePrivate = false } = {}) {
   const params = [userId, days];
+  // Per-event share flag — set by the user when creating a manual event.
+  // The iCal feed routes pass excludePrivate=true so personal events stay
+  // out of the .ics file the spouse subscribes to. The in-app calendar
+  // list passes false so the owner still sees their own private events.
+  const privateFilter = excludePrivate ? 'AND e.is_private = false' : '';
   // When filtering by kid, mirror the in-app filterKidsByEventTitle()
   // semantics in SQL: this kid is on event e2 if EITHER their
   // kid_sources row has NULL title_contains (always-on), OR the
@@ -598,6 +603,7 @@ export async function getUpcomingEvents(userId, { days = 30, kidId } = {}) {
            END >= NOW()
        AND e.starts_at <= NOW() + ($2 || ' days')::INTERVAL
        ${kidFilter}
+       ${privateFilter}
      ORDER BY e.starts_at`,
     params
   );

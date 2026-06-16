@@ -63,6 +63,7 @@ router.post('/',
     body('recurrence').optional({ nullable: true }).isIn(['none', 'weekly', 'biweekly', 'monthly']),
     body('recurrence_days').optional().isArray(),
     body('recurrence_until').optional({ nullable: true }).isISO8601(),
+    body('is_private').optional().isBoolean(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -109,12 +110,13 @@ router.post('/',
       const event = await queryOne(
         `INSERT INTO events
            (user_id, source_id, source_uid, raw_title, display_title,
-            location, description, starts_at, ends_at, all_day, content_hash, last_seen_at, recurrence_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW(),$12)
+            location, description, starts_at, ends_at, all_day, content_hash, last_seen_at, recurrence_id, is_private)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW(),$12,$13)
          RETURNING *`,
         [req.user.id, source.id, sourceUid, instance.rawTitle, instance.displayTitle,
          instance.location, instance.description,
-         instance.startsAt, instance.endsAt, instance.allDay, contentHash, recurrenceId]
+         instance.startsAt, instance.endsAt, instance.allDay, contentHash, recurrenceId,
+         req.body.is_private === true]
       );
       createdEvents.push(event);
     }

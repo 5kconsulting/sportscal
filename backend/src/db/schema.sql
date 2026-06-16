@@ -286,6 +286,12 @@ CREATE TABLE IF NOT EXISTS events (
 
 -- Columns added after initial deploy
 ALTER TABLE events ADD COLUMN IF NOT EXISTS recurrence_id UUID;
+-- Per-event share flag. true = personal (excluded from the iCal feed
+-- a spouse/family member subscribes to). false = shared (default,
+-- matches behavior before this column existed). The flag only affects
+-- the iCal feed — the SportsCal app itself always shows the owner's
+-- private events.
+ALTER TABLE events ADD COLUMN IF NOT EXISTS is_private BOOLEAN NOT NULL DEFAULT false;
 
 CREATE INDEX IF NOT EXISTS events_user_id_idx ON events(user_id);
 CREATE INDEX IF NOT EXISTS events_source_id_idx ON events(source_id);
