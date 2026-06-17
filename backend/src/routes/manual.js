@@ -131,7 +131,31 @@ router.post('/',
     }
 
     await invalidateFeedCache(req.user.id);
-    res.status(201).json({ event: createdEvents[0], count: createdEvents.length });
+
+    // Re-fetch the newly created events through the same JOIN /
+    // aggregation shape that GET /events returns. The bare row from
+    // INSERT ... RETURNING * is missing source_app, source_name, and
+    // the kids array, which the dashboard's EventCard relies on for
+    // its Edit / Delete / "Going" buttons. Without this, the new event
+    // renders with no avatars and no manual-event controls until the
+    // user reloads. See https://… (Caleb cat-care repro 2026-06-16).
+    const eventIds = createdEvents.map(e => e.id);
+    const enriched = await query(
+      `SELECT e.*, s.name AS source_name, s.app AS source_app,
+              json_agg(
+                json_build_object('id', k.id, 'name', k.name, 'color', k.color)
+              ) FILTER (WHERE k.id IS NOT NULL) AS kids
+         FROM events e
+         JOIN sources s ON s.id = e.source_id
+         LEFT JOIN kid_sources ks ON ks.source_id = e.source_id
+         LEFT JOIN kids k ON k.id = ks.kid_id
+        WHERE e.id = ANY($1::uuid[])
+        GROUP BY e.id, s.name, s.app
+        ORDER BY e.starts_at`,
+      [eventIds]
+    );
+
+    res.status(201).json({ event: enriched[0], count: enriched.length });
   }
 );
 
