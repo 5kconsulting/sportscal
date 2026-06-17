@@ -267,23 +267,42 @@ export default function NewEvent() {
             </>
           )}
 
-          <View style={s.allDayRow}>
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={s.allDayLabel}>Share with family</Text>
-              <Text style={s.shareHint}>
-                {shareWithFamily
-                  ? "Adds to the calendar feed your family subscribes to."
-                  : "Personal — visible only in your SportsCal app."}
-              </Text>
-            </View>
-            <Switch
-              value={shareWithFamily}
-              onValueChange={setShareWithFamily}
-              trackColor={{ false: '#d9dfe9', true: '#00d68f' }}
-              thumbColor="#ffffff"
-              ios_backgroundColor="#d9dfe9"
-            />
-          </View>
+          {/* Derive the names of the currently-selected kids to label
+              the "only show in <kid>'s calendar" state. Falls back to a
+              generic phrase before the user picks any kid. */}
+          {(() => {
+            const selectedNames = kids
+              .filter(k => kidIds.includes(k.id))
+              .map(k => k.name);
+            const possessive = selectedNames.length === 0
+              ? "your kid's"
+              : selectedNames.length === 1
+                ? `${selectedNames[0]}'s`
+                : selectedNames.length === 2
+                  ? `${selectedNames[0]} and ${selectedNames[1]}'s`
+                  : `${selectedNames.slice(0, -1).join(', ')}, and ${selectedNames.slice(-1)[0]}'s`;
+            return (
+              <View style={s.allDayRow}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={s.allDayLabel}>
+                    {shareWithFamily ? 'Share with family' : `Only show in ${possessive} calendar`}
+                  </Text>
+                  <Text style={s.shareHint}>
+                    {shareWithFamily
+                      ? 'Adds to the calendar feed your family subscribes to.'
+                      : `Stays out of the family feed but still appears in ${possessive} per-kid feed.`}
+                  </Text>
+                </View>
+                <Switch
+                  value={shareWithFamily}
+                  onValueChange={setShareWithFamily}
+                  trackColor={{ false: '#d9dfe9', true: '#00d68f' }}
+                  thumbColor="#ffffff"
+                  ios_backgroundColor="#d9dfe9"
+                />
+              </View>
+            );
+          })()}
 
           <TouchableOpacity
             style={[s.saveBtn, saving && { opacity: 0.6 }]}

@@ -149,9 +149,12 @@ router.get('/kid/:token.ics', feedLimiter, async (req, res) => {
   }
 
   // Filter events to just this kid via getUpcomingEvents' kidId
-  // option (which joins through kid_sources). excludePrivate=true keeps
-  // owner-marked private events out of the per-kid feed too.
-  const events = await getUpcomingEvents(kid.user_id, { days: 90, kidId: kid.id, excludePrivate: true });
+  // option (which joins through kid_sources). Per-kid feeds INCLUDE
+  // private events: the whole point of marking an event "only show in
+  // <kid>'s calendar" is that it stays out of the family-wide feed but
+  // still reaches whoever subscribes to that kid's individual feed
+  // (the kid's other parent, the kid's school, etc.).
+  const events = await getUpcomingEvents(kid.user_id, { days: 90, kidId: kid.id });
 
   // Apply this-kid attendance overrides only — if the kid is
   // marked not-attending for an event, drop it entirely from

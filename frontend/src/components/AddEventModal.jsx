@@ -219,30 +219,45 @@ export function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) 
             </>
           )}
 
-          {!isEditing && (
-            <div className="field" style={{
-              background: 'var(--off-white)', borderRadius: 8, padding: '10px 12px',
-              display: 'flex', alignItems: 'flex-start', gap: 10,
-            }}>
-              <input
-                id="is_private"
-                type="checkbox"
-                checked={!form.is_private}
-                onChange={e => setField('is_private', !e.target.checked)}
-                style={{ marginTop: 3, width: 16, height: 16, accentColor: 'var(--accent)', cursor: 'pointer' }}
-              />
-              <label htmlFor="is_private" style={{ flex: 1, cursor: 'pointer' }}>
-                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--navy)' }}>
-                  Share with family
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--slate)', marginTop: 2, lineHeight: 1.4 }}>
-                  {form.is_private
-                    ? 'Personal — visible only to you in SportsCal.'
-                    : 'Adds to the calendar feed your family subscribes to.'}
-                </div>
-              </label>
-            </div>
-          )}
+          {!isEditing && (() => {
+            // Render the "only show in <kid>'s calendar" state with the
+            // actual selected kid names. Mirrors the mobile logic in
+            // app/event/new.jsx so the two surfaces stay in sync.
+            const selectedNames = (kids || [])
+              .filter(k => form.kid_ids.includes(k.id))
+              .map(k => k.name);
+            const possessive = selectedNames.length === 0
+              ? "your kid's"
+              : selectedNames.length === 1
+                ? `${selectedNames[0]}'s`
+                : selectedNames.length === 2
+                  ? `${selectedNames[0]} and ${selectedNames[1]}'s`
+                  : `${selectedNames.slice(0, -1).join(', ')}, and ${selectedNames.slice(-1)[0]}'s`;
+            return (
+              <div className="field" style={{
+                background: 'var(--off-white)', borderRadius: 8, padding: '10px 12px',
+                display: 'flex', alignItems: 'flex-start', gap: 10,
+              }}>
+                <input
+                  id="is_private"
+                  type="checkbox"
+                  checked={!form.is_private}
+                  onChange={e => setField('is_private', !e.target.checked)}
+                  style={{ marginTop: 3, width: 16, height: 16, accentColor: 'var(--accent)', cursor: 'pointer' }}
+                />
+                <label htmlFor="is_private" style={{ flex: 1, cursor: 'pointer' }}>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--navy)' }}>
+                    {form.is_private ? `Only show in ${possessive} calendar` : 'Share with family'}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--slate)', marginTop: 2, lineHeight: 1.4 }}>
+                    {form.is_private
+                      ? `Stays out of the family feed but still appears in ${possessive} per-kid feed.`
+                      : 'Adds to the calendar feed your family subscribes to.'}
+                  </div>
+                </label>
+              </div>
+            );
+          })()}
 
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button type="submit" className="btn btn-primary" disabled={saving}>
