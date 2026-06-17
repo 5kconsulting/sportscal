@@ -293,6 +293,16 @@ ALTER TABLE events ADD COLUMN IF NOT EXISTS recurrence_id UUID;
 -- private events.
 ALTER TABLE events ADD COLUMN IF NOT EXISTS is_private BOOLEAN NOT NULL DEFAULT false;
 
+-- Per-event explicit kid assignment. When non-null, this is the
+-- canonical list of kids on the event and overrides the source-level
+-- kid_sources mapping. Used by manual events where one source
+-- ('__manual__') backs many events for different kid subsets — the
+-- source-level mapping would otherwise show every kid on every manual
+-- event. NULL means "fall back to kid_sources via the source", which
+-- is the correct behavior for ingested feeds where each source
+-- corresponds to a single kid (or fixed set).
+ALTER TABLE events ADD COLUMN IF NOT EXISTS assigned_kid_ids UUID[];
+
 CREATE INDEX IF NOT EXISTS events_user_id_idx ON events(user_id);
 CREATE INDEX IF NOT EXISTS events_source_id_idx ON events(source_id);
 CREATE INDEX IF NOT EXISTS events_starts_at_idx ON events(user_id, starts_at);

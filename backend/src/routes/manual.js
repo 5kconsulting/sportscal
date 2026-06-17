@@ -107,50 +107,54 @@ router.post('/',
         .update(`${instance.rawTitle}|${instance.location}|${instance.startsAt.toISOString()}`)
         .digest('hex').slice(0, 16);
 
+      // assigned_kid_ids is the per-event explicit kid list. The single
+      // shared __manual__ source backs every manual event, so the older
+      // kid_sources-per-source mapping made every manual event show every
+      // kid that had ever appeared on any manual event. assigned_kid_ids
+      // is read in preference by every events query (see the COALESCE
+      // pattern in routes/events.js and db/index.js#getUpcomingEvents).
+      const assignedKidIds = req.body.kid_ids?.length ? req.body.kid_ids : null;
+
       const event = await queryOne(
         `INSERT INTO events
            (user_id, source_id, source_uid, raw_title, display_title,
-            location, description, starts_at, ends_at, all_day, content_hash, last_seen_at, recurrence_id, is_private)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW(),$12,$13)
+            location, description, starts_at, ends_at, all_day, content_hash, last_seen_at, recurrence_id, is_private, assigned_kid_ids)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW(),$12,$13,$14)
          RETURNING *`,
         [req.user.id, source.id, sourceUid, instance.rawTitle, instance.displayTitle,
          instance.location, instance.description,
          instance.startsAt, instance.endsAt, instance.allDay, contentHash, recurrenceId,
-         req.body.is_private === true]
+         req.body.is_private === true, assignedKidIds]
       );
       createdEvents.push(event);
     }
 
-    if (req.body.kid_ids?.length) {
-      for (const kidId of req.body.kid_ids) {
-        await query(
-          `INSERT INTO kid_sources (source_id, kid_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-          [source.id, kidId]
-        );
-      }
-    }
+    // No longer touch kid_sources for the manual source. The per-event
+    // assigned_kid_ids set above is the authoritative mapping for new
+    // events; legacy events (pre-column) still fall back to the existing
+    // kid_sources rows already in the table.
 
     await invalidateFeedCache(req.user.id);
 
-    // Re-fetch the newly created events through the same JOIN /
-    // aggregation shape that GET /events returns. The bare row from
-    // INSERT ... RETURNING * is missing source_app, source_name, and
-    // the kids array, which the dashboard's EventCard relies on for
-    // its Edit / Delete / "Going" buttons. Without this, the new event
-    // renders with no avatars and no manual-event controls until the
-    // user reloads. See https://… (Caleb cat-care repro 2026-06-16).
+    // Re-fetch the newly created events with source + kids aggregated
+    // through the same COALESCE pattern GET /events uses. Without this
+    // the dashboard's EventCard renders with no avatars and no
+    // manual-event controls until the user reloads.
     const eventIds = createdEvents.map(e => e.id);
     const enriched = await query(
       `SELECT e.*, s.name AS source_name, s.app AS source_app,
-              json_agg(
-                json_build_object('id', k.id, 'name', k.name, 'color', k.color)
-              ) FILTER (WHERE k.id IS NOT NULL) AS kids
+              COALESCE(
+                (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+                   FROM unnest(e.assigned_kid_ids) AS akid_id
+                   JOIN kids k ON k.id = akid_id),
+                (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+                   FROM kid_sources ks
+                   JOIN kids k ON k.id = ks.kid_id
+                  WHERE ks.source_id = e.source_id)
+              ) AS kids
          FROM events e
          JOIN sources s ON s.id = e.source_id
-         LEFT JOIN kid_sources ks ON ks.source_id = e.source_id
-         LEFT JOIN kids k ON k.id = ks.kid_id
         WHERE e.id = ANY($1::uuid[])
-        GROUP BY e.id, s.name, s.app
         ORDER BY e.starts_at`,
       [eventIds]
     );
@@ -303,26 +307,55 @@ router.patch('/:id',
       .update(`${rawTitle}|${location}|${new Date(startsAt).toISOString()}`)
       .digest('hex').slice(0, 16);
 
-    const event = await queryOne(
+    // Update assigned_kid_ids when kid_ids is explicitly included in the
+    // request (even as an empty array, which would clear the assignment
+    // back to the source-level fallback). Omitting kid_ids leaves the
+    // existing assignment intact.
+    const assignedKidIds = req.body.kid_ids !== undefined
+      ? (req.body.kid_ids.length ? req.body.kid_ids : null)
+      : existing.assigned_kid_ids;
+
+    await queryOne(
       `UPDATE events SET
-         raw_title     = $2,
-         display_title = $3,
-         location      = $4,
-         description   = $5,
-         starts_at     = $6,
-         ends_at       = $7,
-         all_day       = $8,
-         content_hash  = $9
+         raw_title        = $2,
+         display_title    = $3,
+         location         = $4,
+         description      = $5,
+         starts_at        = $6,
+         ends_at          = $7,
+         all_day          = $8,
+         content_hash     = $9,
+         assigned_kid_ids = $10
        WHERE id = $1
        RETURNING *`,
       [req.params.id, rawTitle, displayTitle, location,
        req.body.description !== undefined ? req.body.description : existing.description,
        startsAt, endsAt,
        req.body.all_day !== undefined ? req.body.all_day : existing.all_day,
-       contentHash]
+       contentHash, assignedKidIds]
     );
 
     await invalidateFeedCache(req.user.id);
+
+    // Return enriched shape (matches GET /events) so the dashboard's
+    // optimistic update has source_app, source_name, and the kids array.
+    const event = await queryOne(
+      `SELECT e.*, s.name AS source_name, s.app AS source_app,
+              COALESCE(
+                (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+                   FROM unnest(e.assigned_kid_ids) AS akid_id
+                   JOIN kids k ON k.id = akid_id),
+                (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+                   FROM kid_sources ks
+                   JOIN kids k ON k.id = ks.kid_id
+                  WHERE ks.source_id = e.source_id)
+              ) AS kids
+         FROM events e
+         JOIN sources s ON s.id = e.source_id
+        WHERE e.id = $1`,
+      [req.params.id]
+    );
+
     res.json({ event });
   }
 );

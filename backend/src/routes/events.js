@@ -21,11 +21,18 @@ router.get('/', async (req, res) => {
   const filters = [];
 
   if (kidId) {
+    // Match the same per-event vs source-level precedence the kids
+    // aggregation uses below: assigned_kid_ids wins for manual events,
+    // kid_sources is the fallback for ingested feeds + legacy rows.
+    const n = params.length + 1;
     filters.push(`
-      e.id IN (
-        SELECT DISTINCT e2.id FROM events e2
-        JOIN kid_sources ks ON ks.source_id = e2.source_id
-        WHERE ks.kid_id = $${params.length + 1}
+      (
+        (e.assigned_kid_ids IS NOT NULL AND $${n} = ANY(e.assigned_kid_ids))
+        OR (e.assigned_kid_ids IS NULL AND e.id IN (
+          SELECT DISTINCT e2.id FROM events e2
+          JOIN kid_sources ks ON ks.source_id = e2.source_id
+          WHERE ks.kid_id = $${n}
+        ))
       )`);
     params.push(kidId);
   }
@@ -44,13 +51,22 @@ router.get('/', async (req, res) => {
        e.*,
        s.name  AS source_name,
        s.app   AS source_app,
-       json_agg(
-         json_build_object('id', k.id, 'name', k.name, 'color', k.color)
-       ) FILTER (WHERE k.id IS NOT NULL) AS kids
+       -- Per-event kid assignment takes precedence over the source-level
+       -- mapping. Manual events set assigned_kid_ids explicitly so they
+       -- only show the kids the user picked at create time; everything
+       -- else (TeamSnap, GameChanger, etc.) leaves it NULL and inherits
+       -- the kid_sources mapping like before.
+       COALESCE(
+         (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+            FROM unnest(e.assigned_kid_ids) AS akid_id
+            JOIN kids k ON k.id = akid_id),
+         (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+            FROM kid_sources ks
+            JOIN kids k ON k.id = ks.kid_id
+           WHERE ks.source_id = e.source_id)
+       ) AS kids
      FROM events e
      JOIN sources s ON s.id = e.source_id
-     LEFT JOIN kid_sources ks ON ks.source_id = e.source_id
-     LEFT JOIN kids k ON k.id = ks.kid_id
      LEFT JOIN hidden_events he
        ON he.user_id    = e.user_id
       AND he.source_id  = e.source_id
@@ -66,7 +82,6 @@ router.get('/', async (req, res) => {
            END >= NOW()
        AND e.starts_at <= NOW() + ($2 || ' days')::INTERVAL
        ${whereClause}
-     GROUP BY e.id, s.name, s.app
      ORDER BY e.starts_at`,
     params
   );
@@ -81,13 +96,17 @@ router.get('/', async (req, res) => {
 router.get('/today', async (req, res) => {
   const events = await dbQuery(
     `SELECT e.*, s.name AS source_name, s.app AS source_app,
-       json_agg(
-         json_build_object('id', k.id, 'name', k.name, 'color', k.color)
-       ) FILTER (WHERE k.id IS NOT NULL) AS kids
+       COALESCE(
+         (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+            FROM unnest(e.assigned_kid_ids) AS akid_id
+            JOIN kids k ON k.id = akid_id),
+         (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+            FROM kid_sources ks
+            JOIN kids k ON k.id = ks.kid_id
+           WHERE ks.source_id = e.source_id)
+       ) AS kids
      FROM events e
      JOIN sources s ON s.id = e.source_id
-     LEFT JOIN kid_sources ks ON ks.source_id = e.source_id
-     LEFT JOIN kids k ON k.id = ks.kid_id
      LEFT JOIN hidden_events he
        ON he.user_id    = e.user_id
       AND he.source_id  = e.source_id
@@ -95,7 +114,6 @@ router.get('/today', async (req, res) => {
      WHERE e.user_id = $1
        AND he.id IS NULL
        AND e.starts_at::date = NOW()::date
-     GROUP BY e.id, s.name, s.app
      ORDER BY e.starts_at`,
     [req.user.id]
   );
@@ -144,15 +162,18 @@ router.delete('/:id', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const event = await queryOne(
     `SELECT e.*, s.name AS source_name, s.app AS source_app,
-       json_agg(
-         json_build_object('id', k.id, 'name', k.name, 'color', k.color)
-       ) FILTER (WHERE k.id IS NOT NULL) AS kids
+       COALESCE(
+         (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+            FROM unnest(e.assigned_kid_ids) AS akid_id
+            JOIN kids k ON k.id = akid_id),
+         (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+            FROM kid_sources ks
+            JOIN kids k ON k.id = ks.kid_id
+           WHERE ks.source_id = e.source_id)
+       ) AS kids
      FROM events e
      JOIN sources s ON s.id = e.source_id
-     LEFT JOIN kid_sources ks ON ks.source_id = e.source_id
-     LEFT JOIN kids k ON k.id = ks.kid_id
-     WHERE e.id = $1 AND e.user_id = $2
-     GROUP BY e.id, s.name, s.app`,
+     WHERE e.id = $1 AND e.user_id = $2`,
     [req.params.id, req.user.id]
   );
 

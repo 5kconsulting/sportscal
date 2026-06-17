@@ -567,21 +567,30 @@ export async function getUpcomingEvents(userId, { days = 30, kidId, excludePriva
   // case (all kids on source have patterns, none match) is handled
   // by an additional clause: if no kid_sources row on this source
   // matches via either rule, the kid still gets the event.
+  // When filtering by kid, prefer the per-event assigned_kid_ids if set
+  // (manual events) and fall back to the source-level mapping otherwise
+  // (ingested feeds, plus legacy manual events created before the
+  // assigned_kid_ids column existed).
   const kidFilter = kidId
-    ? `AND e.id IN (
-         SELECT DISTINCT e2.id FROM events e2
-         JOIN kid_sources ks ON ks.source_id = e2.source_id
-         WHERE ks.kid_id = $3
-           AND (
-             ks.title_contains IS NULL
-             OR e2.raw_title ILIKE '%' || ks.title_contains || '%'
-             OR NOT EXISTS (
-               SELECT 1 FROM kid_sources ks_any
-               WHERE ks_any.source_id = e2.source_id
-                 AND (ks_any.title_contains IS NULL
-                      OR e2.raw_title ILIKE '%' || ks_any.title_contains || '%')
+    ? `AND (
+         -- Per-event explicit assignment wins
+         (e.assigned_kid_ids IS NOT NULL AND $3 = ANY(e.assigned_kid_ids))
+         -- Fall back to the title_contains-aware kid_sources match
+         OR (e.assigned_kid_ids IS NULL AND e.id IN (
+           SELECT DISTINCT e2.id FROM events e2
+           JOIN kid_sources ks ON ks.source_id = e2.source_id
+           WHERE ks.kid_id = $3
+             AND (
+               ks.title_contains IS NULL
+               OR e2.raw_title ILIKE '%' || ks.title_contains || '%'
+               OR NOT EXISTS (
+                 SELECT 1 FROM kid_sources ks_any
+                 WHERE ks_any.source_id = e2.source_id
+                   AND (ks_any.title_contains IS NULL
+                        OR e2.raw_title ILIKE '%' || ks_any.title_contains || '%')
+               )
              )
-           )
+         ))
        )`
     : '';
   if (kidId) params.push(kidId);
