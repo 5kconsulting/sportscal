@@ -24,11 +24,14 @@ router.use(requireAuth);
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// claude-sonnet-4 — same model the pdf worker uses. The setup-agent
-// conversation is short enough that haiku's quality dropoff hurts more than
-// sonnet's cost. ~$0.05/setup is well under the LTV uplift we'd see from
-// even a single Premium upgrade attributable to faster activation.
-const MODEL      = 'claude-sonnet-4-20250514';
+// claude-sonnet-4-6 (Sonnet 4.6 alias) — same model the pdf worker uses.
+// The setup-agent conversation is short enough that haiku's quality
+// dropoff hurts more than sonnet's cost. ~$0.05/setup is well under the
+// LTV uplift we'd see from even a single Premium upgrade attributable
+// to faster activation. Previously pinned to claude-sonnet-4-20250514
+// which was sunset by Anthropic — caused 'setup agent is having a
+// moment' errors until the alias was updated.
+const MODEL      = 'claude-sonnet-4-6';
 const MAX_TOKENS = 1000;
 
 // Generous per-user cap. Mean setup is 5-15 messages; this gives us 5x+

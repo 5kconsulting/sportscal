@@ -28,7 +28,7 @@ import { connection } from './queue.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 4096;
 
 // Anthropic limits inline image payloads to ~5MB base64 (which is roughly
