@@ -183,7 +183,7 @@ export default function SetupAgent({ onSourceAdded }) {
   // personally verified the step instructions for. Adding another app
   // is one entry here — the step text comes from the backend via
   // api.setupAgent.apps().
-  const FEATURED_APPS = ['teamsnap', 'gamechanger', 'playmetrics', 'parentsquare'];
+  const FEATURED_APPS = ['teamsnap', 'gamechanger', 'playmetrics', 'parentsquare', 'sportsyou'];
   const [appCatalog, setAppCatalog] = useState(null);
 
   useEffect(() => {
