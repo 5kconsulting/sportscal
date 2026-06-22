@@ -150,6 +150,11 @@ router.post('/',
                 (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
                    FROM kid_sources ks
                    JOIN kids k ON k.id = ks.kid_id
+                  WHERE ks.source_id = e.source_id
+                    AND (ks.title_contains IS NULL OR e.raw_title ILIKE '%' || ks.title_contains || '%')),
+                (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+                   FROM kid_sources ks
+                   JOIN kids k ON k.id = ks.kid_id
                   WHERE ks.source_id = e.source_id)
               ) AS kids
          FROM events e
@@ -345,6 +350,11 @@ router.patch('/:id',
                 (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
                    FROM unnest(e.assigned_kid_ids) AS akid_id
                    JOIN kids k ON k.id = akid_id),
+                (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+                   FROM kid_sources ks
+                   JOIN kids k ON k.id = ks.kid_id
+                  WHERE ks.source_id = e.source_id
+                    AND (ks.title_contains IS NULL OR e.raw_title ILIKE '%' || ks.title_contains || '%')),
                 (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
                    FROM kid_sources ks
                    JOIN kids k ON k.id = ks.kid_id

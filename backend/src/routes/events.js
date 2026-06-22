@@ -57,9 +57,24 @@ router.get('/', async (req, res) => {
        -- else (TeamSnap, GameChanger, etc.) leaves it NULL and inherits
        -- the kid_sources mapping like before.
        COALESCE(
+         -- (1) Per-event explicit assignment (manual events)
          (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
             FROM unnest(e.assigned_kid_ids) AS akid_id
             JOIN kids k ON k.id = akid_id),
+         -- (2) Title-pattern match on source-level kid_sources. Mirrors
+         --     filterKidsByEventTitle() in db/index.js: a kid_sources row
+         --     with title_contains=NULL always matches; a non-NULL pattern
+         --     matches when the event raw_title contains it (case-insensitive).
+         --     This is what makes Evie → 'GU' / boys → 'BU' filter Albion
+         --     events to just the right kids per event.
+         (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+            FROM kid_sources ks
+            JOIN kids k ON k.id = ks.kid_id
+           WHERE ks.source_id = e.source_id
+             AND (ks.title_contains IS NULL OR e.raw_title ILIKE '%' || ks.title_contains || '%')),
+         -- (3) Safety net: no kid pattern matched. Don't hide the event —
+         --     show every kid on the source so the user sees it and can
+         --     fix the rule. Matches the JS function's fallback.
          (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
             FROM kid_sources ks
             JOIN kids k ON k.id = ks.kid_id
@@ -97,9 +112,24 @@ router.get('/today', async (req, res) => {
   const events = await dbQuery(
     `SELECT e.*, s.name AS source_name, s.app AS source_app,
        COALESCE(
+         -- (1) Per-event explicit assignment (manual events)
          (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
             FROM unnest(e.assigned_kid_ids) AS akid_id
             JOIN kids k ON k.id = akid_id),
+         -- (2) Title-pattern match on source-level kid_sources. Mirrors
+         --     filterKidsByEventTitle() in db/index.js: a kid_sources row
+         --     with title_contains=NULL always matches; a non-NULL pattern
+         --     matches when the event raw_title contains it (case-insensitive).
+         --     This is what makes Evie → 'GU' / boys → 'BU' filter Albion
+         --     events to just the right kids per event.
+         (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+            FROM kid_sources ks
+            JOIN kids k ON k.id = ks.kid_id
+           WHERE ks.source_id = e.source_id
+             AND (ks.title_contains IS NULL OR e.raw_title ILIKE '%' || ks.title_contains || '%')),
+         -- (3) Safety net: no kid pattern matched. Don't hide the event —
+         --     show every kid on the source so the user sees it and can
+         --     fix the rule. Matches the JS function's fallback.
          (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
             FROM kid_sources ks
             JOIN kids k ON k.id = ks.kid_id
@@ -163,9 +193,24 @@ router.get('/:id', async (req, res) => {
   const event = await queryOne(
     `SELECT e.*, s.name AS source_name, s.app AS source_app,
        COALESCE(
+         -- (1) Per-event explicit assignment (manual events)
          (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
             FROM unnest(e.assigned_kid_ids) AS akid_id
             JOIN kids k ON k.id = akid_id),
+         -- (2) Title-pattern match on source-level kid_sources. Mirrors
+         --     filterKidsByEventTitle() in db/index.js: a kid_sources row
+         --     with title_contains=NULL always matches; a non-NULL pattern
+         --     matches when the event raw_title contains it (case-insensitive).
+         --     This is what makes Evie → 'GU' / boys → 'BU' filter Albion
+         --     events to just the right kids per event.
+         (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
+            FROM kid_sources ks
+            JOIN kids k ON k.id = ks.kid_id
+           WHERE ks.source_id = e.source_id
+             AND (ks.title_contains IS NULL OR e.raw_title ILIKE '%' || ks.title_contains || '%')),
+         -- (3) Safety net: no kid pattern matched. Don't hide the event —
+         --     show every kid on the source so the user sees it and can
+         --     fix the rule. Matches the JS function's fallback.
          (SELECT json_agg(json_build_object('id', k.id, 'name', k.name, 'color', k.color))
             FROM kid_sources ks
             JOIN kids k ON k.id = ks.kid_id
