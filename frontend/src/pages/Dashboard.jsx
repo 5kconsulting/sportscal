@@ -1511,13 +1511,23 @@ function EmptyState({ hasSources }) {
 
 // ---- Helpers ----
 function groupByDay(events) {
-  const groups = {};
+  const groups   = {};
+  const dayDates = {};
   for (const e of events) {
     const day = formatDayLabel(e.starts_at, e.all_day);
-    if (!groups[day]) groups[day] = [];
+    if (!groups[day]) {
+      groups[day]   = [];
+      dayDates[day] = bucketDate(e.starts_at, e.all_day).getTime();
+    }
     groups[day].push(e);
   }
-  return groups;
+  // Sort groups by their LOCAL day, not by event arrival order. Otherwise
+  // an all-day event stored as midnight-UTC (e.g. Friday-Jun-26 all-day
+  // tournament) lands at starts_at 2026-06-26T00:00:00Z, which sorts
+  // BEFORE a Thursday-evening Pacific event (2026-06-26T01:30:00Z) —
+  // and the "Friday, Jun 26" group ends up rendered above "Today".
+  const sorted = Object.entries(groups).sort((a, b) => dayDates[a[0]] - dayDates[b[0]]);
+  return Object.fromEntries(sorted);
 }
 
 // Bucket label for an event. Timed events use local-time date. All-day
@@ -1526,11 +1536,16 @@ function groupByDay(events) {
 // back by 1 for anyone west of UTC (the bug Patton hit on iPhone where a
 // Saturday all-day baseball event showed up under Friday's "Today" header).
 function formatDayLabel(startsAt, allDay) {
+  return formatDay(bucketDate(startsAt, allDay));
+}
+
+// Same local-vs-UTC rule as formatDayLabel, but returns a real Date at
+// local midnight so we can numerically sort buckets by chronological day.
+function bucketDate(startsAt, allDay) {
   const d = new Date(startsAt);
-  const local = allDay
+  return allDay
     ? new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
-    : d;
-  return formatDay(local);
+    : new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 function formatDay(date) {
