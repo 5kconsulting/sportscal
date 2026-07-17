@@ -11,11 +11,20 @@ connection.on('connect', ()    => console.log('[redis] connected'));
 
 export { connection };
 
+// removeOnComplete/removeOnFail are `true` (not a retention count) because
+// enqueueIcalFetch uses a static jobId (`ical-<sourceId>`) as its dedupe key.
+// BullMQ blocks re-adds against the SAME jobId in any state — including
+// completed and failed — so if we retained history the every-5-min scheduler
+// re-enqueues would silently no-op forever after the first success (and a
+// permanently-broken source would lock its own ID out for good after the
+// last failed attempt). Immediate removal keeps the dedupe protection during
+// waiting/active/delayed states (which is what actually matters) without
+// leaving dead jobs blocking future ticks.
 export const icalQueue = new Queue('ical-fetch', {
   connection,
   defaultJobOptions: {
-    removeOnComplete: 100,
-    removeOnFail: 200,
+    removeOnComplete: true,
+    removeOnFail: true,
     attempts: 3,
     backoff: { type: 'exponential', delay: 30000 },
   },
@@ -24,8 +33,8 @@ export const icalQueue = new Queue('ical-fetch', {
 export const scrapeQueue = new Queue('scrape-fetch', {
   connection,
   defaultJobOptions: {
-    removeOnComplete: 100,
-    removeOnFail: 200,
+    removeOnComplete: true,
+    removeOnFail: true,
     attempts: 2,
     backoff: { type: 'fixed', delay: 60000 },
   },
