@@ -111,6 +111,20 @@ export default function Dashboard() {
           .feed-card button { width: 100%; justify-content: center; }
           .event-time { min-width: 48px !important; }
         }
+        /* Hybrid event card: compact by default; details + actions on hover/focus.
+           ev-actions fades via opacity (reserves space, no layout shift);
+           ev-secondary toggles display (grows the card as a disclosure). */
+        .ev-card .ev-secondary { display: none; }
+        .ev-card:hover .ev-secondary,
+        .ev-card:focus-within .ev-secondary { display: flex; }
+        .ev-card .ev-actions { opacity: 0; transition: opacity 0.15s ease; }
+        .ev-card:hover .ev-actions,
+        .ev-card:focus-within .ev-actions { opacity: 1; }
+        /* Touch devices can't hover — keep everything visible there. */
+        @media (hover: none) {
+          .ev-card .ev-secondary { display: flex; }
+          .ev-card .ev-actions { opacity: 1; }
+        }
       `}</style>
 
       {/* Header */}
@@ -744,13 +758,18 @@ function DayGroup({ day, events, onEdit, onDelete, eventOverrides = {}, eventLog
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10,
       }}>
-        <span style={{
-          fontSize: 13, fontWeight: 600,
-          color: isToday ? 'var(--accent-dim)' : 'var(--slate)',
-          textTransform: 'uppercase', letterSpacing: '0.06em',
-        }}>
-          {isToday ? 'Today' : day}
-        </span>
+        {isToday ? (
+          <span style={{
+            fontSize: 12, fontWeight: 700, color: 'var(--accent)',
+            background: 'var(--accent-bg)', padding: '3px 10px', borderRadius: 6,
+            textTransform: 'uppercase', letterSpacing: '0.04em',
+          }}>Today</span>
+        ) : (
+          <span style={{
+            fontSize: 13, fontWeight: 600, color: 'var(--slate)',
+            textTransform: 'uppercase', letterSpacing: '0.06em',
+          }}>{day}</span>
+        )}
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
         <span style={{ fontSize: 12, color: 'var(--slate-light)' }}>
           {events.length} event{events.length !== 1 ? 's' : ''}
@@ -770,6 +789,39 @@ function DayGroup({ day, events, onEdit, onDelete, eventOverrides = {}, eventLog
       </div>
     </div>
   );
+}
+
+// Infer a sport from the event title for the card's sport chip. Only returns
+// a match on a clear keyword — no fuzzy guessing, so we never mislabel. Cards
+// with no confident match simply omit the chip.
+const SPORTS = [
+  { re: /soccer|f[úu]tbol/i,        label: 'Soccer',     color: '#16a34a' },
+  { re: /swim|dive|aquatic/i,       label: 'Swim',       color: '#0891b2' },
+  { re: /volley/i,                  label: 'Volleyball', color: '#db2777' },
+  { re: /basketball|hoops/i,        label: 'Basketball', color: '#ea580c' },
+  { re: /baseball|softball|t-?ball/i, label: 'Baseball', color: '#ca8a04' },
+  { re: /hockey/i,                  label: 'Hockey',     color: '#0ea5e9' },
+  { re: /football/i,                label: 'Football',   color: '#7c3aed' },
+  { re: /lacrosse|lax/i,            label: 'Lacrosse',   color: '#059669' },
+  { re: /tennis/i,                  label: 'Tennis',     color: '#65a30d' },
+  { re: /golf/i,                    label: 'Golf',       color: '#15803d' },
+  { re: /track|cross.?country|\bxc\b/i, label: 'Track',  color: '#dc2626' },
+  { re: /gymnastic/i,               label: 'Gymnastics', color: '#c026d3' },
+  { re: /dance|ballet/i,            label: 'Dance',      color: '#e11d48' },
+  { re: /wrestl/i,                  label: 'Wrestling',  color: '#9333ea' },
+];
+function inferSport(title = '') {
+  for (const sp of SPORTS) if (sp.re.test(title)) return sp;
+  return null;
+}
+
+// Pick a legible text color (dark vs white) for a filled kid-color block —
+// so a light kid color (yellow/lime) doesn't get unreadable white text.
+function textOn(hex) {
+  const h = String(hex).replace('#', '');
+  if (h.length !== 6) return '#ffffff';
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.62 ? '#0f172a' : '#ffffff';
 }
 
 function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogistics = [] }) {
@@ -872,41 +924,74 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogist
 
   const statusIcon = (s) => ({ assigned: '📋', requested: '⏳', confirmed: '✅', declined: '❌' }[s] || '📋');
 
+  const timeParts = event.all_day ? [] : formatTime(startsAt).split(' ');
+  const sport = inferSport(event.display_title);
+  const kidNames = event.kids?.map(k => k.name).join(', ');
+
   return (
-    <div className="card" style={{
-      padding: '14px 16px',
+    <div className="card ev-card" style={{
+      position: 'relative',
       display: 'flex',
-      alignItems: 'flex-start',
-      gap: 14,
-      borderLeft: `3px solid ${allNotGoing ? '#94a3b8' : kidColor}`,
-      borderRadius: '0 var(--radius) var(--radius) 0',
-      borderTopLeftRadius: 0,
-      borderBottomLeftRadius: 0,
-      opacity: allNotGoing ? 0.5 : 1,
-      transition: 'opacity 0.2s',
+      alignItems: 'stretch',
+      padding: 0,
+      overflow: 'hidden',
+      opacity: allNotGoing ? 0.55 : 1,
+      transition: 'opacity 0.2s, box-shadow 0.18s',
     }}>
-      {/* Time column */}
-      <div style={{ minWidth: 56, textAlign: 'right', flexShrink: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', fontFamily: 'var(--mono)' }}>
-          {event.all_day ? 'All day' : formatTime(startsAt)}
-        </div>
-        {endsAt && !event.all_day && (
-          <div style={{ fontSize: 11, color: 'var(--slate)', fontFamily: 'var(--mono)' }}>
-            {formatTime(endsAt)}
-          </div>
+      {/* Time block — carries the kid color (whose + when) */}
+      <div style={{
+        flex: '0 0 66px',
+        background: allNotGoing ? '#94a3b8' : kidColor,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        color: textOn(allNotGoing ? '#94a3b8' : kidColor),
+        padding: '10px 6px', textAlign: 'center', lineHeight: 1.15,
+      }}>
+        {event.all_day ? (
+          <span style={{ fontSize: 12, fontWeight: 700 }}>All day</span>
+        ) : (
+          <>
+            <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+              {timeParts[0]}
+            </span>
+            {timeParts[1] && (
+              <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.9, letterSpacing: '0.06em' }}>
+                {timeParts[1]}
+              </span>
+            )}
+          </>
         )}
       </div>
 
-      {/* Divider */}
-      <div style={{ width: 1, background: 'var(--border)', alignSelf: 'stretch', flexShrink: 0 }} />
-
       {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 3,
+      <div style={{ flex: 1, minWidth: 0, padding: '12px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 4,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       textDecoration: allNotGoing ? 'line-through' : 'none',
                       color: allNotGoing ? 'var(--slate)' : 'var(--navy)' }}>
           {event.display_title}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
+          {sport && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 11.5, fontWeight: 600,
+                           color: sport.color, background: sport.color + '22', padding: '2px 8px', borderRadius: 999 }}>
+              {sport.label}
+            </span>
+          )}
+          <span style={{ fontSize: 12.5, color: 'var(--slate)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
+            {[kidNames || null, isManual ? 'Manual' : event.source_app].filter(Boolean).join(' · ')}
+          </span>
+          {event.location && (
+            <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}`}
+               target="_blank" rel="noopener noreferrer"
+               style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11.5, fontWeight: 600,
+                        color: 'var(--navy)', background: 'var(--off-white)', border: '1px solid var(--border)',
+                        borderRadius: 999, padding: '2px 9px', textDecoration: 'none', whiteSpace: 'nowrap',
+                        maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+              {event.location}
+            </a>
+          )}
         </div>
         {allNotGoing && (
           <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginBottom: 4,
@@ -919,41 +1004,8 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogist
             ✕ Not going: {notGoingKids.map(k => k.name).join(', ')}
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {event.location && (
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ fontSize: 13, color: 'var(--slate)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 3 }}
-              onMouseOver={e => e.currentTarget.style.color = 'var(--accent-dim)'}
-              onMouseOut={e => e.currentTarget.style.color = 'var(--slate)'}
-            >
-              📍 {event.location}
-            </a>
-          )}
-          <span style={{ fontSize: 12, color: 'var(--slate-light)',
-                         background: 'var(--off-white)', padding: '2px 8px',
-                         borderRadius: 20, border: '1px solid var(--border)' }}>
-            {event.source_app}
-          </span>
-        </div>
-
-        {/* Logistics summary */}
-        {(dropoff || pickup) && (
-          <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
-            {dropoff && (
-              <span style={{ fontSize: 11, color: 'var(--slate)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                🚗 Drop-off: {statusIcon(dropoff.status)} {dropoff.contact_name}
-              </span>
-            )}
-            {pickup && (
-              <span style={{ fontSize: 11, color: 'var(--slate)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                🏠 Pick-up: {statusIcon(pickup.status)} {pickup.contact_name}
-              </span>
-            )}
-          </div>
-        )}
+        {/* location + source now live in the meta row above; carpool status
+            is on the event detail / carpool action, not the resting card */}
 
         {/* Attendance override UI */}
         {showAttendance && event.kids?.length > 0 && (
@@ -991,24 +1043,13 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogist
         )}
       </div>
 
-      {/* Actions */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-        {event.kids?.length > 0 && (
-          <div style={{ display: 'flex' }}>
-            {event.kids.map((kid, i) => (
-              <div key={kid.id} style={{
-                width: 24, height: 24, borderRadius: '50%',
-                background: kid.color, border: '2px solid var(--white)',
-                marginLeft: i > 0 ? -6 : 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 10, fontWeight: 700, color: 'var(--white)',
-                zIndex: event.kids.length - i,
-              }}>
-                {kid.name[0]}
-              </div>
-            ))}
-          </div>
-        )}
+      {/* Actions — no-jump overlay: fades in over the right edge on hover/focus */}
+      <div className="ev-actions" style={{
+        position: 'absolute', top: 0, right: 0, bottom: 0,
+        display: 'flex', alignItems: 'center', gap: 4,
+        padding: '0 12px 0 44px',
+        background: 'linear-gradient(90deg, transparent, var(--white) 42%)',
+      }}>
         <div style={{ display: 'flex', gap: 4 }}>
           {event.kids?.length > 0 && (
             <button onClick={toggleAttendance} className="btn btn-ghost btn-sm"
@@ -1022,7 +1063,7 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogist
           <button onClick={openLogistics} className="btn btn-ghost btn-sm"
             style={{ padding: '2px 8px', fontSize: 11 }}
             title="Manage drop-off & pick-up">
-            🚗
+            Carpool
           </button>
           {isManual && (
             <>
