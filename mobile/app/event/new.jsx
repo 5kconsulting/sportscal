@@ -10,7 +10,7 @@
 // POSTs to /api/manual which already handles all of the above; we just
 // don't expose every input. Backend is unchanged.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert,
   KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Switch,
@@ -19,9 +19,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { api } from '../../lib/api';
+import { useTheme } from '../../lib/theme';
 
 export default function NewEvent() {
   const router = useRouter();
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
 
   const [title, setTitle]     = useState('');
   const [allDay, setAllDay]   = useState(false);
@@ -127,7 +130,7 @@ export default function NewEvent() {
             value={title}
             onChangeText={setTitle}
             placeholder="e.g. Soccer practice"
-            placeholderTextColor="#b8c4d8"
+            placeholderTextColor={t.slateLight}
             autoCapitalize="sentences"
             autoFocus
           />
@@ -137,7 +140,7 @@ export default function NewEvent() {
             <Switch
               value={allDay}
               onValueChange={setAllDay}
-              trackColor={{ false: '#d9dfe9', true: '#00d68f' }}
+              trackColor={{ false: '#d9dfe9', true: t.accent }}
               thumbColor="#ffffff"
               ios_backgroundColor="#d9dfe9"
             />
@@ -237,7 +240,7 @@ export default function NewEvent() {
             value={location}
             onChangeText={setLocation}
             placeholder="e.g. Tualatin Community Park, Field 4"
-            placeholderTextColor="#b8c4d8"
+            placeholderTextColor={t.slateLight}
           />
 
           {kids.length > 0 && (
@@ -296,7 +299,7 @@ export default function NewEvent() {
                 <Switch
                   value={shareWithFamily}
                   onValueChange={setShareWithFamily}
-                  trackColor={{ false: '#d9dfe9', true: '#00d68f' }}
+                  trackColor={{ false: '#d9dfe9', true: t.accent }}
                   thumbColor="#ffffff"
                   ios_backgroundColor="#d9dfe9"
                 />
@@ -311,7 +314,7 @@ export default function NewEvent() {
             activeOpacity={0.8}
           >
             {saving
-              ? <ActivityIndicator color="#0f1629" />
+              ? <ActivityIndicator color={t.ctaText} />
               : <Text style={s.saveText}>Save event</Text>}
           </TouchableOpacity>
         </ScrollView>
@@ -362,6 +365,8 @@ function formatTime(d) {
 }
 
 function ModalHeader({ title, onClose }) {
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   return (
     <View style={s.header}>
       <TouchableOpacity onPress={onClose} hitSlop={16}>
@@ -373,58 +378,60 @@ function ModalHeader({ title, onClose }) {
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f4f6fa' },
+function makeStyles(t) {
+  return StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.bg },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#e8ecf4',
-    backgroundColor: '#ffffff',
+    borderBottomWidth: 1, borderBottomColor: t.border,
+    backgroundColor: t.surface,
   },
-  headerClose: { fontSize: 15, color: '#00d68f', fontWeight: '600' },
-  headerTitle: { fontSize: 15, fontWeight: '600', color: '#0f1629' },
+  headerClose: { fontSize: 15, color: t.accent, fontWeight: '600' },
+  headerTitle: { fontSize: 15, fontWeight: '600', color: t.navy },
 
   body: { padding: 20, gap: 4, paddingBottom: 40 },
   label: {
-    fontSize: 12, fontWeight: '600', color: '#8896b0',
+    fontSize: 12, fontWeight: '600', color: t.slate,
     textTransform: 'uppercase', letterSpacing: 0.6,
     marginTop: 14, marginBottom: 6,
   },
   input: {
-    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e8ecf4',
+    backgroundColor: t.surface, borderWidth: 1, borderColor: t.border,
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: '#0f1629',
+    fontSize: 15, color: t.navy,
   },
   pickerBtn: {
-    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e8ecf4',
+    backgroundColor: t.surface, borderWidth: 1, borderColor: t.border,
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
   },
-  pickerBtnText: { fontSize: 15, color: '#0f1629' },
+  pickerBtnText: { fontSize: 15, color: t.navy },
 
   allDayRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e8ecf4',
+    backgroundColor: t.surface, borderWidth: 1, borderColor: t.border,
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
     marginTop: 14,
   },
-  allDayLabel: { fontSize: 15, color: '#0f1629', fontWeight: '500' },
-  shareHint:   { fontSize: 12, color: '#5b6478', marginTop: 2, lineHeight: 16 },
+  allDayLabel: { fontSize: 15, color: t.navy, fontWeight: '500' },
+  shareHint:   { fontSize: 12, color: t.slate, marginTop: 2, lineHeight: 16 },
 
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
-    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e8ecf4',
+    backgroundColor: t.surface, borderWidth: 1, borderColor: t.border,
   },
-  chipText: { fontSize: 13, color: '#0f1629', fontWeight: '500' },
+  chipText: { fontSize: 13, color: t.navy, fontWeight: '500' },
   chipTextOn: { color: '#ffffff' },
 
   error: {
-    color: '#ff6b6b', fontSize: 13, padding: 10,
+    color: t.danger, fontSize: 13, padding: 10,
     backgroundColor: 'rgba(255,107,107,0.08)', borderRadius: 6,
   },
   saveBtn: {
-    backgroundColor: '#00d68f', borderRadius: 10,
+    backgroundColor: t.cta, borderRadius: 10,
     paddingVertical: 14, alignItems: 'center', marginTop: 28,
   },
-  saveText: { color: '#0f1629', fontSize: 15, fontWeight: '600' },
-});
+  saveText: { color: t.ctaText, fontSize: 15, fontWeight: '600' },
+  });
+}

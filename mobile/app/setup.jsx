@@ -10,7 +10,7 @@
 // skipped on mobile; the system prompt redirects users with PDFs to
 // sportscalapp.com/setup on a computer.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Alert,
@@ -21,7 +21,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useShareIntentContext } from 'expo-share-intent';
 import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
 import { api } from '../lib/api';
+import { useTheme } from '../lib/theme';
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl
   || 'https://sportscal-production.up.railway.app';
@@ -51,6 +53,8 @@ const HEADER_HEIGHT = 49;
 export default function SetupAgentScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   // Deep-link from the Calendar tab's app chips routes to /setup with
   // ?app=teamsnap (or gamechanger / playmetrics). When set + valid +
   // user is fresh, we auto-tap that chip on mount so the user lands
@@ -727,7 +731,7 @@ export default function SetupAgentScreen() {
         >
           {booting ? (
             <View style={s.bootCenter}>
-              <ActivityIndicator color="#00d68f" size="large" />
+              <ActivityIndicator color={t.accent} size="large" />
             </View>
           ) : (
             messages.map((m, i) => (
@@ -752,7 +756,7 @@ export default function SetupAgentScreen() {
             activeOpacity={0.7}
             accessibilityLabel="Scan a photo of a schedule"
           >
-            <Text style={s.cameraBtnIcon}>📷</Text>
+            <Ionicons name="camera-outline" size={20} color={t.navy} />
           </TouchableOpacity>
           <TextInput
             ref={inputRef}
@@ -760,7 +764,7 @@ export default function SetupAgentScreen() {
             value={input}
             onChangeText={setInput}
             placeholder="Type a message…"
-            placeholderTextColor="#8896b0"
+            placeholderTextColor={t.slate}
             multiline
             editable={!booting && !loading}
             blurOnSubmit={false}
@@ -783,6 +787,8 @@ export default function SetupAgentScreen() {
 // ----- bubble ---------------------------------------------------------------
 
 function Bubble({ message, onApprove, approving }) {
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   const { role, display, content, error, _typing, _eventCount } = message;
   const text = display || content || '';
 
@@ -798,7 +804,7 @@ function Bubble({ message, onApprove, approving }) {
             activeOpacity={0.8}
           >
             {approving ? (
-              <ActivityIndicator color="#0f1629" size="small" />
+              <ActivityIndicator color={t.ctaText} size="small" />
             ) : (
               <Text style={s.systemApproveText}>
                 Add {_eventCount || ''} event{_eventCount === 1 ? '' : 's'}
@@ -819,7 +825,7 @@ function Bubble({ message, onApprove, approving }) {
         error && s.bubbleError,
       ]}>
         {_typing ? (
-          <ActivityIndicator color="#8896b0" size="small" />
+          <ActivityIndicator color={t.slate} size="small" />
         ) : (
           <Text style={[s.bubbleText, isUser && s.bubbleTextUser]}>{text}</Text>
         )}
@@ -830,16 +836,17 @@ function Bubble({ message, onApprove, approving }) {
 
 // ----- styles ---------------------------------------------------------------
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f4f6fa' },
+function makeStyles(t) {
+  return StyleSheet.create({
+  root: { flex: 1, backgroundColor: t.bg },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#e8ecf4',
-    backgroundColor: '#ffffff',
+    borderBottomWidth: 1, borderBottomColor: t.border,
+    backgroundColor: t.surface,
   },
-  headerClose: { fontSize: 15, color: '#00d68f', fontWeight: '600' },
-  headerTitle: { fontSize: 15, fontWeight: '600', color: '#0f1629' },
+  headerClose: { fontSize: 15, color: t.accent, fontWeight: '600' },
+  headerTitle: { fontSize: 15, fontWeight: '600', color: t.navy },
 
   scroll:        { flex: 1 },
   scrollContent: { padding: 14, paddingBottom: 20, gap: 8 },
@@ -854,19 +861,19 @@ const s = StyleSheet.create({
     paddingTop: 32,
   },
   chipHeadline: {
-    fontSize: 22, fontWeight: '600', color: '#0f1629',
+    fontSize: 22, fontWeight: '600', color: t.navy,
     marginBottom: 24, letterSpacing: -0.3,
   },
   chipBtn: {
-    backgroundColor: '#0f1629',
+    backgroundColor: t.navy,
     paddingHorizontal: 22, paddingVertical: 20,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  chipBtnText:  { color: '#00d68f', fontSize: 17, fontWeight: '600' },
-  chipBtnArrow: { color: '#00d68f', fontSize: 17, opacity: 0.7 },
+  chipBtnText:  { color: t.accentOnDark, fontSize: 17, fontWeight: '600' },
+  chipBtnArrow: { color: t.accentOnDark, fontSize: 17, opacity: 0.7 },
 
   bubbleRow:      { flexDirection: 'row', marginBottom: 2 },
   bubbleRowLeft:  { justifyContent: 'flex-start' },
@@ -877,20 +884,20 @@ const s = StyleSheet.create({
     borderRadius: 16,
   },
   bubbleAssistant: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1, borderColor: '#e8ecf4',
+    backgroundColor: t.surface,
+    borderWidth: 1, borderColor: t.border,
     borderTopLeftRadius: 4,
   },
   bubbleUser: {
-    backgroundColor: '#00d68f',
+    backgroundColor: t.accent,
     borderTopRightRadius: 4,
   },
   bubbleError: {
     backgroundColor: 'rgba(255,107,107,0.12)',
     borderColor: 'rgba(255,107,107,0.4)',
   },
-  bubbleText:     { fontSize: 15, color: '#0f1629', lineHeight: 21 },
-  bubbleTextUser: { color: '#0f1629' },
+  bubbleText:     { fontSize: 15, color: t.navy, lineHeight: 21 },
+  bubbleTextUser: { color: t.onAccent },
 
   // Light-green pill for status messages and the share-extension tip.
   // #d8f5e6 + #047a47 from the design mockups — warm muted mint with
@@ -908,37 +915,37 @@ const s = StyleSheet.create({
   systemText:     { fontSize: 14, color: '#047a47', textAlign: 'center', fontWeight: '500', lineHeight: 19 },
   systemTextError:{ color: '#c44949' },
   systemApprove: {
-    backgroundColor: '#00d68f', borderRadius: 8,
+    backgroundColor: t.cta, borderRadius: 8,
     paddingHorizontal: 14, paddingVertical: 8, marginTop: 2,
   },
-  systemApproveText: { color: '#0f1629', fontSize: 14, fontWeight: '600' },
+  systemApproveText: { color: t.ctaText, fontSize: 14, fontWeight: '600' },
 
   composer: {
     flexDirection: 'row', alignItems: 'flex-end',
     paddingHorizontal: 12, paddingVertical: 10, gap: 6,
-    borderTopWidth: 1, borderTopColor: '#e8ecf4',
-    backgroundColor: '#ffffff',
+    borderTopWidth: 1, borderTopColor: t.border,
+    backgroundColor: t.surface,
   },
   cameraBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#f4f6fa',
-    borderWidth: 1, borderColor: '#e8ecf4',
+    backgroundColor: t.bg,
+    borderWidth: 1, borderColor: t.border,
     alignItems: 'center', justifyContent: 'center',
   },
   cameraBtnDisabled: { opacity: 0.5 },
-  cameraBtnIcon:     { fontSize: 18 },
   input: {
     flex: 1,
-    backgroundColor: '#f4f6fa', color: '#0f1629', fontSize: 15,
+    backgroundColor: t.bg, color: t.navy, fontSize: 15,
     paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18,
-    borderWidth: 1, borderColor: '#e8ecf4',
+    borderWidth: 1, borderColor: t.border,
     maxHeight: 120, minHeight: 40,
   },
   sendBtn: {
-    backgroundColor: '#00d68f', borderRadius: 18,
+    backgroundColor: t.cta, borderRadius: 18,
     paddingHorizontal: 18, paddingVertical: 10,
     justifyContent: 'center',
   },
-  sendBtnDisabled: { backgroundColor: '#b8c4d8' },
-  sendBtnText:     { color: '#0f1629', fontSize: 15, fontWeight: '600' },
-});
+  sendBtnDisabled: { backgroundColor: t.slateLight },
+  sendBtnText:     { color: t.ctaText, fontSize: 15, fontWeight: '600' },
+  });
+}

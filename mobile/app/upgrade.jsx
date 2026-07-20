@@ -12,7 +12,7 @@
 // changing prices/tiers doesn't need an app rebuild. RC config + product
 // IDs lives in the dashboard (RC_OFFERING = "default", entitlement = "premium").
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   ActivityIndicator, Alert, Linking,
@@ -20,6 +20,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../lib/theme';
 import {
   getOfferings, purchasePackage, restorePurchases,
   PREMIUM_ENTITLEMENT,
@@ -35,6 +36,8 @@ const FEATURES = [
 
 export default function UpgradeScreen() {
   const router = useRouter();
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   const [offering, setOffering] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [busy, setBusy]         = useState(false);
@@ -99,7 +102,7 @@ export default function UpgradeScreen() {
     <SafeAreaView style={s.root} edges={['top']}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.closeBtn} hitSlop={12}>
-          <Ionicons name="close" size={26} color="#5b6478" />
+          <Ionicons name="close" size={26} color={t.slate} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>SportsCal Premium</Text>
         <View style={{ width: 26 }} />
@@ -107,7 +110,7 @@ export default function UpgradeScreen() {
 
       <ScrollView contentContainerStyle={s.scroll}>
         <View style={s.hero}>
-          <Ionicons name="sparkles" size={36} color="#00d68f" />
+          <Ionicons name="sparkles" size={36} color={t.accent} />
           <Text style={s.heroTitle}>Unlock the full SportsCal</Text>
           <Text style={s.heroSub}>
             Carpool with confidence and connect every calendar.
@@ -117,14 +120,14 @@ export default function UpgradeScreen() {
         <View style={s.features}>
           {FEATURES.map((f, i) => (
             <View key={i} style={s.featureRow}>
-              <Ionicons name={f.icon} size={20} color="#00d68f" />
+              <Ionicons name={f.icon} size={20} color={t.accent} />
               <Text style={s.featureText}>{f.text}</Text>
             </View>
           ))}
         </View>
 
         {loading ? (
-          <ActivityIndicator color="#00d68f" size="large" style={{ marginVertical: 32 }} />
+          <ActivityIndicator color={t.accent} size="large" style={{ marginVertical: 32 }} />
         ) : !offering || !offering.availablePackages?.length ? (
           <View style={s.empty}>
             <Text style={s.emptyText}>
@@ -190,48 +193,50 @@ export default function UpgradeScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: '#fff' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 12, paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e2e6ee',
-  },
-  closeBtn:    { padding: 4 },
-  headerTitle: { fontSize: 17, fontWeight: '600', color: '#0f1629' },
-  scroll:      { padding: 20, paddingBottom: 40 },
-  hero:        { alignItems: 'center', marginTop: 12, marginBottom: 24 },
-  heroTitle:   { fontSize: 22, fontWeight: '700', color: '#0f1629', marginTop: 10 },
-  heroSub:     { fontSize: 15, color: '#5b6478', marginTop: 6, textAlign: 'center', lineHeight: 21 },
-  features:    { marginBottom: 24 },
-  featureRow:  { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  featureText: { fontSize: 15, color: '#0f1629', marginLeft: 12, flex: 1 },
-  empty:       { padding: 24, backgroundColor: '#f4f6fa', borderRadius: 12, marginVertical: 16 },
-  emptyText:   { fontSize: 14, color: '#5b6478', lineHeight: 20, textAlign: 'center' },
-  packages:    { gap: 12, marginBottom: 24 },
-  pkgBtn:      {
-    borderWidth: 1.5, borderColor: '#e2e6ee', borderRadius: 14,
-    padding: 16, alignItems: 'center', backgroundColor: '#fff',
-  },
-  pkgBtnHighlight: {
-    borderColor: '#00d68f', backgroundColor: '#f0fbf6',
-  },
-  pkgBadge: {
-    position: 'absolute', top: -10, paddingHorizontal: 10, paddingVertical: 3,
-    backgroundColor: '#00d68f', color: '#fff', fontSize: 10, fontWeight: '700',
-    borderRadius: 10, letterSpacing: 0.5,
-  },
-  pkgTitle:          { fontSize: 16, fontWeight: '600', color: '#0f1629' },
-  pkgTitleHighlight: { color: '#0f1629' },
-  pkgPrice:          { fontSize: 22, fontWeight: '700', color: '#0f1629', marginTop: 4 },
-  pkgPriceHighlight: { color: '#00b377' },
-  pkgDesc:           { fontSize: 13, color: '#5b6478', marginTop: 4, textAlign: 'center' },
-  pkgDescHighlight:  { color: '#5b6478' },
-  disclosure:        {
-    fontSize: 11, color: '#8896b0', lineHeight: 16, textAlign: 'center',
-    marginTop: 8, marginBottom: 14,
-  },
-  linksRow:    { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' },
-  link:        { fontSize: 12, color: '#00d68f', fontWeight: '600' },
-  linkSep:     { fontSize: 12, color: '#b8c4d8', marginHorizontal: 10 },
-});
+function makeStyles(t) {
+  return StyleSheet.create({
+    root:   { flex: 1, backgroundColor: t.surface },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 12, paddingVertical: 10,
+      borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.border,
+    },
+    closeBtn:    { padding: 4 },
+    headerTitle: { fontSize: 17, fontWeight: '600', color: t.navy },
+    scroll:      { padding: 20, paddingBottom: 40 },
+    hero:        { alignItems: 'center', marginTop: 12, marginBottom: 24 },
+    heroTitle:   { fontSize: 22, fontWeight: '700', color: t.navy, marginTop: 10 },
+    heroSub:     { fontSize: 15, color: t.slate, marginTop: 6, textAlign: 'center', lineHeight: 21 },
+    features:    { marginBottom: 24 },
+    featureRow:  { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
+    featureText: { fontSize: 15, color: t.navy, marginLeft: 12, flex: 1 },
+    empty:       { padding: 24, backgroundColor: t.bg, borderRadius: 12, marginVertical: 16 },
+    emptyText:   { fontSize: 14, color: t.slate, lineHeight: 20, textAlign: 'center' },
+    packages:    { gap: 12, marginBottom: 24 },
+    pkgBtn:      {
+      borderWidth: 1.5, borderColor: t.border, borderRadius: 14,
+      padding: 16, alignItems: 'center', backgroundColor: t.surface,
+    },
+    pkgBtnHighlight: {
+      borderColor: t.accent, backgroundColor: t.accent + '14',
+    },
+    pkgBadge: {
+      position: 'absolute', top: -10, paddingHorizontal: 10, paddingVertical: 3,
+      backgroundColor: t.accent, color: '#fff', fontSize: 10, fontWeight: '700',
+      borderRadius: 10, letterSpacing: 0.5,
+    },
+    pkgTitle:          { fontSize: 16, fontWeight: '600', color: t.navy },
+    pkgTitleHighlight: { color: t.navy },
+    pkgPrice:          { fontSize: 22, fontWeight: '700', color: t.navy, marginTop: 4 },
+    pkgPriceHighlight: { color: t.accentDim },
+    pkgDesc:           { fontSize: 13, color: t.slate, marginTop: 4, textAlign: 'center' },
+    pkgDescHighlight:  { color: t.slate },
+    disclosure:        {
+      fontSize: 11, color: t.slate, lineHeight: 16, textAlign: 'center',
+      marginTop: 8, marginBottom: 14,
+    },
+    linksRow:    { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' },
+    link:        { fontSize: 12, color: t.accent, fontWeight: '600' },
+    linkSep:     { fontSize: 12, color: t.slateLight, marginHorizontal: 10 },
+  });
+}

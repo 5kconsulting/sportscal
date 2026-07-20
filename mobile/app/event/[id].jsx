@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, Pressable, Switch, Linking,
@@ -10,12 +10,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../lib/api';
 import { selectionStore } from '../../lib/selectionStore';
 import { useAuth } from '../../lib/auth';
+import { useTheme } from '../../lib/theme';
 
 export default function EventDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
   const isPremium = user?.plan === 'premium';
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
 
   const [event, setEvent]         = useState(null);
   const [logistics, setLogistics] = useState([]); // array of 0-2 rows
@@ -312,7 +315,7 @@ export default function EventDetail() {
     return (
       <SafeAreaView style={s.root} edges={['top']}>
         <ModalHeader onClose={() => router.back()} title="" />
-        <View style={s.center}><ActivityIndicator color="#00d68f" size="large" /></View>
+        <View style={s.center}><ActivityIndicator color={t.accent} size="large" /></View>
       </SafeAreaView>
     );
   }
@@ -364,7 +367,7 @@ export default function EventDetail() {
               style={({ pressed }) => [{ marginTop: 8, opacity: pressed ? 0.6 : 1 }]}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Ionicons name="location-outline" size={14} color="#00b377" />
+                <Ionicons name="location-outline" size={14} color={t.accentDim} />
                 <Text style={[s.meta, s.locationLink, { marginTop: 0 }]}>{event.location}</Text>
               </View>
             </Pressable>
@@ -386,7 +389,7 @@ export default function EventDetail() {
               const saving = savingKidId === k.id;
               return (
                 <View key={k.id} style={s.kidAttendRow}>
-                  <View style={[s.kidDot, { backgroundColor: k.color || '#00d68f' }]} />
+                  <View style={[s.kidDot, { backgroundColor: k.color || t.accent }]} />
                   <Text
                     style={[s.kidAttendName, !attending && s.kidAttendNameOff]}
                     numberOfLines={1}
@@ -397,12 +400,12 @@ export default function EventDetail() {
                     <Text style={s.kidAttendTag}>Not going</Text>
                   )}
                   {saving ? (
-                    <ActivityIndicator color="#8896b0" style={{ marginLeft: 8 }} />
+                    <ActivityIndicator color={t.slate} style={{ marginLeft: 8 }} />
                   ) : (
                     <Switch
                       value={attending}
                       onValueChange={(v) => setKidAttendance(k.id, v)}
-                      trackColor={{ false: '#d9dfe9', true: '#00d68f' }}
+                      trackColor={{ false: '#d9dfe9', true: t.accent }}
                       thumbColor="#ffffff"
                       ios_backgroundColor="#d9dfe9"
                       style={{ marginLeft: 8 }}
@@ -455,7 +458,7 @@ export default function EventDetail() {
             disabled={removing}
           >
             {removing ? (
-              <ActivityIndicator color="#ef4444" />
+              <ActivityIndicator color={t.danger} />
             ) : (
               <Text style={s.removeBtnText}>Remove from SportsCal</Text>
             )}
@@ -471,6 +474,8 @@ export default function EventDetail() {
 }
 
 function ModalHeader({ onClose, title }) {
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   return (
     <View style={s.header}>
       <TouchableOpacity onPress={onClose} hitSlop={16}>
@@ -483,6 +488,8 @@ function ModalHeader({ onClose, title }) {
 }
 
 function LogisticsSlot({ role, label, logistics, saving, onAssign, onClear }) {
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   if (!logistics) {
     return (
       <Pressable
@@ -491,7 +498,7 @@ function LogisticsSlot({ role, label, logistics, saving, onAssign, onClear }) {
         style={({ pressed }) => [s.slot, s.slotEmpty, pressed && s.slotPressed]}
       >
         {saving ? (
-          <ActivityIndicator color="#8896b0" />
+          <ActivityIndicator color={t.slate} />
         ) : (
           <>
             <Text style={s.slotLabel}>{label}</Text>
@@ -503,10 +510,10 @@ function LogisticsSlot({ role, label, logistics, saving, onAssign, onClear }) {
   }
 
   const statusColor =
-    logistics.status === 'confirmed' ? '#00b377'
-    : logistics.status === 'declined' ? '#ef4444'
+    logistics.status === 'confirmed' ? t.accentDim
+    : logistics.status === 'declined' ? t.danger
     : logistics.status === 'requested' ? '#f59e0b'
-    : '#8896b0';
+    : t.slate;
   const statusLabel =
     logistics.status === 'confirmed' ? 'Confirmed'
     : logistics.status === 'declined' ? 'Declined'
@@ -530,14 +537,14 @@ function LogisticsSlot({ role, label, logistics, saving, onAssign, onClear }) {
           </View>
         </View>
         {saving ? (
-          <ActivityIndicator color="#8896b0" />
+          <ActivityIndicator color={t.slate} />
         ) : (
           <View style={s.slotActions}>
             <TouchableOpacity onPress={onAssign} style={s.slotBtn}>
               <Text style={s.slotBtnText}>Change</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={onClear} style={[s.slotBtn, { marginTop: 6 }]}>
-              <Text style={[s.slotBtnText, { color: '#ef4444' }]}>Remove</Text>
+              <Text style={[s.slotBtnText, { color: t.danger }]}>Remove</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -546,81 +553,83 @@ function LogisticsSlot({ role, label, logistics, saving, onAssign, onClear }) {
   );
 }
 
-const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: '#f4f6fa' },
+function makeStyles(t) {
+  return StyleSheet.create({
+  root:   { flex: 1, backgroundColor: t.bg },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { color: '#ef4444', fontSize: 14, paddingHorizontal: 24, textAlign: 'center' },
+  errorText: { color: t.danger, fontSize: 14, paddingHorizontal: 24, textAlign: 'center' },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#e8ecf4',
-    backgroundColor: '#ffffff',
+    borderBottomWidth: 1, borderBottomColor: t.border,
+    backgroundColor: t.surface,
   },
-  headerClose: { fontSize: 15, color: '#00d68f', fontWeight: '600' },
-  headerTitle: { fontSize: 15, fontWeight: '600', color: '#0f1629' },
+  headerClose: { fontSize: 15, color: t.accent, fontWeight: '600' },
+  headerTitle: { fontSize: 15, fontWeight: '600', color: t.navy },
 
   titleBlock: {
-    backgroundColor: '#ffffff', padding: 20,
-    borderBottomWidth: 1, borderBottomColor: '#e8ecf4',
+    backgroundColor: t.surface, padding: 20,
+    borderBottomWidth: 1, borderBottomColor: t.border,
   },
-  title: { fontSize: 22, fontWeight: '700', color: '#0f1629', letterSpacing: -0.3, marginBottom: 8 },
-  meta:  { fontSize: 14, color: '#4a5670', marginTop: 2 },
-  locationLink: { color: '#00b377', textDecorationLine: 'underline' },
-  source:{ fontSize: 12, color: '#8896b0', marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  title: { fontSize: 22, fontWeight: '700', color: t.navy, letterSpacing: -0.3, marginBottom: 8 },
+  meta:  { fontSize: 14, color: t.slate, marginTop: 2 },
+  locationLink: { color: t.accentDim, textDecorationLine: 'underline' },
+  source:{ fontSize: 12, color: t.slate, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
 
   section: { paddingHorizontal: 20, paddingTop: 24 },
   sectionLabel: {
-    fontSize: 11, fontWeight: '600', color: '#8896b0',
+    fontSize: 11, fontWeight: '600', color: t.slate,
     textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10,
   },
-  description: { fontSize: 14, color: '#4a5670', lineHeight: 21 },
+  description: { fontSize: 14, color: t.slate, lineHeight: 21 },
 
-  sectionHint: { fontSize: 12, color: '#8896b0', marginTop: -4, marginBottom: 10, lineHeight: 16 },
+  sectionHint: { fontSize: 12, color: t.slate, marginTop: -4, marginBottom: 10, lineHeight: 16 },
   removeBtn: {
     paddingVertical: 14, borderRadius: 10,
-    borderWidth: 1, borderColor: '#ef4444',
+    borderWidth: 1, borderColor: t.danger,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: t.surface,
   },
-  removeBtnText: { color: '#ef4444', fontSize: 15, fontWeight: '600' },
-  removeHelp: { fontSize: 12, color: '#8896b0', marginTop: 8, lineHeight: 16, textAlign: 'center' },
+  removeBtnText: { color: t.danger, fontSize: 15, fontWeight: '600' },
+  removeHelp: { fontSize: 12, color: t.slate, marginTop: 8, lineHeight: 16, textAlign: 'center' },
   kidDot:  { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
   kidAttendRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#ffffff', borderRadius: 12,
+    backgroundColor: t.surface, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1, borderColor: '#e8ecf4', marginBottom: 8,
+    borderWidth: 1, borderColor: t.border, marginBottom: 8,
   },
-  kidAttendName: { flex: 1, fontSize: 15, color: '#0f1629', fontWeight: '500' },
-  kidAttendNameOff: { color: '#8896b0', textDecorationLine: 'line-through' },
+  kidAttendName: { flex: 1, fontSize: 15, color: t.navy, fontWeight: '500' },
+  kidAttendNameOff: { color: t.slate, textDecorationLine: 'line-through' },
   kidAttendTag: {
-    fontSize: 11, color: '#8896b0', fontWeight: '600',
+    fontSize: 11, color: t.slate, fontWeight: '600',
     textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 4,
   },
 
   slot: {
-    backgroundColor: '#ffffff', borderRadius: 12, padding: 14,
-    borderWidth: 1, borderColor: '#e8ecf4', marginBottom: 10,
+    backgroundColor: t.surface, borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: t.border, marginBottom: 10,
   },
   slotEmpty: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     borderStyle: 'dashed',
   },
-  slotPressed: { backgroundColor: '#f4f6fa' },
+  slotPressed: { backgroundColor: t.bg },
   slotFilled: {},
   slotRow: { flexDirection: 'row', alignItems: 'flex-start' },
   slotLabel: {
-    fontSize: 11, fontWeight: '600', color: '#8896b0',
+    fontSize: 11, fontWeight: '600', color: t.slate,
     textTransform: 'uppercase', letterSpacing: 0.8,
   },
-  slotAssign: { fontSize: 14, color: '#00d68f', fontWeight: '600' },
-  slotContactName: { fontSize: 16, fontWeight: '600', color: '#0f1629', marginTop: 4 },
-  slotContactMeta: { fontSize: 13, color: '#8896b0', marginTop: 2 },
+  slotAssign: { fontSize: 14, color: t.accent, fontWeight: '600' },
+  slotContactName: { fontSize: 16, fontWeight: '600', color: t.navy, marginTop: 4 },
+  slotContactMeta: { fontSize: 13, color: t.slate, marginTop: 2 },
   statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   statusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
   statusText: { fontSize: 12, fontWeight: '500' },
   slotActions: { alignItems: 'flex-end' },
   slotBtn: { paddingHorizontal: 10, paddingVertical: 6 },
-  slotBtnText: { fontSize: 13, color: '#00d68f', fontWeight: '600' },
-});
+  slotBtnText: { fontSize: 13, color: t.accent, fontWeight: '600' },
+  });
+}
