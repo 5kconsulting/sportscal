@@ -1,14 +1,17 @@
 import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Linking, Share, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Linking, Share, Platform, Switch } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
+import { useTheme, useSkin } from '../../lib/theme';
 
 const FEED_HOST = 'www.sportscalapp.com';
 
 export default function Settings() {
   const { user, logout, updateUser } = useAuth();
   const router = useRouter();
+  const t = useTheme();
+  const { skin, setSkin } = useSkin();
   const [deleting, setDeleting] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [kids, setKids] = useState([]);
@@ -188,6 +191,33 @@ export default function Settings() {
         <Text style={s.label}>Signed in as</Text>
         <Text style={s.value}>{user?.name}</Text>
         <Text style={s.sub}>{user?.email}</Text>
+      </View>
+
+      {/* Appearance — opt-in reskin. Styled from the theme (not the
+          hardcoded `s` sheet) so this row previews the new look correctly
+          in both skins. Persisted per-device via useSkin(). */}
+      <View style={{
+        backgroundColor: t.surface, borderRadius: 12, padding: 16,
+        marginBottom: 12, borderWidth: 1, borderColor: t.border,
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+      }}>
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: t.navy }}>New look</Text>
+            <View style={{ backgroundColor: t.accent, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: t.onAccent, letterSpacing: 0.4 }}>BETA</Text>
+            </View>
+          </View>
+          <Text style={{ fontSize: 12, color: t.slate, marginTop: 3, lineHeight: 16 }}>
+            A calmer, refreshed design. Switch back anytime.
+          </Text>
+        </View>
+        <Switch
+          value={skin === 'beta'}
+          onValueChange={(v) => setSkin(v ? 'beta' : 'classic')}
+          trackColor={{ true: t.accent, false: '#cbd5e1' }}
+          accessibilityLabel="Use the new look (beta)"
+        />
       </View>
 
       {/* SportsCal Premium — opens the StoreKit-backed IAP screen.

@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ShareIntentProvider, useShareIntentContext } from 'expo-share-intent';
 import { AuthProvider, useAuth } from '../lib/auth';
+import { SkinProvider } from '../lib/theme';
 import { requestTrackingPermission } from '../lib/analytics';
 import { subscribeToNotificationTaps } from '../lib/push';
 import { configureIap, logOutIap } from '../lib/iap';
@@ -190,10 +191,12 @@ export default function RootLayout() {
           the native module's event emitters; it has no UI and no overhead
           when nothing's being shared. */}
       <ShareIntentProvider>
-        <AuthProvider>
-          <StatusBar style="light" />
-          <AuthGate />
-        </AuthProvider>
+        <SkinProvider>
+          <AuthProvider>
+            <StatusBar style="light" />
+            <AuthGate />
+          </AuthProvider>
+        </SkinProvider>
       </ShareIntentProvider>
     </SafeAreaProvider>
   );

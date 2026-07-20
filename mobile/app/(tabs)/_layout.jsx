@@ -1,26 +1,28 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../lib/theme';
 
 export default function TabsLayout() {
+  const t = useTheme();
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor:   '#00d68f',
-        tabBarInactiveTintColor: '#8896b0',
+        tabBarActiveTintColor:   t.accentOnDark,
+        tabBarInactiveTintColor: t.slate,
         // Edge-to-edge dark navy: no rounding on the top of the tab bar
         // or the bottom of the header. The earlier rounded-corner look
         // read as a "screen inside a screen" on real devices (especially
         // when the iPhone's own rounded corners cut just outside the
         // bar's inner curve). Flat reads cleaner.
         tabBarStyle: {
-          backgroundColor: '#0f1629',
-          borderTopColor:  '#243050',
+          backgroundColor: t.navy,
+          borderTopColor:  t.navyMid,
           borderTopWidth:  0,
         },
         headerStyle: {
-          backgroundColor: '#0f1629',
+          backgroundColor: t.navy,
         },
-        headerTintColor:  '#ffffff',
+        headerTintColor:  t.white,
         headerTitleStyle: { fontWeight: '600' },
       }}
     >

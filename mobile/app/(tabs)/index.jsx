@@ -7,10 +7,13 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
 import { EventCard } from '../../components/EventCard';
+import { useTheme, useSkin } from '../../lib/theme';
 
 export default function Calendar() {
   const { user } = useAuth();
   const router = useRouter();
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   const [events, setEvents]       = useState([]);
   const [overrides, setOverrides] = useState({}); // { [eventId]: { [kidId]: attending } }
   // Onboarding-checklist state. Tracked here (vs. inside the chips
@@ -102,7 +105,7 @@ export default function Calendar() {
   if (loading) {
     return (
       <View style={s.center}>
-        <ActivityIndicator color="#00d68f" size="large" />
+        <ActivityIndicator color={t.accent} size="large" />
       </View>
     );
   }
@@ -111,7 +114,8 @@ export default function Calendar() {
     return (
       <View style={s.center}>
         <Text style={s.errorText}>{error}</Text>
-        <TouchableOpacity onPress={onRefresh} style={s.retry}>
+        <TouchableOpacity onPress={onRefresh} style={s.retry}
+          accessibilityRole="button" accessibilityLabel="Try again">
           <Text style={s.retryText}>Try again</Text>
         </TouchableOpacity>
       </View>
@@ -159,6 +163,8 @@ export default function Calendar() {
               key={chip.key}
               style={s.appChip}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={chip.label}
               onPress={() => {
                 // Route source chips through the tutorial player first;
                 // it plays the per-app screen-recording (if bundled) then
@@ -203,6 +209,7 @@ export default function Calendar() {
           onPress={() => router.push('/event/new')}
           style={s.addEventBtn}
           activeOpacity={0.7}
+          accessibilityRole="button"
           accessibilityLabel="Add a new event"
         >
           <Text style={s.addEventBtnText}>+ Add event</Text>
@@ -214,7 +221,7 @@ export default function Calendar() {
         keyExtractor={i => i.key}
         contentContainerStyle={{ paddingBottom: 24 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00d68f" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accent} />
         }
         ListEmptyComponent={
           <View style={s.empty}>
@@ -228,6 +235,8 @@ export default function Calendar() {
               style={s.emptyCta}
               onPress={() => router.push('/setup')}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Open setup helper"
             >
               <Text style={s.emptyCtaText}>Open setup helper</Text>
             </TouchableOpacity>
@@ -267,6 +276,9 @@ function displayDateKey(startsAt, allDay) {
 }
 
 function DayHeader({ dateKey }) {
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
+  const { skin } = useSkin();
   const today = new Date();
   const todayKey = localDateKey(today);
   const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
@@ -280,10 +292,21 @@ function DayHeader({ dateKey }) {
 
   const isToday    = dateKey === todayKey;
   const isTomorrow = dateKey === tomorrowKey;
-  const label = isToday   ? 'Today'
-              : isTomorrow ? 'Tomorrow'
-              : displayDate.toLocaleDateString(undefined,
-                  { weekday: 'short', month: 'short', day: 'numeric' });
+  const pretty = displayDate.toLocaleDateString(undefined,
+    { weekday: 'short', month: 'short', day: 'numeric' });
+  const label = isToday ? 'Today' : isTomorrow ? 'Tomorrow' : pretty;
+
+  // Beta: "Today" gets a tinted pill + the date, per the preview.
+  if (skin === 'beta') {
+    return (
+      <View style={s.bDayHeader}>
+        {isToday ? (
+          <View style={s.todayPill}><Text style={s.todayPillText}>Today</Text></View>
+        ) : null}
+        <Text style={s.bDayText}>{isToday ? pretty : label}</Text>
+      </View>
+    );
+  }
   return (
     <View style={s.dayHeader}>
       <Text style={s.dayHeaderText}>{label}</Text>
@@ -291,24 +314,26 @@ function DayHeader({ dateKey }) {
   );
 }
 
-const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: '#f4f6fa' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f4f6fa' },
+function makeStyles(t) {
+  return StyleSheet.create({
+  root:   { flex: 1, backgroundColor: t.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: t.bg },
   header: {
     paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8,
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
   },
   addEventBtn: {
-    backgroundColor: '#00d68f', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 8,
+    backgroundColor: t.cta, borderRadius: 8,
+    paddingHorizontal: 14, minHeight: 44,
+    alignItems: 'center', justifyContent: 'center',
     marginTop: 4,
   },
-  addEventBtnText: { color: '#0f1629', fontSize: 14, fontWeight: '600' },
+  addEventBtnText: { color: t.ctaText, fontSize: 14, fontWeight: '600' },
   // Hero greeting — bigger and bolder than a typical iOS section title
   // so the Calendar tab feels personal at a glance. Mirrors the design
   // mockups (28px, weight 800).
-  hi:     { fontSize: 28, fontWeight: '800', color: '#0f1629', lineHeight: 30 },
-  sub:    { fontSize: 13, color: '#8896b0', marginTop: 6 },
+  hi:     { fontSize: 28, fontWeight: '800', color: t.navy, lineHeight: 30 },
+  sub:    { fontSize: 13, color: t.slate, marginTop: 6 },
 
   // Calendar-first onboarding styles. Mirrors the /setup chip welcome
   // exactly so a user who taps a chip here lands on a visually
@@ -318,41 +343,54 @@ const s = StyleSheet.create({
     gap: 12,
   },
   chipPrompt: {
-    fontSize: 14, fontWeight: '600', color: '#8896b0',
+    fontSize: 14, fontWeight: '600', color: t.slate,
     textTransform: 'uppercase', letterSpacing: 0.6,
     marginBottom: 8,
   },
   appChip: {
-    backgroundColor: '#0f1629',
+    backgroundColor: t.navy,
     paddingHorizontal: 22, paddingVertical: 20,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  appChipLabel: { color: '#00d68f', fontSize: 17, fontWeight: '600' },
-  appChipArrow: { color: '#00d68f', fontSize: 17, opacity: 0.7 },
+  appChipLabel: { color: t.accentOnDark, fontSize: 17, fontWeight: '600' },
+  appChipArrow: { color: t.accentOnDark, fontSize: 17, opacity: 0.7 },
   dayHeader: {
-    backgroundColor: '#f4f6fa',
+    backgroundColor: t.bg,
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6,
   },
   dayHeaderText: {
-    fontSize: 11, fontWeight: '600', color: '#8896b0',
+    fontSize: 11, fontWeight: '600', color: t.slate,
     textTransform: 'uppercase', letterSpacing: 0.8,
   },
+  // beta day header: tinted "Today" pill + normal-case date
+  bDayHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 6,
+  },
+  todayPill: {
+    backgroundColor: t.accent, borderRadius: 6,
+    paddingHorizontal: 8, paddingVertical: 2,
+  },
+  todayPillText: { color: t.onAccent, fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
+  bDayText: { fontSize: 13, fontWeight: '600', color: t.slate },
   empty: {
     paddingHorizontal: 24, paddingTop: 40, paddingBottom: 60,
     alignItems: 'center',
   },
   emptyEmoji: { fontSize: 36, marginBottom: 12 },
-  emptyTitle: { fontSize: 17, fontWeight: '600', color: '#0f1629', marginBottom: 6 },
-  emptyText:  { color: '#8896b0', fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 18 },
+  emptyTitle: { fontSize: 17, fontWeight: '600', color: t.navy, marginBottom: 6 },
+  emptyText:  { color: t.slate, fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 18 },
   emptyCta: {
-    backgroundColor: '#00d68f', borderRadius: 10,
-    paddingHorizontal: 18, paddingVertical: 12,
+    backgroundColor: t.cta, borderRadius: 10,
+    paddingHorizontal: 18, minHeight: 44,
+    alignItems: 'center', justifyContent: 'center',
   },
-  emptyCtaText: { color: '#0f1629', fontSize: 15, fontWeight: '600' },
-  errorText:   { color: '#ff6b6b', fontSize: 14, marginBottom: 16 },
-  retry:       { paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderColor: '#00d68f', borderRadius: 8 },
-  retryText:   { color: '#00d68f', fontWeight: '500' },
-});
+  emptyCtaText: { color: t.ctaText, fontSize: 15, fontWeight: '600' },
+  errorText:   { color: t.danger, fontSize: 14, marginBottom: 16 },
+  retry:       { paddingHorizontal: 16, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: t.accent, borderRadius: 8 },
+  retryText:   { color: t.accent, fontWeight: '500' },
+  });
+}
