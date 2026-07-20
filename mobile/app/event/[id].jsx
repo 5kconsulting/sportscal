@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, Pressable, Switch, Linking,
+  ActivityIndicator, Alert, Pressable, Linking,
   ActionSheetIOS,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +11,51 @@ import { api } from '../../lib/api';
 import { selectionStore } from '../../lib/selectionStore';
 import { useAuth } from '../../lib/auth';
 import { useTheme } from '../../lib/theme';
+
+// Sport inference (keyword only — no guessing) drives the hero color + icon.
+const SPORTS = [
+  { re: /soccer|f[úu]tbol/i, label: 'Soccer', color: '#16a34a' },
+  { re: /swim|dive|aquatic/i, label: 'Swim', color: '#0891b2' },
+  { re: /volley/i, label: 'Volleyball', color: '#db2777' },
+  { re: /basketball|hoops/i, label: 'Basketball', color: '#ea580c' },
+  { re: /baseball|softball|t-?ball/i, label: 'Baseball', color: '#ca8a04' },
+  { re: /hockey/i, label: 'Hockey', color: '#0ea5e9' },
+  { re: /football/i, label: 'Football', color: '#7c3aed' },
+  { re: /lacrosse|lax/i, label: 'Lacrosse', color: '#059669' },
+  { re: /tennis/i, label: 'Tennis', color: '#65a30d' },
+  { re: /golf/i, label: 'Golf', color: '#15803d' },
+  { re: /track|cross.?country|\bxc\b/i, label: 'Track', color: '#dc2626' },
+  { re: /gymnastic/i, label: 'Gymnastics', color: '#c026d3' },
+  { re: /dance|ballet/i, label: 'Dance', color: '#e11d48' },
+  { re: /wrestl/i, label: 'Wrestling', color: '#9333ea' },
+];
+function inferSport(title = '') {
+  for (const sp of SPORTS) if (sp.re.test(title)) return sp;
+  return null;
+}
+const SPORT_ICON = {
+  Soccer: 'football-outline', Basketball: 'basketball-outline', Baseball: 'baseball-outline',
+  Tennis: 'tennisball-outline', Football: 'american-football-outline', Swim: 'water-outline',
+  Golf: 'golf-outline', Track: 'walk-outline', Gymnastics: 'body-outline', Dance: 'body-outline',
+  Hockey: 'ellipse-outline', Volleyball: 'ellipse-outline', Lacrosse: 'ellipse-outline', Wrestling: 'body-outline',
+};
+function textOn(hex) {
+  const h = String(hex).replace('#', '');
+  if (h.length !== 6) return '#ffffff';
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.62 ? '#0f172a' : '#ffffff';
+}
+function countdownLabel(start) {
+  const now = new Date();
+  const a = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const b = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const days = Math.round((b - a) / 86400000);
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Tomorrow';
+  if (days === -1) return 'Yesterday';
+  if (days > 1) return `In ${days} days`;
+  return `${-days} days ago`;
+}
 
 export default function EventDetail() {
   const { id } = useLocalSearchParams();
@@ -345,129 +390,145 @@ export default function EventDetail() {
 
   const kids = Array.isArray(event.kids) ? event.kids : [];
 
+  const sport = inferSport(event.display_title || event.raw_title || '');
+  const heroColor = sport?.color || kids[0]?.color || t.accent;
+  const heroFg = textOn(heroColor);
+  const heroScrim = heroFg === '#ffffff' ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.10)';
+  const sportIconName = (sport && SPORT_ICON[sport.label]) || 'calendar-outline';
+  const countdown = countdownLabel(start);
+
   return (
     <SafeAreaView style={s.root} edges={['top']}>
       <ModalHeader onClose={() => router.back()} title="Event" />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        {/* Title block */}
-        <View style={s.titleBlock}>
-          <Text style={s.title}>{event.display_title || event.raw_title}</Text>
-          <Text style={s.meta}>{dateLabel}</Text>
-          <Text style={s.meta}>{timeLabel}</Text>
-          {event.location ? (
-            <Pressable
-              onPress={() => {
-                const url = `http://maps.apple.com/?daddr=${encodeURIComponent(event.location)}`;
-                Linking.openURL(url).catch(() =>
-                  Alert.alert('Could not open Maps', 'Please try again.')
-                );
-              }}
-              hitSlop={8}
-              style={({ pressed }) => [{ marginTop: 8, opacity: pressed ? 0.6 : 1 }]}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Ionicons name="location-outline" size={14} color={t.accentDim} />
-                <Text style={[s.meta, s.locationLink, { marginTop: 0 }]}>{event.location}</Text>
-              </View>
-            </Pressable>
-          ) : null}
-          {event.source_name ? (
-            <Text style={s.source}>from {event.source_name}</Text>
-          ) : null}
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* HERO — sport/kid color with a big translucent sport-icon watermark */}
+        <View style={[s.hero, { backgroundColor: heroColor }]}>
+          <Ionicons name={sportIconName} size={188} color={heroFg} style={s.heroWm} />
+          <View style={[s.countPill, { backgroundColor: heroScrim }]}>
+            <Ionicons name="time-outline" size={13} color={heroFg} />
+            <Text style={[s.countText, { color: heroFg }]}>{countdown}</Text>
+          </View>
+          <Text style={[s.heroTitle, { color: heroFg }]}>{event.display_title || event.raw_title}</Text>
+          <Text style={[s.heroWhen, { color: heroFg }]}>{dateLabel} · {timeLabel}</Text>
+          {kids.length > 0 && (
+            <View style={s.heroAvatars}>
+              {kids.slice(0, 4).map(k => (
+                <View key={k.id} style={[s.heroAv, { backgroundColor: k.color || t.accent, borderColor: heroFg }]}>
+                  <Text style={s.heroAvTxt}>{(k.name || '?')[0]}</Text>
+                </View>
+              ))}
+              <Text style={[s.heroWho, { color: heroFg }]} numberOfLines={1}>
+                {kids.map(k => k.name).join(', ')}{event.source_name ? `  ·  ${event.source_name}` : ''}
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* Kids — per-kid attendance toggle */}
+        {/* LOCATION — decorative map motif + directions */}
+        {event.location ? (
+          <View style={[s.card, s.locCard]}>
+            <View style={[s.locMap, { backgroundColor: heroColor + '14' }]}>
+              <View style={[s.road, s.road1, { backgroundColor: heroColor + '33' }]} />
+              <View style={[s.road, s.road2, { backgroundColor: heroColor + '33' }]} />
+              <Ionicons name="location" size={28} color={heroColor} style={s.mapPin} />
+            </View>
+            <View style={s.locRow}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={s.locVenue} numberOfLines={1}>{event.location}</Text>
+                <Text style={s.locHint}>Tap for directions</Text>
+              </View>
+              <Pressable
+                onPress={() => {
+                  const url = `http://maps.apple.com/?daddr=${encodeURIComponent(event.location)}`;
+                  Linking.openURL(url).catch(() => Alert.alert('Could not open Maps', 'Please try again.'));
+                }}
+                hitSlop={8}
+                style={({ pressed }) => [s.dirBtn, pressed && { opacity: 0.6 }]}
+              >
+                <Text style={s.dirBtnText}>Directions</Text>
+                <Ionicons name="arrow-forward" size={14} color={t.accent} />
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
+        {/* WHO'S GOING — tappable kid chips (same attendance logic) */}
         {kids.length > 0 && (
-          <View style={s.section}>
-            <Text style={s.sectionLabel}>Who's going</Text>
-            <Text style={s.sectionHint}>
-              Turn off to hide this event from a kid's calendar feed.
-            </Text>
-            {kids.map(k => {
-              const attending = overrides[k.id] !== false;
-              const saving = savingKidId === k.id;
-              return (
-                <View key={k.id} style={s.kidAttendRow}>
-                  <View style={[s.kidDot, { backgroundColor: k.color || t.accent }]} />
-                  <Text
-                    style={[s.kidAttendName, !attending && s.kidAttendNameOff]}
-                    numberOfLines={1}
+          <View style={[s.card, s.pad]}>
+            <Text style={s.clab}>Who's going</Text>
+            <View style={s.chips}>
+              {kids.map(k => {
+                const attending = overrides[k.id] !== false;
+                const saving = savingKidId === k.id;
+                return (
+                  <Pressable
+                    key={k.id}
+                    onPress={() => setKidAttendance(k.id, !attending)}
+                    disabled={saving}
+                    style={[s.kchip, !attending && s.kchipOff]}
+                    accessibilityRole="switch"
+                    accessibilityState={{ checked: attending }}
+                    accessibilityLabel={`${k.name}${attending ? ', going' : ', not going'}`}
                   >
-                    {k.name}
-                  </Text>
-                  {!attending && (
-                    <Text style={s.kidAttendTag}>Not going</Text>
-                  )}
-                  {saving ? (
-                    <ActivityIndicator color={t.slate} style={{ marginLeft: 8 }} />
-                  ) : (
-                    <Switch
-                      value={attending}
-                      onValueChange={(v) => setKidAttendance(k.id, v)}
-                      trackColor={{ false: '#d9dfe9', true: t.accent }}
-                      thumbColor="#ffffff"
-                      ios_backgroundColor="#d9dfe9"
-                      style={{ marginLeft: 8 }}
-                    />
-                  )}
-                </View>
-              );
-            })}
+                    <View style={[s.ka, { backgroundColor: k.color || t.accent }]}>
+                      <Text style={s.kaTxt}>{(k.name || '?')[0]}</Text>
+                    </View>
+                    <Text style={[s.kchipName, !attending && s.kchipNameOff]}>{k.name}</Text>
+                    {saving ? (
+                      <ActivityIndicator size="small" color={t.slate} />
+                    ) : attending ? (
+                      <Ionicons name="checkmark-circle" size={18} color={t.accent} />
+                    ) : (
+                      <Ionicons name="ellipse-outline" size={18} color={t.slateLight} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={s.secHint}>Tap a kid to toggle whether this shows in their calendar feed.</Text>
           </View>
         )}
 
-        {/* Description */}
+        {/* DETAILS */}
         {event.description ? (
-          <View style={s.section}>
-            <Text style={s.sectionLabel}>Details</Text>
+          <View style={[s.card, s.pad]}>
+            <Text style={s.clab}>Details</Text>
             <Text style={s.description}>{event.description}</Text>
           </View>
         ) : null}
 
-        {/* Logistics */}
-        <View style={s.section}>
-          <Text style={s.sectionLabel}>Ride coordination</Text>
-          <LogisticsSlot
-            role="pickup"
-            label="Pickup"
-            logistics={findLogistics('pickup')}
-            saving={savingRole === 'pickup'}
-            onAssign={() => openPicker('pickup')}
-            onClear={() => clearRole('pickup')}
-          />
-          <LogisticsSlot
-            role="dropoff"
-            label="Dropoff"
-            logistics={findLogistics('dropoff')}
-            saving={savingRole === 'dropoff'}
-            onAssign={() => openPicker('dropoff')}
-            onClear={() => clearRole('dropoff')}
-          />
+        {/* RIDE COORDINATION */}
+        <View style={[s.card, s.pad]}>
+          <Text style={s.clab}>Ride coordination</Text>
+          <View style={s.rides}>
+            <LogisticsSlot
+              role="pickup"
+              label="Pick-up"
+              logistics={findLogistics('pickup')}
+              saving={savingRole === 'pickup'}
+              onAssign={() => openPicker('pickup')}
+              onClear={() => clearRole('pickup')}
+            />
+            <LogisticsSlot
+              role="dropoff"
+              label="Drop-off"
+              logistics={findLogistics('dropoff')}
+              saving={savingRole === 'dropoff'}
+              onAssign={() => openPicker('dropoff')}
+              onClear={() => clearRole('dropoff')}
+            />
+          </View>
         </View>
 
-        {/* Remove from SportsCal — destructive, last in the scroll so it
-            doesn't get tapped by accident. Server-side soft-hides the
-            event keyed on source_uid so the next feed refresh won't
-            re-create it. Manage hidden events via Settings → Hidden events. */}
-        <View style={s.section}>
-          <TouchableOpacity
-            style={s.removeBtn}
-            onPress={confirmRemove}
-            activeOpacity={0.8}
-            disabled={removing}
-          >
-            {removing ? (
-              <ActivityIndicator color={t.danger} />
-            ) : (
-              <Text style={s.removeBtnText}>Remove from SportsCal</Text>
-            )}
-          </TouchableOpacity>
-          <Text style={s.removeHelp}>
-            Hides this event from your calendar. The original stays in the
-            source app. Restore from Settings → Hidden events.
-          </Text>
-        </View>
+        {/* Remove — subtle, last in scroll; server soft-hides keyed on source_uid. */}
+        <TouchableOpacity style={s.removeBtn} onPress={confirmRemove} activeOpacity={0.7} disabled={removing}>
+          {removing ? <ActivityIndicator color={t.danger} /> : <Text style={s.removeBtnText}>Remove from SportsCal</Text>}
+        </TouchableOpacity>
+        <Text style={s.removeHelp}>
+          Hides this event from your calendar. The original stays in the source app.
+          Restore from Settings → Hidden events.
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -490,27 +551,29 @@ function ModalHeader({ onClose, title }) {
 function LogisticsSlot({ role, label, logistics, saving, onAssign, onClear }) {
   const t = useTheme();
   const s = useMemo(() => makeStyles(t), [t]);
+
   if (!logistics) {
     return (
       <Pressable
         onPress={onAssign}
         disabled={saving}
-        style={({ pressed }) => [s.slot, s.slotEmpty, pressed && s.slotPressed]}
+        style={({ pressed }) => [s.ride, s.rideEmpty, pressed && s.ridePressed]}
       >
-        {saving ? (
-          <ActivityIndicator color={t.slate} />
-        ) : (
-          <>
-            <Text style={s.slotLabel}>{label}</Text>
-            <Text style={s.slotAssign}>+ Assign</Text>
-          </>
-        )}
+        <View style={[s.rideIc, s.rideIcEmpty]}>
+          {saving ? <ActivityIndicator size="small" color={t.slate} />
+            : <Ionicons name="car-outline" size={20} color={t.slate} />}
+        </View>
+        <View style={s.rideInfo}>
+          <Text style={s.rideRole}>{label}</Text>
+          <Text style={s.rideAssign}>+ Assign a ride</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={t.slateLight} />
       </Pressable>
     );
   }
 
   const statusColor =
-    logistics.status === 'confirmed' ? t.accentDim
+    logistics.status === 'confirmed' ? t.accent
     : logistics.status === 'declined' ? t.danger
     : logistics.status === 'requested' ? '#f59e0b'
     : t.slate;
@@ -521,115 +584,132 @@ function LogisticsSlot({ role, label, logistics, saving, onAssign, onClear }) {
     : 'Assigned';
 
   return (
-    <View style={[s.slot, s.slotFilled]}>
-      <View style={s.slotRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={s.slotLabel}>{label}</Text>
-          <Text style={s.slotContactName}>{logistics.contact_name}</Text>
-          {logistics.contact_phone ? (
-            <Text style={s.slotContactMeta}>{logistics.contact_phone}</Text>
-          ) : logistics.contact_email ? (
-            <Text style={s.slotContactMeta}>{logistics.contact_email}</Text>
-          ) : null}
-          <View style={s.statusRow}>
-            <View style={[s.statusDot, { backgroundColor: statusColor }]} />
-            <Text style={[s.statusText, { color: statusColor }]}>{statusLabel}</Text>
+    <View style={s.ride}>
+      <View style={s.rideIc}>
+        <Ionicons name="car-outline" size={20} color={t.accent} />
+      </View>
+      <View style={s.rideInfo}>
+        <Text style={s.rideRole}>{label}</Text>
+        <Text style={s.rideName} numberOfLines={1}>{logistics.contact_name}</Text>
+        <View style={s.badgeRow}>
+          <View style={[s.badge, { backgroundColor: statusColor + '22' }]}>
+            <Text style={[s.badgeText, { color: statusColor }]}>{statusLabel}</Text>
           </View>
         </View>
-        {saving ? (
-          <ActivityIndicator color={t.slate} />
-        ) : (
-          <View style={s.slotActions}>
-            <TouchableOpacity onPress={onAssign} style={s.slotBtn}>
-              <Text style={s.slotBtnText}>Change</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onClear} style={[s.slotBtn, { marginTop: 6 }]}>
-              <Text style={[s.slotBtnText, { color: t.danger }]}>Remove</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
+      {saving ? (
+        <ActivityIndicator color={t.slate} />
+      ) : (
+        <View style={s.rideActions}>
+          <TouchableOpacity onPress={onAssign} style={s.slotBtn} hitSlop={6}>
+            <Text style={s.slotBtnText}>Change</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClear} style={s.slotBtn} hitSlop={6}>
+            <Text style={[s.slotBtnText, { color: t.danger }]}>Remove</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
 
 function makeStyles(t) {
   return StyleSheet.create({
-  root:   { flex: 1, backgroundColor: t.bg },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { color: t.danger, fontSize: 14, paddingHorizontal: 24, textAlign: 'center' },
+    root:   { flex: 1, backgroundColor: t.bg },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    errorText: { color: t.danger, fontSize: 14, paddingHorizontal: 24, textAlign: 'center' },
 
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: t.border,
-    backgroundColor: t.surface,
-  },
-  headerClose: { fontSize: 15, color: t.accent, fontWeight: '600' },
-  headerTitle: { fontSize: 15, fontWeight: '600', color: t.navy },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 20, paddingVertical: 14,
+      borderBottomWidth: 1, borderBottomColor: t.border,
+      backgroundColor: t.surface,
+    },
+    headerClose: { fontSize: 15, color: t.accent, fontWeight: '600' },
+    headerTitle: { fontSize: 15, fontWeight: '600', color: t.navy },
 
-  titleBlock: {
-    backgroundColor: t.surface, padding: 20,
-    borderBottomWidth: 1, borderBottomColor: t.border,
-  },
-  title: { fontSize: 22, fontWeight: '700', color: t.navy, letterSpacing: -0.3, marginBottom: 8 },
-  meta:  { fontSize: 14, color: t.slate, marginTop: 2 },
-  locationLink: { color: t.accentDim, textDecorationLine: 'underline' },
-  source:{ fontSize: 12, color: t.slate, marginTop: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+    // hero
+    hero: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 22, overflow: 'hidden' },
+    heroWm: { position: 'absolute', right: -30, bottom: -46, opacity: 0.16, transform: [{ rotate: '-8deg' }] },
+    countPill: {
+      flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+      borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5,
+    },
+    countText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
+    heroTitle: { fontSize: 25, fontWeight: '800', letterSpacing: -0.4, marginTop: 14, marginBottom: 4, maxWidth: '86%' },
+    heroWhen: { fontSize: 14, fontWeight: '600' },
+    heroAvatars: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
+    heroAv: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+    heroAvTxt: { fontSize: 13, fontWeight: '700', color: '#ffffff' },
+    heroWho: { fontSize: 13, fontWeight: '600', flexShrink: 1 },
 
-  section: { paddingHorizontal: 20, paddingTop: 24 },
-  sectionLabel: {
-    fontSize: 11, fontWeight: '600', color: t.slate,
-    textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10,
-  },
-  description: { fontSize: 14, color: t.slate, lineHeight: 21 },
+    // card scaffold
+    card: {
+      marginHorizontal: 14, marginTop: 12,
+      backgroundColor: t.surface, borderRadius: 16,
+      borderWidth: 1, borderColor: t.border,
+      shadowColor: '#0f172a', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 6 },
+      elevation: 2,
+    },
+    pad: { padding: 14 },
+    clab: { fontSize: 11, fontWeight: '700', letterSpacing: 0.9, textTransform: 'uppercase', color: t.slate },
+    secHint: { fontSize: 12, color: t.slate, marginTop: 10, lineHeight: 16 },
+    description: { fontSize: 14, color: t.navy, lineHeight: 21, marginTop: 8 },
 
-  sectionHint: { fontSize: 12, color: t.slate, marginTop: -4, marginBottom: 10, lineHeight: 16 },
-  removeBtn: {
-    paddingVertical: 14, borderRadius: 10,
-    borderWidth: 1, borderColor: t.danger,
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: t.surface,
-  },
-  removeBtnText: { color: t.danger, fontSize: 15, fontWeight: '600' },
-  removeHelp: { fontSize: 12, color: t.slate, marginTop: 8, lineHeight: 16, textAlign: 'center' },
-  kidDot:  { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
-  kidAttendRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: t.surface, borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1, borderColor: t.border, marginBottom: 8,
-  },
-  kidAttendName: { flex: 1, fontSize: 15, color: t.navy, fontWeight: '500' },
-  kidAttendNameOff: { color: t.slate, textDecorationLine: 'line-through' },
-  kidAttendTag: {
-    fontSize: 11, color: t.slate, fontWeight: '600',
-    textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 4,
-  },
+    // location
+    locCard: { overflow: 'hidden' },
+    locMap: { height: 92, position: 'relative', overflow: 'hidden' },
+    road: { position: 'absolute', borderRadius: 3 },
+    road1: { left: -12, right: '34%', top: 44, height: 7, transform: [{ rotate: '-6deg' }] },
+    road2: { width: 7, top: -12, bottom: 22, left: '62%', transform: [{ rotate: '9deg' }] },
+    mapPin: { position: 'absolute', left: '57%', top: 30 },
+    locRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 13 },
+    locVenue: { fontSize: 15, fontWeight: '600', color: t.navy },
+    locHint: { fontSize: 12, color: t.slate, marginTop: 1 },
+    dirBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      borderWidth: 1, borderColor: t.border, borderRadius: 10,
+      paddingHorizontal: 12, paddingVertical: 8,
+    },
+    dirBtnText: { fontSize: 13, fontWeight: '600', color: t.accent },
 
-  slot: {
-    backgroundColor: t.surface, borderRadius: 12, padding: 14,
-    borderWidth: 1, borderColor: t.border, marginBottom: 10,
-  },
-  slotEmpty: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    borderStyle: 'dashed',
-  },
-  slotPressed: { backgroundColor: t.bg },
-  slotFilled: {},
-  slotRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  slotLabel: {
-    fontSize: 11, fontWeight: '600', color: t.slate,
-    textTransform: 'uppercase', letterSpacing: 0.8,
-  },
-  slotAssign: { fontSize: 14, color: t.accent, fontWeight: '600' },
-  slotContactName: { fontSize: 16, fontWeight: '600', color: t.navy, marginTop: 4 },
-  slotContactMeta: { fontSize: 13, color: t.slate, marginTop: 2 },
-  statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  statusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
-  statusText: { fontSize: 12, fontWeight: '500' },
-  slotActions: { alignItems: 'flex-end' },
-  slotBtn: { paddingHorizontal: 10, paddingVertical: 6 },
-  slotBtnText: { fontSize: 13, color: t.accent, fontWeight: '600' },
+    // who's going chips
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 11 },
+    kchip: {
+      flexDirection: 'row', alignItems: 'center', gap: 7,
+      paddingLeft: 4, paddingRight: 12, paddingVertical: 4,
+      borderRadius: 999, borderWidth: 1, borderColor: t.border, backgroundColor: t.bg,
+    },
+    kchipOff: { opacity: 0.6 },
+    ka: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+    kaTxt: { fontSize: 11, fontWeight: '700', color: '#ffffff' },
+    kchipName: { fontSize: 13.5, fontWeight: '600', color: t.navy },
+    kchipNameOff: { textDecorationLine: 'line-through', color: t.slate },
+
+    // ride cards
+    rides: { gap: 9, marginTop: 11 },
+    ride: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      borderWidth: 1, borderColor: t.border, borderRadius: 13, padding: 11, backgroundColor: t.surface,
+    },
+    rideEmpty: { borderStyle: 'dashed', borderColor: t.slateLight },
+    ridePressed: { backgroundColor: t.bg },
+    rideIc: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: t.accent + '1a' },
+    rideIcEmpty: { backgroundColor: t.slate + '1a' },
+    rideInfo: { flex: 1, minWidth: 0 },
+    rideRole: { fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: t.slate },
+    rideName: { fontSize: 14.5, fontWeight: '600', color: t.navy, marginTop: 1 },
+    rideAssign: { fontSize: 14, fontWeight: '700', color: t.cta, marginTop: 1 },
+    badgeRow: { flexDirection: 'row', marginTop: 5 },
+    badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, alignSelf: 'flex-start' },
+    badgeText: { fontSize: 11, fontWeight: '700' },
+    rideActions: { alignItems: 'flex-end', gap: 2 },
+    slotBtn: { paddingHorizontal: 8, paddingVertical: 4 },
+    slotBtnText: { fontSize: 13, color: t.accent, fontWeight: '600' },
+
+    // remove
+    removeBtn: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, marginTop: 18 },
+    removeBtnText: { color: t.danger, fontSize: 13, fontWeight: '600' },
+    removeHelp: { fontSize: 12, color: t.slate, marginTop: 2, lineHeight: 16, textAlign: 'center', paddingHorizontal: 28 },
   });
 }
