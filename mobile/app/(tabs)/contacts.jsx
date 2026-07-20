@@ -6,14 +6,23 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList,
-  ActivityIndicator, RefreshControl, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  ActivityIndicator, RefreshControl, Alert, Linking,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../lib/api';
 import { shouldShowTutorial } from '../../lib/tutorialSeen';
 import { useTheme } from '../../lib/theme';
+
+// Deterministic avatar color from a name — so a driver / team member keeps
+// the same color across the app. Contacts have no color field of their own.
+const AV_COLORS = ['#2563EB', '#7C3AED', '#0D9488', '#DB2777', '#EA580C', '#0891B2', '#CA8A04', '#059669', '#9333EA', '#DC2626'];
+function avatarColor(name = '') {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return AV_COLORS[h % AV_COLORS.length];
+}
 
 export default function ContactsScreen() {
   const router = useRouter();
@@ -93,10 +102,6 @@ export default function ContactsScreen() {
           <TouchableOpacity
             style={s.chipBtn}
             onPress={async () => {
-              // Show the tutorial ONCE per device for first-time
-              // discovery; subsequent taps skip straight to the form.
-              // shouldShowTutorial flips this based on tutorialSeen's
-              // ONCE_TUTORIALS set + the persisted seen flag.
               const show = await shouldShowTutorial('add-driver');
               const next = encodeURIComponent('/contacts/new');
               router.push(show
@@ -159,20 +164,48 @@ export default function ContactsScreen() {
             </Text>
           </View>
         ) : (
-          <View style={{ gap: 8 }}>
+          <View style={{ gap: 9 }}>
             {contacts.map(c => (
-              <View key={c.id} style={s.row}>
-                <View style={s.avatar}><Text style={s.avatarText}>{c.name[0]}</Text></View>
+              <TouchableOpacity
+                key={c.id}
+                style={s.driverCard}
+                activeOpacity={0.85}
+                onLongPress={() => handleDeleteContact(c)}
+                delayLongPress={350}
+                accessibilityHint="Long-press to remove this contact"
+              >
+                <View style={[s.dAv, { backgroundColor: avatarColor(c.name) }]}>
+                  <Text style={s.dAvTxt}>{(c.name || '?')[0].toUpperCase()}</Text>
+                </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={s.rowName} numberOfLines={1}>{c.name}</Text>
-                  <Text style={s.rowMeta} numberOfLines={1}>
-                    {[c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info'}
+                  <Text style={s.dName} numberOfLines={1}>{c.name}</Text>
+                  <Text style={s.dMeta} numberOfLines={1}>
+                    {c.phone || c.email || 'No contact info'}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => handleDeleteContact(c)} hitSlop={8}>
-                  <Ionicons name="trash-outline" size={20} color={t.slate} />
-                </TouchableOpacity>
-              </View>
+                <View style={s.dActs}>
+                  {c.phone ? (
+                    <>
+                      <TouchableOpacity style={s.iconBtn} hitSlop={6}
+                        onPress={() => Linking.openURL(`tel:${c.phone}`).catch(() => {})}
+                        accessibilityLabel={`Call ${c.name}`}>
+                        <Ionicons name="call-outline" size={17} color={t.accent} />
+                      </TouchableOpacity>
+                      <TouchableOpacity style={s.iconBtn} hitSlop={6}
+                        onPress={() => Linking.openURL(`sms:${c.phone}`).catch(() => {})}
+                        accessibilityLabel={`Text ${c.name}`}>
+                        <Ionicons name="chatbubble-outline" size={16} color={t.accent} />
+                      </TouchableOpacity>
+                    </>
+                  ) : c.email ? (
+                    <TouchableOpacity style={s.iconBtn} hitSlop={6}
+                      onPress={() => Linking.openURL(`mailto:${c.email}`).catch(() => {})}
+                      accessibilityLabel={`Email ${c.name}`}>
+                      <Ionicons name="mail-outline" size={17} color={t.accent} />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              </TouchableOpacity>
             ))}
           </View>
         )}
@@ -201,23 +234,46 @@ export default function ContactsScreen() {
             </Text>
           </View>
         ) : (
-          <View style={{ gap: 8 }}>
+          <View style={{ gap: 9 }}>
             {teams.map(team => {
-              const total = (team.members || []).length;
+              const members = team.members || [];
+              const total = members.length;
+              const reachable = members.filter(m => m.phone).length;
+              const shown = members.slice(0, 5);
+              const extra = total - shown.length;
               return (
                 <TouchableOpacity key={team.id}
-                  style={s.row}
+                  style={s.teamCard}
+                  activeOpacity={0.85}
                   onPress={() => router.push(`/teams/${team.id}`)}>
-                  <View style={[s.avatar, { backgroundColor: t.navyMid }]}>
-                    <Ionicons name="people" size={18} color={t.accentOnDark} />
+                  <View style={s.teamRow}>
+                    <View style={s.tIc}>
+                      <Ionicons name="people" size={20} color={t.accentOnDark} />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={s.tName} numberOfLines={1}>{team.name}</Text>
+                      <Text style={s.tMeta}>{total} {total === 1 ? 'member' : 'members'}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={t.slateLight} />
                   </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={s.rowName} numberOfLines={1}>{team.name}</Text>
-                    <Text style={s.rowMeta}>
-                      {total} {total === 1 ? 'member' : 'members'}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={t.slateLight} />
+                  {total > 0 && (
+                    <View style={s.stack}>
+                      {shown.map((m, i) => (
+                        <View key={m.id ?? i}
+                          style={[s.stackAv, { backgroundColor: avatarColor(m.name || ''), marginLeft: i === 0 ? 0 : -8 }]}>
+                          <Text style={s.stackAvTxt}>{(m.name || '?')[0].toUpperCase()}</Text>
+                        </View>
+                      ))}
+                      {extra > 0 && (
+                        <View style={[s.stackMore, { marginLeft: -8 }]}>
+                          <Text style={s.stackMoreTxt}>+{extra}</Text>
+                        </View>
+                      )}
+                      <View style={s.reach}>
+                        <Text style={s.reachTxt}>{reachable} reachable</Text>
+                      </View>
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })}
@@ -231,9 +287,6 @@ export default function ContactsScreen() {
 function makeStyles(t) {
   return StyleSheet.create({
     root:   { flex: 1, backgroundColor: t.bg },
-    // Fresh-user chip welcome (mirrors web /contacts chip variant +
-    // mobile /setup chips). H1 prompt + two big stacked tappable
-    // buttons, navy bg with green accent text.
     chipHeadline: {
       fontSize: 22, fontWeight: '600', color: t.navy,
       paddingHorizontal: 20, paddingTop: 32, paddingBottom: 24,
@@ -270,17 +323,37 @@ function makeStyles(t) {
     },
     emptyTitle: { fontSize: 15, fontWeight: '600', color: t.navy },
     emptySub:   { fontSize: 13, color: t.slate, textAlign: 'center', lineHeight: 18 },
-    row: {
+
+    // driver card
+    driverCard: {
       flexDirection: 'row', alignItems: 'center', gap: 12,
-      backgroundColor: t.surface, borderRadius: 12,
-      padding: 12, borderWidth: 1, borderColor: t.border,
+      backgroundColor: t.surface, borderRadius: 14, padding: 12,
+      borderWidth: 1, borderColor: t.border,
+      shadowColor: '#0f172a', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1,
     },
-    avatar: {
-      width: 40, height: 40, borderRadius: 20,
-      backgroundColor: t.navy, alignItems: 'center', justifyContent: 'center',
+    dAv: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    dAvTxt: { color: '#ffffff', fontSize: 16, fontWeight: '800' },
+    dName: { fontSize: 15.5, fontWeight: '700', color: t.navy },
+    dMeta: { fontSize: 12.5, color: t.slate, marginTop: 1 },
+    dActs: { flexDirection: 'row', gap: 6 },
+    iconBtn: { width: 36, height: 36, borderRadius: 10, borderWidth: 1, borderColor: t.border, alignItems: 'center', justifyContent: 'center' },
+
+    // team card
+    teamCard: {
+      backgroundColor: t.surface, borderRadius: 14, padding: 13,
+      borderWidth: 1, borderColor: t.border,
+      shadowColor: '#0f172a', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1,
     },
-    avatarText: { color: t.accentOnDark, fontSize: 16, fontWeight: '700' },
-    rowName: { fontSize: 15, fontWeight: '600', color: t.navy },
-    rowMeta: { fontSize: 13, color: t.slate, marginTop: 2 },
+    teamRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    tIc: { width: 44, height: 44, borderRadius: 14, backgroundColor: t.navy, alignItems: 'center', justifyContent: 'center' },
+    tName: { fontSize: 15.5, fontWeight: '700', color: t.navy },
+    tMeta: { fontSize: 12.5, color: t.slate, marginTop: 1 },
+    stack: { flexDirection: 'row', alignItems: 'center', marginTop: 11 },
+    stackAv: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: t.surface, alignItems: 'center', justifyContent: 'center' },
+    stackAvTxt: { color: '#ffffff', fontSize: 11, fontWeight: '700' },
+    stackMore: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: t.surface, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' },
+    stackMoreTxt: { color: t.slate, fontSize: 11, fontWeight: '700' },
+    reach: { marginLeft: 'auto', backgroundColor: '#16a34a22', paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999 },
+    reachTxt: { color: '#16a34a', fontSize: 11, fontWeight: '700' },
   });
 }
