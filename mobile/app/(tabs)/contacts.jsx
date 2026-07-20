@@ -4,7 +4,7 @@
 // + tap-into-detail modal screens (better for a phone than the
 // web's expand-in-place pattern).
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList,
   ActivityIndicator, RefreshControl, Alert,
@@ -13,9 +13,12 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../lib/api';
 import { shouldShowTutorial } from '../../lib/tutorialSeen';
+import { useTheme } from '../../lib/theme';
 
 export default function ContactsScreen() {
   const router = useRouter();
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   const [contacts, setContacts] = useState([]);
   const [teams, setTeams]       = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -72,7 +75,7 @@ export default function ContactsScreen() {
   if (loading) {
     return (
       <View style={s.center}>
-        <ActivityIndicator color="#00d68f" size="large" />
+        <ActivityIndicator color={t.accent} size="large" />
       </View>
     );
   }
@@ -103,7 +106,7 @@ export default function ContactsScreen() {
             activeOpacity={0.8}
           >
             <Text style={s.chipBtnText}>Add a driver</Text>
-            <Text style={s.chipBtnArrow}>→</Text>
+            <Ionicons name="arrow-forward" size={18} color={t.accentOnDark} style={{ opacity: 0.7 }} />
           </TouchableOpacity>
           <TouchableOpacity
             style={s.chipBtn}
@@ -117,7 +120,7 @@ export default function ContactsScreen() {
             activeOpacity={0.8}
           >
             <Text style={s.chipBtnText}>Setup team carpool</Text>
-            <Text style={s.chipBtnArrow}>→</Text>
+            <Ionicons name="arrow-forward" size={18} color={t.accentOnDark} style={{ opacity: 0.7 }} />
           </TouchableOpacity>
         </View>
       </View>
@@ -128,7 +131,7 @@ export default function ContactsScreen() {
     <ScrollView
       style={s.root}
       contentContainerStyle={{ paddingBottom: 32 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00d68f" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accent} />}
     >
       {error ? (
         <View style={s.errorBanner}><Text style={s.errorText}>{error}</Text></View>
@@ -149,7 +152,7 @@ export default function ContactsScreen() {
         </View>
         {contacts.length === 0 ? (
           <View style={s.emptyCard}>
-            <Text style={s.emptyEmoji}>🚗</Text>
+            <Ionicons name="car-outline" size={28} color={t.slate} />
             <Text style={s.emptyTitle}>No ride contacts yet</Text>
             <Text style={s.emptySub}>
               Add grandparents, carpool friends, or anyone who helps with drop-off and pick-up.
@@ -167,7 +170,7 @@ export default function ContactsScreen() {
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => handleDeleteContact(c)} hitSlop={8}>
-                  <Ionicons name="trash-outline" size={20} color="#8896b0" />
+                  <Ionicons name="trash-outline" size={20} color={t.slate} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -190,7 +193,7 @@ export default function ContactsScreen() {
         </View>
         {teams.length === 0 ? (
           <View style={s.emptyCard}>
-            <Text style={s.emptyEmoji}>👥</Text>
+            <Ionicons name="people-outline" size={28} color={t.slate} />
             <Text style={s.emptyTitle}>No groups yet</Text>
             <Text style={s.emptySub}>
               A group is anyone you can ask for rides at once — your kid's team, your family,
@@ -199,22 +202,22 @@ export default function ContactsScreen() {
           </View>
         ) : (
           <View style={{ gap: 8 }}>
-            {teams.map(t => {
-              const total = (t.members || []).length;
+            {teams.map(team => {
+              const total = (team.members || []).length;
               return (
-                <TouchableOpacity key={t.id}
+                <TouchableOpacity key={team.id}
                   style={s.row}
-                  onPress={() => router.push(`/teams/${t.id}`)}>
-                  <View style={[s.avatar, { backgroundColor: '#1a3050' }]}>
-                    <Ionicons name="people" size={18} color="#00d68f" />
+                  onPress={() => router.push(`/teams/${team.id}`)}>
+                  <View style={[s.avatar, { backgroundColor: t.navyMid }]}>
+                    <Ionicons name="people" size={18} color={t.accentOnDark} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={s.rowName} numberOfLines={1}>{t.name}</Text>
+                    <Text style={s.rowName} numberOfLines={1}>{team.name}</Text>
                     <Text style={s.rowMeta}>
                       {total} {total === 1 ? 'member' : 'members'}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color="#b8c4d8" />
+                  <Ionicons name="chevron-forward" size={20} color={t.slateLight} />
                 </TouchableOpacity>
               );
             })}
@@ -225,59 +228,59 @@ export default function ContactsScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: '#f4f6fa' },
-  // Fresh-user chip welcome (mirrors web /contacts chip variant +
-  // mobile /setup chips). H1 prompt + two big stacked tappable
-  // buttons, navy bg with green accent text.
-  chipHeadline: {
-    fontSize: 22, fontWeight: '600', color: '#0f1629',
-    paddingHorizontal: 20, paddingTop: 32, paddingBottom: 24,
-    letterSpacing: -0.3,
-  },
-  chipBtn: {
-    backgroundColor: '#0f1629',
-    paddingHorizontal: 22, paddingVertical: 20,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  chipBtnText:  { color: '#00d68f', fontSize: 17, fontWeight: '600' },
-  chipBtnArrow: { color: '#00d68f', fontSize: 17, opacity: 0.7 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f4f6fa' },
-  errorBanner: {
-    backgroundColor: 'rgba(255,107,107,0.08)', marginHorizontal: 16, marginTop: 12,
-    padding: 12, borderRadius: 8,
-  },
-  errorText: { color: '#ff6b6b', fontSize: 13 },
-  section: { paddingHorizontal: 16, paddingTop: 20 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10, gap: 12 },
-  sectionTitle: { fontSize: 20, fontWeight: '600', color: '#0f1629', letterSpacing: -0.3 },
-  sectionSub: { fontSize: 13, color: '#8896b0', marginTop: 2, lineHeight: 18 },
-  addBtn: {
-    backgroundColor: '#00d68f', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 8,
-  },
-  addBtnText: { color: '#0f1629', fontSize: 14, fontWeight: '600' },
-  emptyCard: {
-    backgroundColor: '#ffffff', borderRadius: 12,
-    padding: 24, alignItems: 'center', gap: 6,
-    borderWidth: 1, borderColor: '#e8ecf4',
-  },
-  emptyEmoji: { fontSize: 28 },
-  emptyTitle: { fontSize: 15, fontWeight: '600', color: '#0f1629' },
-  emptySub:   { fontSize: 13, color: '#8896b0', textAlign: 'center', lineHeight: 18 },
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#ffffff', borderRadius: 12,
-    padding: 12, borderWidth: 1, borderColor: '#e8ecf4',
-  },
-  avatar: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#0f1629', alignItems: 'center', justifyContent: 'center',
-  },
-  avatarText: { color: '#00d68f', fontSize: 16, fontWeight: '700' },
-  rowName: { fontSize: 15, fontWeight: '600', color: '#0f1629' },
-  rowMeta: { fontSize: 13, color: '#8896b0', marginTop: 2 },
-});
+function makeStyles(t) {
+  return StyleSheet.create({
+    root:   { flex: 1, backgroundColor: t.bg },
+    // Fresh-user chip welcome (mirrors web /contacts chip variant +
+    // mobile /setup chips). H1 prompt + two big stacked tappable
+    // buttons, navy bg with green accent text.
+    chipHeadline: {
+      fontSize: 22, fontWeight: '600', color: t.navy,
+      paddingHorizontal: 20, paddingTop: 32, paddingBottom: 24,
+      letterSpacing: -0.3,
+    },
+    chipBtn: {
+      backgroundColor: t.navy,
+      paddingHorizontal: 22, paddingVertical: 20,
+      borderRadius: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    chipBtnText:  { color: t.accentOnDark, fontSize: 17, fontWeight: '600' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: t.bg },
+    errorBanner: {
+      backgroundColor: 'rgba(255,107,107,0.08)', marginHorizontal: 16, marginTop: 12,
+      padding: 12, borderRadius: 8,
+    },
+    errorText: { color: t.danger, fontSize: 13 },
+    section: { paddingHorizontal: 16, paddingTop: 20 },
+    sectionHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10, gap: 12 },
+    sectionTitle: { fontSize: 20, fontWeight: '600', color: t.navy, letterSpacing: -0.3 },
+    sectionSub: { fontSize: 13, color: t.slate, marginTop: 2, lineHeight: 18 },
+    addBtn: {
+      backgroundColor: t.cta, borderRadius: 8,
+      paddingHorizontal: 12, paddingVertical: 8,
+    },
+    addBtnText: { color: t.ctaText, fontSize: 14, fontWeight: '600' },
+    emptyCard: {
+      backgroundColor: t.surface, borderRadius: 12,
+      padding: 24, alignItems: 'center', gap: 6,
+      borderWidth: 1, borderColor: t.border,
+    },
+    emptyTitle: { fontSize: 15, fontWeight: '600', color: t.navy },
+    emptySub:   { fontSize: 13, color: t.slate, textAlign: 'center', lineHeight: 18 },
+    row: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: t.surface, borderRadius: 12,
+      padding: 12, borderWidth: 1, borderColor: t.border,
+    },
+    avatar: {
+      width: 40, height: 40, borderRadius: 20,
+      backgroundColor: t.navy, alignItems: 'center', justifyContent: 'center',
+    },
+    avatarText: { color: t.accentOnDark, fontSize: 16, fontWeight: '700' },
+    rowName: { fontSize: 15, fontWeight: '600', color: t.navy },
+    rowMeta: { fontSize: 13, color: t.slate, marginTop: 2 },
+  });
+}

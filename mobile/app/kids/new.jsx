@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView,
@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { api } from '../../lib/api';
+import { useTheme } from '../../lib/theme';
 
 // Mirrors COLORS in frontend/src/pages/Kids.jsx so a kid created on
 // either client lands on the same swatch palette.
@@ -17,6 +18,8 @@ const COLORS = [
 
 export default function NewKid() {
   const router = useRouter();
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   const [name, setName]     = useState('');
   const [color, setColor]   = useState(COLORS[0]);
   const [saving, setSaving] = useState(false);
@@ -53,7 +56,7 @@ export default function NewKid() {
             value={name}
             onChangeText={setName}
             placeholder="Emma"
-            placeholderTextColor="#b8c4d8"
+            placeholderTextColor={t.slateLight}
             autoCapitalize="words"
             autoFocus
           />
@@ -81,8 +84,8 @@ export default function NewKid() {
               </Text>
             </View>
             <Text style={s.previewText} numberOfLines={1}>
-              <Text style={{ fontWeight: '600', color: '#0f1629' }}>{name || 'Name'}</Text>
-              <Text style={{ color: '#8896b0' }}> — Soccer Practice</Text>
+              <Text style={{ fontWeight: '600', color: t.navy }}>{name || 'Name'}</Text>
+              <Text style={{ color: t.slate }}> — Soccer Practice</Text>
             </Text>
           </View>
 
@@ -93,7 +96,7 @@ export default function NewKid() {
             activeOpacity={0.8}
           >
             {saving
-              ? <ActivityIndicator color="#0f1629" />
+              ? <ActivityIndicator color={t.ctaText} />
               : <Text style={s.saveText}>Add member</Text>}
           </TouchableOpacity>
         </ScrollView>
@@ -103,6 +106,8 @@ export default function NewKid() {
 }
 
 function ModalHeader({ title, onClose }) {
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   return (
     <View style={s.header}>
       <TouchableOpacity onPress={onClose} hitSlop={16}>
@@ -114,48 +119,50 @@ function ModalHeader({ title, onClose }) {
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f4f6fa' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#e8ecf4',
-    backgroundColor: '#ffffff',
-  },
-  headerClose: { fontSize: 15, color: '#00d68f', fontWeight: '600' },
-  headerTitle: { fontSize: 15, fontWeight: '600', color: '#0f1629' },
-  body: { padding: 20, gap: 4 },
-  label: { fontSize: 12, fontWeight: '600', color: '#8896b0', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 14, marginBottom: 6 },
-  input: {
-    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e8ecf4',
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: '#0f1629',
-  },
-  error: {
-    color: '#ff6b6b', fontSize: 13, padding: 10,
-    backgroundColor: 'rgba(255,107,107,0.08)', borderRadius: 6,
-  },
-  swatchWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
-  swatch: {
-    width: 36, height: 36, borderRadius: 18,
-    borderWidth: 3, borderColor: 'transparent',
-  },
-  swatchOn: { borderColor: '#0f1629', transform: [{ scale: 1.1 }] },
-  preview: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#ffffff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12, marginTop: 16,
-    borderWidth: 1, borderColor: '#e8ecf4',
-  },
-  previewAvatar: {
-    width: 32, height: 32, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  previewAvatarText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
-  previewText: { flex: 1, fontSize: 14 },
-  saveBtn: {
-    backgroundColor: '#00d68f', borderRadius: 10,
-    paddingVertical: 14, alignItems: 'center', marginTop: 24,
-  },
-  saveText: { color: '#0f1629', fontSize: 15, fontWeight: '600' },
-});
+function makeStyles(t) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: t.bg },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 20, paddingVertical: 14,
+      borderBottomWidth: 1, borderBottomColor: t.border,
+      backgroundColor: t.surface,
+    },
+    headerClose: { fontSize: 15, color: t.accent, fontWeight: '600' },
+    headerTitle: { fontSize: 15, fontWeight: '600', color: t.navy },
+    body: { padding: 20, gap: 4 },
+    label: { fontSize: 12, fontWeight: '600', color: t.slate, textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 14, marginBottom: 6 },
+    input: {
+      backgroundColor: t.surface, borderWidth: 1, borderColor: t.border,
+      borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
+      fontSize: 15, color: t.navy,
+    },
+    error: {
+      color: t.danger, fontSize: 13, padding: 10,
+      backgroundColor: 'rgba(255,107,107,0.08)', borderRadius: 6,
+    },
+    swatchWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
+    swatch: {
+      width: 36, height: 36, borderRadius: 18,
+      borderWidth: 3, borderColor: 'transparent',
+    },
+    swatchOn: { borderColor: t.navy, transform: [{ scale: 1.1 }] },
+    preview: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      backgroundColor: t.surface, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 12, marginTop: 16,
+      borderWidth: 1, borderColor: t.border,
+    },
+    previewAvatar: {
+      width: 32, height: 32, borderRadius: 16,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    previewAvatarText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+    previewText: { flex: 1, fontSize: 14 },
+    saveBtn: {
+      backgroundColor: t.cta, borderRadius: 10,
+      paddingVertical: 14, alignItems: 'center', marginTop: 24,
+    },
+    saveText: { color: t.ctaText, fontSize: 15, fontWeight: '600' },
+  });
+}

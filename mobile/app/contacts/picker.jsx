@@ -1,18 +1,22 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api } from '../../lib/api';
 import { selectionStore } from '../../lib/selectionStore';
 import { chooseNotify } from '../../lib/notifyChoice';
 import { useAuth } from '../../lib/auth';
+import { useTheme } from '../../lib/theme';
 
 export default function ContactPicker() {
   const { session, role } = useLocalSearchParams();
   const router = useRouter();
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   const { user } = useAuth();
   const isPremium = user?.plan === 'premium';
 
@@ -109,7 +113,7 @@ export default function ContactPicker() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         {loading ? (
-          <View style={s.center}><ActivityIndicator color="#00d68f" size="large" /></View>
+          <View style={s.center}><ActivityIndicator color={t.accent} size="large" /></View>
         ) : error ? (
           <View style={s.center}>
             <Text style={s.errorText}>{error}</Text>
@@ -126,7 +130,7 @@ export default function ContactPicker() {
                     <TextInput
                       style={s.searchInput}
                       placeholder="Search contacts"
-                      placeholderTextColor="#8896b0"
+                      placeholderTextColor={t.slate}
                       value={filter}
                       onChangeText={setFilter}
                       autoCapitalize="none"
@@ -143,7 +147,7 @@ export default function ContactPicker() {
                       value={newName}
                       onChangeText={setNewName}
                       placeholder="e.g. Grandma Rose"
-                      placeholderTextColor="#8896b0"
+                      placeholderTextColor={t.slate}
                       autoFocus
                       editable={!creating}
                     />
@@ -153,7 +157,7 @@ export default function ContactPicker() {
                       value={newPhone}
                       onChangeText={setNewPhone}
                       placeholder="555-123-4567"
-                      placeholderTextColor="#8896b0"
+                      placeholderTextColor={t.slate}
                       keyboardType="phone-pad"
                       editable={!creating}
                     />
@@ -163,7 +167,7 @@ export default function ContactPicker() {
                       value={newEmail}
                       onChangeText={setNewEmail}
                       placeholder="rose@example.com"
-                      placeholderTextColor="#8896b0"
+                      placeholderTextColor={t.slate}
                       autoCapitalize="none"
                       keyboardType="email-address"
                       autoCorrect={false}
@@ -183,7 +187,7 @@ export default function ContactPicker() {
                         disabled={creating}
                       >
                         {creating ? (
-                          <ActivityIndicator color="#0f1629" />
+                          <ActivityIndicator color={t.ctaText} />
                         ) : (
                           <Text style={s.formBtnPrimaryText}>Save & select</Text>
                         )}
@@ -192,7 +196,7 @@ export default function ContactPicker() {
                   </View>
                 ) : (
                   <TouchableOpacity style={s.addRow} onPress={() => setAddOpen(true)}>
-                    <Text style={s.addPlus}>+</Text>
+                    <Ionicons name="add" size={22} color={t.accent} style={s.addPlus} />
                     <Text style={s.addText}>New contact</Text>
                   </TouchableOpacity>
                 )}
@@ -203,7 +207,7 @@ export default function ContactPicker() {
                 <View style={s.empty}>
                   <Text style={s.emptyText}>
                     {contacts.length === 0
-                      ? "You haven't added any contacts yet. Tap \u201CNew contact\u201D above to add one."
+                      ? "You haven't added any contacts yet. Tap “New contact” above to add one."
                       : 'No contacts match your search.'}
                   </Text>
                 </View>
@@ -222,7 +226,7 @@ export default function ContactPicker() {
                     <Text style={s.sub}>{item.phone || item.email}</Text>
                   ) : null}
                 </View>
-                <Text style={s.chevron}>›</Text>
+                <Ionicons name="chevron-forward" size={20} color={t.slateLight} />
               </TouchableOpacity>
             )}
           />
@@ -232,69 +236,70 @@ export default function ContactPicker() {
   );
 }
 
-const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: '#f4f6fa' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  errorText: { color: '#ef4444', fontSize: 14, textAlign: 'center' },
+function makeStyles(t) {
+  return StyleSheet.create({
+    root:   { flex: 1, backgroundColor: t.bg },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+    errorText: { color: t.danger, fontSize: 14, textAlign: 'center' },
 
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#e8ecf4',
-    backgroundColor: '#ffffff',
-  },
-  headerCancel: { fontSize: 15, color: '#8896b0', fontWeight: '500' },
-  headerTitle:  { fontSize: 15, fontWeight: '600', color: '#0f1629' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 20, paddingVertical: 14,
+      borderBottomWidth: 1, borderBottomColor: t.border,
+      backgroundColor: t.surface,
+    },
+    headerCancel: { fontSize: 15, color: t.slate, fontWeight: '500' },
+    headerTitle:  { fontSize: 15, fontWeight: '600', color: t.navy },
 
-  searchBox: { paddingHorizontal: 16, paddingTop: 12 },
-  searchInput: {
-    backgroundColor: '#ffffff', color: '#0f1629', fontSize: 15,
-    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1, borderColor: '#e8ecf4',
-  },
+    searchBox: { paddingHorizontal: 16, paddingTop: 12 },
+    searchInput: {
+      backgroundColor: t.surface, color: t.navy, fontSize: 15,
+      paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10,
+      borderWidth: 1, borderColor: t.border,
+    },
 
-  addRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#e8ecf4',
-    backgroundColor: '#ffffff', marginTop: 12,
-  },
-  addPlus: { fontSize: 22, color: '#00d68f', fontWeight: '300', marginRight: 12, width: 22, textAlign: 'center' },
-  addText: { fontSize: 15, fontWeight: '600', color: '#00d68f' },
+    addRow: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 20, paddingVertical: 14,
+      borderBottomWidth: 1, borderBottomColor: t.border,
+      backgroundColor: t.surface, marginTop: 12,
+    },
+    addPlus: { marginRight: 12, width: 22, textAlign: 'center' },
+    addText: { fontSize: 15, fontWeight: '600', color: t.accent },
 
-  addForm: {
-    backgroundColor: '#ffffff', padding: 16, marginTop: 12,
-    borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#e8ecf4',
-  },
-  formLabel: { fontSize: 13, color: '#8896b0', marginBottom: 6, marginTop: 10 },
-  formInput: {
-    backgroundColor: '#f4f6fa', color: '#0f1629', fontSize: 15,
-    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8,
-    borderWidth: 1, borderColor: '#e8ecf4',
-  },
-  formBtnRow: { flexDirection: 'row', marginTop: 16, gap: 10 },
-  formBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
-  formBtnPrimary: { backgroundColor: '#00d68f' },
-  formBtnPrimaryText: { color: '#0f1629', fontWeight: '600', fontSize: 15 },
-  formBtnSecondary: { backgroundColor: '#f4f6fa', borderWidth: 1, borderColor: '#e8ecf4' },
-  formBtnSecondaryText: { color: '#4a5670', fontWeight: '500', fontSize: 15 },
+    addForm: {
+      backgroundColor: t.surface, padding: 16, marginTop: 12,
+      borderTopWidth: 1, borderBottomWidth: 1, borderColor: t.border,
+    },
+    formLabel: { fontSize: 13, color: t.slate, marginBottom: 6, marginTop: 10 },
+    formInput: {
+      backgroundColor: t.bg, color: t.navy, fontSize: 15,
+      paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8,
+      borderWidth: 1, borderColor: t.border,
+    },
+    formBtnRow: { flexDirection: 'row', marginTop: 16, gap: 10 },
+    formBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+    formBtnPrimary: { backgroundColor: t.cta },
+    formBtnPrimaryText: { color: t.ctaText, fontWeight: '600', fontSize: 15 },
+    formBtnSecondary: { backgroundColor: t.bg, borderWidth: 1, borderColor: t.border },
+    formBtnSecondaryText: { color: t.slate, fontWeight: '500', fontSize: 15 },
 
-  row: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#e8ecf4',
-    backgroundColor: '#ffffff',
-  },
-  avatar: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#0f1629', justifyContent: 'center', alignItems: 'center',
-    marginRight: 12,
-  },
-  avatarText: { color: '#ffffff', fontSize: 15, fontWeight: '600' },
-  name: { fontSize: 15, fontWeight: '500', color: '#0f1629' },
-  sub:  { fontSize: 13, color: '#8896b0', marginTop: 2 },
-  chevron: { fontSize: 22, color: '#b8c4d8', fontWeight: '300' },
+    row: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 20, paddingVertical: 12,
+      borderBottomWidth: 1, borderBottomColor: t.border,
+      backgroundColor: t.surface,
+    },
+    avatar: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: t.navy, justifyContent: 'center', alignItems: 'center',
+      marginRight: 12,
+    },
+    avatarText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+    name: { fontSize: 15, fontWeight: '500', color: t.navy },
+    sub:  { fontSize: 13, color: t.slate, marginTop: 2 },
 
-  empty: { padding: 40, alignItems: 'center' },
-  emptyText: { color: '#8896b0', fontSize: 14, textAlign: 'center', lineHeight: 20 },
-});
+    empty: { padding: 40, alignItems: 'center' },
+    emptyText: { color: t.slate, fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  });
+}

@@ -12,18 +12,22 @@
 // are tightly coupled to URL pattern and getting them wrong silently
 // breaks the feed. Web's edit screen has more guardrails for that.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert,
   KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../lib/api';
+import { useTheme } from '../../lib/theme';
 
 export default function EditSource() {
   const { id }  = useLocalSearchParams();
   const router  = useRouter();
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
 
   const [source, setSource]   = useState(null);
   const [name, setName]       = useState('');
@@ -135,7 +139,7 @@ export default function EditSource() {
     return (
       <SafeAreaView style={s.root} edges={['top']}>
         <ModalHeader title="Edit calendar" onClose={() => router.back()} />
-        <View style={s.center}><ActivityIndicator color="#00d68f" size="large" /></View>
+        <View style={s.center}><ActivityIndicator color={t.accent} size="large" /></View>
       </SafeAreaView>
     );
   }
@@ -167,7 +171,7 @@ export default function EditSource() {
             value={name}
             onChangeText={setName}
             placeholder="e.g. Emma's soccer"
-            placeholderTextColor="#b8c4d8"
+            placeholderTextColor={t.slateLight}
             autoCapitalize="sentences"
           />
           <Text style={s.help}>
@@ -192,9 +196,12 @@ export default function EditSource() {
                       ]}
                       activeOpacity={0.7}
                     >
-                      <Text style={[s.chipText, on && s.chipTextOn]}>
-                        {on ? '✓ ' : ''}{kid.name}
-                      </Text>
+                      <View style={s.chipInner}>
+                        {on ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
+                        <Text style={[s.chipText, on && s.chipTextOn]}>
+                          {kid.name}
+                        </Text>
+                      </View>
                     </TouchableOpacity>
                   );
                 })}
@@ -215,9 +222,16 @@ export default function EditSource() {
                     activeOpacity={0.7}
                     style={{ marginTop: 14 }}
                   >
-                    <Text style={s.disclosure}>
-                      {showSplit ? '▼' : '▶'} Multi-kid feed? Split events by title
-                    </Text>
+                    <View style={s.disclosureRow}>
+                      <Ionicons
+                        name={showSplit ? 'chevron-down' : 'chevron-forward'}
+                        size={13}
+                        color={t.accent}
+                      />
+                      <Text style={s.disclosure}>
+                        Multi-kid feed? Split events by title
+                      </Text>
+                    </View>
                   </TouchableOpacity>
 
                   {showSplit ? (
@@ -243,7 +257,7 @@ export default function EditSource() {
                               value={a.title_contains}
                               onChangeText={t => setKidPattern(a.kid_id, t)}
                               placeholder="e.g. BU13 (or blank)"
-                              placeholderTextColor="#b8c4d8"
+                              placeholderTextColor={t.slateLight}
                               autoCapitalize="characters"
                               autoCorrect={false}
                             />
@@ -267,7 +281,7 @@ export default function EditSource() {
                 value={icalUrl}
                 onChangeText={setIcalUrl}
                 placeholder="https://… or webcal://…"
-                placeholderTextColor="#b8c4d8"
+                placeholderTextColor={t.slateLight}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
@@ -298,7 +312,7 @@ export default function EditSource() {
             activeOpacity={0.8}
           >
             {saving
-              ? <ActivityIndicator color="#0f1629" />
+              ? <ActivityIndicator color={t.ctaText} />
               : <Text style={s.saveText}>Save changes</Text>}
           </TouchableOpacity>
         </ScrollView>
@@ -308,6 +322,8 @@ export default function EditSource() {
 }
 
 function ModalHeader({ title, onClose }) {
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   return (
     <View style={s.header}>
       <TouchableOpacity onPress={onClose} hitSlop={16}>
@@ -319,100 +335,104 @@ function ModalHeader({ title, onClose }) {
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f4f6fa' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#e8ecf4',
-    backgroundColor: '#ffffff',
-  },
-  headerClose: { fontSize: 15, color: '#00d68f', fontWeight: '600' },
-  headerTitle: { fontSize: 15, fontWeight: '600', color: '#0f1629' },
+function makeStyles(t) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: t.bg },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 20, paddingVertical: 14,
+      borderBottomWidth: 1, borderBottomColor: t.border,
+      backgroundColor: t.surface,
+    },
+    headerClose: { fontSize: 15, color: t.accent, fontWeight: '600' },
+    headerTitle: { fontSize: 15, fontWeight: '600', color: t.navy },
 
-  body: { padding: 20, paddingBottom: 40 },
-  label: {
-    fontSize: 12, fontWeight: '600', color: '#8896b0',
-    textTransform: 'uppercase', letterSpacing: 0.6,
-    marginTop: 14, marginBottom: 6,
-  },
-  input: {
-    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e8ecf4',
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: '#0f1629',
-  },
-  // URL fields wrap in a monospace font + smaller size so long iCal
-  // tokens are readable and the textarea doesn't dominate the screen.
-  urlInput: {
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontSize: 12, lineHeight: 18,
-    minHeight: 60,
-  },
-  help: { fontSize: 12, color: '#8896b0', marginTop: 6, lineHeight: 16 },
+    body: { padding: 20, paddingBottom: 40 },
+    label: {
+      fontSize: 12, fontWeight: '600', color: t.slate,
+      textTransform: 'uppercase', letterSpacing: 0.6,
+      marginTop: 14, marginBottom: 6,
+    },
+    input: {
+      backgroundColor: t.surface, borderWidth: 1, borderColor: t.border,
+      borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
+      fontSize: 15, color: t.navy,
+    },
+    // URL fields wrap in a monospace font + smaller size so long iCal
+    // tokens are readable and the textarea doesn't dominate the screen.
+    urlInput: {
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+      fontSize: 12, lineHeight: 18,
+      minHeight: 60,
+    },
+    help: { fontSize: 12, color: t.slate, marginTop: 6, lineHeight: 16 },
 
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
-    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e8ecf4',
-  },
-  chipText: { fontSize: 13, color: '#0f1629', fontWeight: '500' },
-  chipTextOn: { color: '#ffffff' },
+    chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: {
+      paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
+      backgroundColor: t.surface, borderWidth: 1, borderColor: t.border,
+    },
+    chipInner: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    chipText: { fontSize: 13, color: t.navy, fontWeight: '500' },
+    chipTextOn: { color: '#ffffff' },
 
-  // Per-kid title pattern split UI — collapsed by default, expands to a
-  // boxed help text + one input row per assigned kid.
-  disclosure: {
-    fontSize: 13, color: '#00d68f', fontWeight: '600',
-  },
-  splitCard: {
-    marginTop: 10,
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    borderWidth: 1, borderColor: '#e8ecf4',
-    paddingHorizontal: 14, paddingVertical: 12,
-  },
-  splitHelp: {
-    fontSize: 12, color: '#4a5670', lineHeight: 17, marginBottom: 10,
-  },
-  splitRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    marginTop: 8,
-  },
-  splitKidLabel: {
-    width: 84, fontSize: 14, fontWeight: '600',
-  },
-  splitInput: {
-    flex: 1,
-    backgroundColor: '#f4f6fa',
-    borderWidth: 1, borderColor: '#e8ecf4',
-    borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 8,
-    fontSize: 13, color: '#0f1629',
-  },
+    // Per-kid title pattern split UI — collapsed by default, expands to a
+    // boxed help text + one input row per assigned kid.
+    disclosureRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    disclosure: {
+      fontSize: 13, color: t.accent, fontWeight: '600',
+    },
+    splitCard: {
+      marginTop: 10,
+      backgroundColor: t.surface,
+      borderRadius: 10,
+      borderWidth: 1, borderColor: t.border,
+      paddingHorizontal: 14, paddingVertical: 12,
+    },
+    splitHelp: {
+      fontSize: 12, color: t.slate, lineHeight: 17, marginBottom: 10,
+    },
+    splitRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      marginTop: 8,
+    },
+    splitKidLabel: {
+      width: 84, fontSize: 14, fontWeight: '600',
+    },
+    splitInput: {
+      flex: 1,
+      backgroundColor: t.bg,
+      borderWidth: 1, borderColor: t.border,
+      borderRadius: 8,
+      paddingHorizontal: 10, paddingVertical: 8,
+      fontSize: 13, color: t.navy,
+    },
 
-  metaCard: {
-    backgroundColor: '#ffffff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12,
-    borderWidth: 1, borderColor: '#e8ecf4', marginTop: 24,
-  },
-  metaLabel: {
-    fontSize: 11, fontWeight: '600', color: '#8896b0',
-    textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6,
-  },
-  metaValue: {
-    fontSize: 12, color: '#4a5670',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  metaHelp: { fontSize: 12, color: '#8896b0', marginTop: 8, lineHeight: 16 },
+    metaCard: {
+      backgroundColor: t.surface, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 12,
+      borderWidth: 1, borderColor: t.border, marginTop: 24,
+    },
+    metaLabel: {
+      fontSize: 11, fontWeight: '600', color: t.slate,
+      textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6,
+    },
+    metaValue: {
+      fontSize: 12, color: t.slate,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    metaHelp: { fontSize: 12, color: t.slate, marginTop: 8, lineHeight: 16 },
 
-  errorBanner: {
-    color: '#ff6b6b', fontSize: 13, padding: 10,
-    backgroundColor: 'rgba(255,107,107,0.08)', borderRadius: 6,
-  },
-  error: { color: '#ff6b6b', fontSize: 14, textAlign: 'center' },
-  saveBtn: {
-    backgroundColor: '#00d68f', borderRadius: 10,
-    paddingVertical: 14, alignItems: 'center', marginTop: 28,
-  },
-  saveText: { color: '#0f1629', fontSize: 15, fontWeight: '600' },
-});
+    errorBanner: {
+      color: t.danger, fontSize: 13, padding: 10,
+      backgroundColor: 'rgba(255,107,107,0.08)', borderRadius: 6,
+    },
+    error: { color: t.danger, fontSize: 14, textAlign: 'center' },
+    saveBtn: {
+      backgroundColor: t.cta, borderRadius: 10,
+      paddingVertical: 14, alignItems: 'center', marginTop: 28,
+    },
+    saveText: { color: t.ctaText, fontSize: 15, fontWeight: '600' },
+  });
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, Linking,
@@ -7,10 +7,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../lib/auth';
 import { trackLogin } from '../lib/analytics';
+import { useTheme } from '../lib/theme';
 
 export default function Login() {
   const { login } = useAuth();
   const router = useRouter();
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [error, setError]       = useState('');
@@ -55,7 +58,7 @@ export default function Login() {
               value={email}
               onChangeText={setEmail}
               placeholder="you@example.com"
-              placeholderTextColor="#8896b0"
+              placeholderTextColor={t.slate}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
@@ -68,7 +71,7 @@ export default function Login() {
               value={password}
               onChangeText={setPassword}
               placeholder="Your password"
-              placeholderTextColor="#8896b0"
+              placeholderTextColor={t.slate}
               secureTextEntry
               autoComplete="password"
             />
@@ -80,12 +83,12 @@ export default function Login() {
               activeOpacity={0.8}
             >
               {loading
-                ? <ActivityIndicator color="#0f1629" />
+                ? <ActivityIndicator color={t.ctaText} />
                 : <Text style={s.btnText}>Sign in</Text>}
             </TouchableOpacity>
 
             {/* Forgot password lives on the web (token-link reset flow).
-                Open in Safari rather than building it natively \u2014 the
+                Open in Safari rather than building it natively — the
                 rate limit + email send already works server-side. */}
             <TouchableOpacity
               onPress={() => Linking.openURL('https://www.sportscalapp.com/forgot-password').catch(() => {})}
@@ -99,7 +102,7 @@ export default function Login() {
               style={{ marginTop: 18, alignSelf: 'center' }}
             >
               <Text style={s.link}>
-                Don{'\u2019'}t have an account? <Text style={s.linkStrong}>Create one</Text>
+                Don{'’'}t have an account? <Text style={s.linkStrong}>Create one</Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -109,27 +112,29 @@ export default function Login() {
   );
 }
 
-const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: '#0f1629' },
-  inner:  { flex: 1, paddingHorizontal: 24, justifyContent: 'center' },
-  logo:   { fontSize: 28, fontWeight: '700', color: '#00d68f', letterSpacing: -0.5, textAlign: 'center' },
-  tagline:{ fontSize: 14, color: '#8896b0', marginTop: 8, marginBottom: 40, textAlign: 'center' },
-  card:   { backgroundColor: '#1a2540', borderRadius: 16, padding: 24, borderWidth: 1, borderColor: '#243050' },
-  h2:     { fontSize: 20, fontWeight: '600', color: '#ffffff', marginBottom: 20 },
-  label:  { fontSize: 13, fontWeight: '500', color: '#b8c4d8', marginBottom: 6, marginTop: 12 },
-  input:  {
-    backgroundColor: '#0f1629', color: '#ffffff', fontSize: 15,
-    paddingHorizontal: 14, paddingVertical: 12, borderRadius: 8,
-    borderWidth: 1, borderColor: '#243050',
-  },
-  btn:    { backgroundColor: '#00d68f', borderRadius: 10, paddingVertical: 14, marginTop: 24, alignItems: 'center' },
-  btnText:{ color: '#0f1629', fontSize: 15, fontWeight: '600' },
-  error:  {
-    color: '#ff6b6b', fontSize: 13, marginBottom: 8,
-    backgroundColor: 'rgba(255,107,107,0.08)',
-    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 6,
-  },
-  link:       { fontSize: 13, color: '#8896b0' },
-  linkStrong: { color: '#00d68f', fontWeight: '500' },
-  linkSubtle: { fontSize: 13, color: '#8896b0', textDecorationLine: 'underline' },
-});
+function makeStyles(t) {
+  return StyleSheet.create({
+    root:   { flex: 1, backgroundColor: t.navy },
+    inner:  { flex: 1, paddingHorizontal: 24, justifyContent: 'center' },
+    logo:   { fontSize: 28, fontWeight: '700', color: t.accentOnDark, letterSpacing: -0.5, textAlign: 'center' },
+    tagline:{ fontSize: 14, color: t.slate, marginTop: 8, marginBottom: 40, textAlign: 'center' },
+    card:   { backgroundColor: t.navyMid, borderRadius: 16, padding: 24, borderWidth: 1, borderColor: t.navyMid },
+    h2:     { fontSize: 20, fontWeight: '600', color: '#fff', marginBottom: 20 },
+    label:  { fontSize: 13, fontWeight: '500', color: t.slateLight, marginBottom: 6, marginTop: 12 },
+    input:  {
+      backgroundColor: t.navy, color: '#fff', fontSize: 15,
+      paddingHorizontal: 14, paddingVertical: 12, borderRadius: 8,
+      borderWidth: 1, borderColor: t.navyMid,
+    },
+    btn:    { backgroundColor: t.cta, borderRadius: 10, paddingVertical: 14, marginTop: 24, alignItems: 'center' },
+    btnText:{ color: t.ctaText, fontSize: 15, fontWeight: '600' },
+    error:  {
+      color: t.danger, fontSize: 13, marginBottom: 8,
+      backgroundColor: 'rgba(255,107,107,0.08)',
+      paddingHorizontal: 12, paddingVertical: 10, borderRadius: 6,
+    },
+    link:       { fontSize: 13, color: t.slate },
+    linkStrong: { color: t.accentOnDark, fontWeight: '500' },
+    linkSubtle: { fontSize: 13, color: t.slate, textDecorationLine: 'underline' },
+  });
+}

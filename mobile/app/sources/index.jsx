@@ -11,14 +11,16 @@
 // fat-finger, and if the URL really did change the simpler answer
 // is "Remove + re-add via setup helper."
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../lib/api';
+import { useTheme } from '../../lib/theme';
 
 // Mirrors APP_OPTIONS labels from web. Kept inline (not imported)
 // because the mobile app deliberately doesn't pull from frontend/.
@@ -43,6 +45,8 @@ const APP_LABELS = {
 
 export default function ManageSources() {
   const router = useRouter();
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   const [sources, setSources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -154,19 +158,19 @@ export default function ManageSources() {
       <ModalHeader title="Manage calendars" onClose={() => router.back()} />
 
       {loading ? (
-        <View style={s.center}><ActivityIndicator color="#00d68f" size="large" /></View>
+        <View style={s.center}><ActivityIndicator color={t.accent} size="large" /></View>
       ) : (
         <ScrollView
           contentContainerStyle={s.body}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00d68f" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accent} />
           }
         >
           {error ? <Text style={s.error}>{error}</Text> : null}
 
           {sources.length === 0 ? (
             <View style={s.empty}>
-              <Text style={s.emptyEmoji}>📅</Text>
+              <Ionicons name="calendar-outline" size={40} color={t.slate} style={s.emptyIcon} />
               <Text style={s.emptyTitle}>No calendars yet</Text>
               <Text style={s.emptyText}>
                 Connect TeamSnap, GameChanger, or any iCal feed and we'll pull
@@ -213,9 +217,22 @@ export default function ManageSources() {
 }
 
 function SourceCard({ source, busy, onSync, onToggle, onEdit, onDelete }) {
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   const appLabel = APP_LABELS[source.app] || source.app;
   const hasError = source.last_fetch_status === 'error';
   const paused   = !source.enabled;
+
+  // Semantic status icon + line: paused → slate, error → danger,
+  // synced → accent, not-yet-synced → slate.
+  const status = paused
+    ? { icon: 'pause-circle-outline', color: t.slate, text: 'Paused — sync skipped until resumed' }
+    : hasError
+      ? { icon: 'alert-circle-outline', color: t.danger, text: source.last_fetch_error || 'Last fetch failed' }
+      : source.last_fetched_at
+        ? { icon: 'checkmark-circle-outline', color: t.accent,
+            text: `Synced ${timeAgo(source.last_fetched_at)} · ${source.last_event_count || 0} events` }
+        : { icon: 'ellipse-outline', color: t.slate, text: 'Not yet synced' };
 
   return (
     <TouchableOpacity
@@ -251,18 +268,13 @@ function SourceCard({ source, busy, onSync, onToggle, onEdit, onDelete }) {
         </View>
       ) : null}
 
-      <Text style={[s.statusLine, hasError && s.statusError]}>
-        {paused
-          ? '⏸ Paused — sync skipped until resumed'
-          : hasError
-            ? `⚠ ${source.last_fetch_error || 'Last fetch failed'}`
-            : source.last_fetched_at
-              ? `✓ Synced ${timeAgo(source.last_fetched_at)} · ${source.last_event_count || 0} events`
-              : 'Not yet synced'}
-      </Text>
+      <View style={s.statusRow}>
+        <Ionicons name={status.icon} size={13} color={status.color} />
+        <Text style={[s.statusLine, hasError && s.statusError]}>{status.text}</Text>
+      </View>
 
       <View style={s.actionRow}>
-        <ActionBtn label={busy ? '…' : '↻ Sync'}  onPress={onSync}    disabled={busy || paused} />
+        <ActionBtn label={busy ? '…' : 'Sync'} icon={busy ? null : 'sync'} onPress={onSync} disabled={busy || paused} />
         <ActionBtn label={paused ? 'Resume' : 'Pause'} onPress={onToggle} disabled={busy} />
         <ActionBtn label="Remove" onPress={onDelete} disabled={busy} danger />
       </View>
@@ -270,7 +282,9 @@ function SourceCard({ source, busy, onSync, onToggle, onEdit, onDelete }) {
   );
 }
 
-function ActionBtn({ label, onPress, disabled, danger }) {
+function ActionBtn({ label, icon, onPress, disabled, danger }) {
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   return (
     <TouchableOpacity
       onPress={(e) => { e.stopPropagation?.(); onPress(); }}
@@ -278,12 +292,15 @@ function ActionBtn({ label, onPress, disabled, danger }) {
       style={[s.actionBtn, disabled && { opacity: 0.5 }, danger && s.actionBtnDanger]}
       activeOpacity={0.7}
     >
+      {icon ? <Ionicons name={icon} size={14} color={danger ? t.danger : t.navy} /> : null}
       <Text style={[s.actionBtnText, danger && s.actionBtnTextDanger]}>{label}</Text>
     </TouchableOpacity>
   );
 }
 
 function ModalHeader({ title, onClose }) {
+  const t = useTheme();
+  const s = useMemo(() => makeStyles(t), [t]);
   return (
     <View style={s.header}>
       <TouchableOpacity onPress={onClose} hitSlop={16}>
@@ -311,78 +328,82 @@ function timeAgo(dateStr) {
   return `${d}d ago`;
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f4f6fa' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#e8ecf4',
-    backgroundColor: '#ffffff',
-  },
-  headerClose: { fontSize: 15, color: '#00d68f', fontWeight: '600' },
-  headerTitle: { fontSize: 15, fontWeight: '600', color: '#0f1629' },
+function makeStyles(t) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: t.bg },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 20, paddingVertical: 14,
+      borderBottomWidth: 1, borderBottomColor: t.border,
+      backgroundColor: t.surface,
+    },
+    headerClose: { fontSize: 15, color: t.accent, fontWeight: '600' },
+    headerTitle: { fontSize: 15, fontWeight: '600', color: t.navy },
 
-  body: { padding: 20, paddingBottom: 40 },
-  intro: { fontSize: 13, color: '#8896b0', marginBottom: 14, lineHeight: 18 },
+    body: { padding: 20, paddingBottom: 40 },
+    intro: { fontSize: 13, color: t.slate, marginBottom: 14, lineHeight: 18 },
 
-  card: {
-    backgroundColor: '#ffffff', borderRadius: 12, padding: 14,
-    borderWidth: 1, borderColor: '#e8ecf4', marginBottom: 12,
-  },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  appBadge: {
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
-    backgroundColor: '#0f1629',
-  },
-  appBadgeText: {
-    color: '#00d68f', fontSize: 10, fontWeight: '700',
-    textTransform: 'uppercase', letterSpacing: 0.6,
-  },
-  cardName: { flex: 1, fontSize: 15, fontWeight: '600', color: '#0f1629' },
+    card: {
+      backgroundColor: t.surface, borderRadius: 12, padding: 14,
+      borderWidth: 1, borderColor: t.border, marginBottom: 12,
+    },
+    cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+    appBadge: {
+      paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+      backgroundColor: t.navy,
+    },
+    appBadgeText: {
+      color: t.accentOnDark, fontSize: 10, fontWeight: '700',
+      textTransform: 'uppercase', letterSpacing: 0.6,
+    },
+    cardName: { flex: 1, fontSize: 15, fontWeight: '600', color: t.navy },
 
-  kidWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
-  kidChip: {
-    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12,
-    borderWidth: 1,
-  },
-  kidChipText: { fontSize: 12, fontWeight: '500' },
+    kidWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+    kidChip: {
+      paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12,
+      borderWidth: 1,
+    },
+    kidChipText: { fontSize: 12, fontWeight: '500' },
 
-  statusLine: { fontSize: 12, color: '#8896b0', marginBottom: 12 },
-  statusError: { color: '#c5390a' },
+    statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 12 },
+    statusLine: { fontSize: 12, color: t.slate, flexShrink: 1 },
+    statusError: { color: t.danger },
 
-  actionRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  actionBtn: {
-    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8,
-    backgroundColor: '#f4f6fa', borderWidth: 1, borderColor: '#e8ecf4',
-  },
-  actionBtnText: { fontSize: 13, color: '#0f1629', fontWeight: '500' },
-  actionBtnDanger: {
-    backgroundColor: 'rgba(255,107,107,0.08)', borderColor: 'rgba(255,107,107,0.3)',
-  },
-  actionBtnTextDanger: { color: '#c5390a' },
+    actionRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+    actionBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8,
+      backgroundColor: t.bg, borderWidth: 1, borderColor: t.border,
+    },
+    actionBtnText: { fontSize: 13, color: t.navy, fontWeight: '500' },
+    actionBtnDanger: {
+      backgroundColor: 'rgba(255,107,107,0.08)', borderColor: 'rgba(255,107,107,0.3)',
+    },
+    actionBtnTextDanger: { color: t.danger },
 
-  addCalendarBtn: {
-    backgroundColor: '#0f1629', borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center', marginTop: 8,
-  },
-  addCalendarText: { color: '#00d68f', fontSize: 15, fontWeight: '600' },
+    addCalendarBtn: {
+      backgroundColor: t.navy, borderRadius: 12,
+      paddingVertical: 14, alignItems: 'center', marginTop: 8,
+    },
+    addCalendarText: { color: t.accentOnDark, fontSize: 15, fontWeight: '600' },
 
-  error: {
-    color: '#ff6b6b', fontSize: 13, padding: 10,
-    backgroundColor: 'rgba(255,107,107,0.08)', borderRadius: 6, marginBottom: 14,
-  },
+    error: {
+      color: t.danger, fontSize: 13, padding: 10,
+      backgroundColor: 'rgba(255,107,107,0.08)', borderRadius: 6, marginBottom: 14,
+    },
 
-  empty: { paddingVertical: 40, alignItems: 'center' },
-  emptyEmoji: { fontSize: 36, marginBottom: 12 },
-  emptyTitle: { fontSize: 17, fontWeight: '600', color: '#0f1629', marginBottom: 6 },
-  emptyText:  {
-    color: '#8896b0', fontSize: 14, textAlign: 'center',
-    lineHeight: 20, marginBottom: 18, paddingHorizontal: 12,
-  },
-  emptyCta: {
-    backgroundColor: '#00d68f', borderRadius: 10,
-    paddingHorizontal: 18, paddingVertical: 12,
-  },
-  emptyCtaText: { color: '#0f1629', fontSize: 15, fontWeight: '600' },
-});
+    empty: { paddingVertical: 40, alignItems: 'center' },
+    emptyIcon: { marginBottom: 12 },
+    emptyTitle: { fontSize: 17, fontWeight: '600', color: t.navy, marginBottom: 6 },
+    emptyText:  {
+      color: t.slate, fontSize: 14, textAlign: 'center',
+      lineHeight: 20, marginBottom: 18, paddingHorizontal: 12,
+    },
+    emptyCta: {
+      backgroundColor: t.cta, borderRadius: 10,
+      paddingHorizontal: 18, paddingVertical: 12,
+    },
+    emptyCtaText: { color: t.ctaText, fontSize: 15, fontWeight: '600' },
+  });
+}

@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Linking, Share, Platform, Switch } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
 import { useTheme, useSkin } from '../../lib/theme';
@@ -12,6 +13,7 @@ export default function Settings() {
   const router = useRouter();
   const t = useTheme();
   const { skin, setSkin } = useSkin();
+  const s = useMemo(() => makeStyles(t), [t]);
   const [deleting, setDeleting] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [kids, setKids] = useState([]);
@@ -231,7 +233,7 @@ export default function Settings() {
         activeOpacity={0.85}
       >
         <View style={s.upgradeIcon}>
-          <Text style={s.upgradeIconText}>✨</Text>
+          <Ionicons name="sparkles" size={20} color={t.accent} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={s.upgradeTitle}>SportsCal Premium</Text>
@@ -303,11 +305,14 @@ export default function Settings() {
             <Text style={s.inboundShare}>Share / Copy</Text>
           </TouchableOpacity>
           {!inboundConfigured ? (
-            <Text style={s.inboundWarn}>
-              ⚠️ Email forwarding is not active yet. The address is reserved
-              for your account but won't accept mail until DNS + Resend are
-              configured.
-            </Text>
+            <View style={s.inboundWarn}>
+              <Ionicons name="warning-outline" size={14} color="#a87600" style={{ marginTop: 1 }} />
+              <Text style={s.inboundWarnText}>
+                Email forwarding is not active yet. The address is reserved
+                for your account but won't accept mail until DNS + Resend are
+                configured.
+              </Text>
+            </View>
           ) : null}
         </View>
       ) : null}
@@ -321,7 +326,7 @@ export default function Settings() {
           <View style={{ flex: 1 }}>
             <Text style={s.feedCollapsedTitle}>Calendar feed</Text>
             <Text style={s.feedCollapsedSub}>
-              <Text style={{ color: '#00b377', fontWeight: '600' }}>✓ Subscribed.</Text>
+              <Text style={{ color: t.accentDim, fontWeight: '600' }}>✓ Subscribed.</Text>
               {' '}Tap to view, share, or reset.
             </Text>
           </View>
@@ -367,7 +372,7 @@ export default function Settings() {
             activeOpacity={0.7}
           >
             {rotating
-              ? <ActivityIndicator color="#8896b0" />
+              ? <ActivityIndicator color={t.slate} />
               : <Text style={s.feedResetText}>Reset link</Text>}
           </TouchableOpacity>
         </View>
@@ -392,7 +397,7 @@ export default function Settings() {
         </View>
 
         {kidsLoading ? (
-          <ActivityIndicator color="#00d68f" style={{ marginTop: 8 }} />
+          <ActivityIndicator color={t.accent} style={{ marginTop: 8 }} />
         ) : kids.length === 0 ? (
           <Text style={s.kidsEmpty}>
             No family members yet. Tap "+ Add" to add your first.
@@ -435,7 +440,7 @@ export default function Settings() {
         activeOpacity={0.7}
       >
         {deleting
-          ? <ActivityIndicator color="#8896b0" />
+          ? <ActivityIndicator color={t.slate} />
           : <Text style={s.deleteText}>Delete account</Text>}
       </TouchableOpacity>
 
@@ -444,134 +449,137 @@ export default function Settings() {
   );
 }
 
-const s = StyleSheet.create({
-  // ScrollView outer — flex + bg only. Padding moves to contentContainerStyle
-  // because ScrollView doesn't honor padding on its outer style prop.
-  root:          { flex: 1, backgroundColor: '#f4f6fa' },
-  // Inner padding + extra bottom space so the last item doesn't sit flush
-  // with the tab bar on small phones (SE / mini).
-  scrollContent: { padding: 20, paddingBottom: 40 },
-  section:  {
-    backgroundColor: '#ffffff', borderRadius: 12, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: '#e8ecf4',
-  },
-  label:    { fontSize: 11, color: '#8896b0', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 },
-  value:    { fontSize: 16, fontWeight: '600', color: '#0f1629' },
-  sub:      { fontSize: 13, color: '#8896b0', marginTop: 2 },
-  feedHelp: { fontSize: 13, color: '#4a5670', lineHeight: 18, marginBottom: 12 },
-  feedHideText: { fontSize: 13, color: '#00d68f', fontWeight: '600' },
-  // Mirrors s.section's spacing so the collapsed feed sits flush with
-  // sibling sections: same horizontal alignment (no extra inset), same
-  // 12px gap below before the next section.
-  feedCollapsedBtn: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12,
-    borderWidth: 1, borderColor: '#e8ecf4',
-    marginBottom: 12,
-  },
-  feedCollapsedTitle: {
-    fontSize: 12, fontWeight: '600', color: '#8896b0',
-    textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4,
-  },
-  feedCollapsedSub: { fontSize: 13, color: '#4a5670' },
-  feedCollapsedChevron: { fontSize: 22, color: '#b8c4d8', fontWeight: '300', marginLeft: 8 },
-  upgradeBtn: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', borderRadius: 12,
-    borderWidth: 1.5, borderColor: '#00d68f',
-    padding: 14, marginHorizontal: 16, marginVertical: 8,
-  },
-  upgradeIcon: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#f0fbf6', alignItems: 'center', justifyContent: 'center',
-    marginRight: 12,
-  },
-  upgradeIconText: { fontSize: 22 },
-  upgradeTitle:    { fontSize: 16, fontWeight: '700', color: '#0f1629' },
-  upgradeSub:      { fontSize: 12, color: '#5b6478', marginTop: 3, lineHeight: 17 },
-  upgradeChevron:  { fontSize: 22, color: '#00d68f', marginLeft: 8, fontWeight: '300' },
-  setupBtn: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#0f1629', borderRadius: 12,
-    paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12,
-  },
-  setupTitle: { fontSize: 15, fontWeight: '600', color: '#00d68f' },
-  setupSub:   { fontSize: 12, color: '#b8c4d8', marginTop: 2, lineHeight: 16 },
-  setupChevron: { fontSize: 22, color: '#00d68f', fontWeight: '300', marginLeft: 8 },
-  // Lighter sibling of setupBtn — the setup helper is the "primary" CTA
-  // (dark navy / accent green), this manage row is a quieter follow-up
-  // styled like a section card to fit visually below it.
-  manageBtn: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#ffffff', borderRadius: 12,
-    paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12,
-    borderWidth: 1, borderColor: '#e8ecf4',
-  },
-  manageTitle: { fontSize: 15, fontWeight: '600', color: '#0f1629' },
-  manageSub:   { fontSize: 12, color: '#8896b0', marginTop: 2, lineHeight: 16 },
-  manageChevron: { fontSize: 22, color: '#b8c4d8', fontWeight: '300', marginLeft: 8 },
-  inboundCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#ffffff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12,
-    borderWidth: 1, borderColor: '#e8ecf4',
-    marginTop: 8,
-  },
-  inboundAddress: {
-    flex: 1, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    fontSize: 13, color: '#0f1629',
-  },
-  inboundShare: { fontSize: 13, color: '#00d68f', fontWeight: '600' },
-  inboundWarn:  {
-    fontSize: 12, color: '#a87600', marginTop: 8, lineHeight: 17,
-    backgroundColor: 'rgba(255,180,0,0.08)', borderRadius: 6,
-    paddingHorizontal: 10, paddingVertical: 8,
-  },
-  feedPrimaryBtn: {
-    backgroundColor: '#00d68f', borderRadius: 10,
-    paddingVertical: 13, alignItems: 'center',
-  },
-  feedPrimaryText: { color: '#0f1629', fontSize: 15, fontWeight: '600' },
-  feedSecondaryBtn: {
-    borderWidth: 1, borderColor: '#e8ecf4', borderRadius: 10,
-    paddingVertical: 12, alignItems: 'center', marginTop: 8,
-    backgroundColor: '#ffffff',
-  },
-  feedSecondaryText: { color: '#0f1629', fontSize: 14, fontWeight: '500' },
-  feedResetBtn: { paddingVertical: 10, alignItems: 'center', marginTop: 4 },
-  feedResetText: { color: '#8896b0', fontSize: 12, fontWeight: '500', textDecorationLine: 'underline' },
-  kidsHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 4 },
-  kidsAddBtn: {
-    backgroundColor: '#00d68f', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 8,
-  },
-  kidsAddText: { color: '#0f1629', fontSize: 14, fontWeight: '600' },
-  kidsEmpty: { fontSize: 13, color: '#8896b0', lineHeight: 18, marginTop: 4 },
-  kidRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 6,
-  },
-  kidAvatar: {
-    width: 32, height: 32, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  kidAvatarText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
-  kidName: { flex: 1, fontSize: 15, fontWeight: '500', color: '#0f1629' },
-  kidShareBtn: {
-    backgroundColor: '#00d68f', borderRadius: 8,
-    paddingHorizontal: 14, paddingVertical: 7,
-  },
-  kidShareText: { color: '#0f1629', fontSize: 13, fontWeight: '600' },
-  logoutBtn:{
-    borderWidth: 1, borderColor: '#ff6b6b', borderRadius: 10,
-    paddingVertical: 14, alignItems: 'center', marginTop: 8, backgroundColor: '#ffffff',
-  },
-  logoutText: { color: '#ff6b6b', fontSize: 15, fontWeight: '500' },
-  deleteBtn: {
-    borderRadius: 10, paddingVertical: 14, alignItems: 'center',
-    marginTop: 24, backgroundColor: 'transparent',
-  },
-  deleteText: { color: '#8896b0', fontSize: 13, fontWeight: '500', textDecorationLine: 'underline' },
-  footer:   { textAlign: 'center', fontSize: 12, color: '#8896b0', marginTop: 32 },
-});
+function makeStyles(t) {
+  return StyleSheet.create({
+    // ScrollView outer — flex + bg only. Padding moves to contentContainerStyle
+    // because ScrollView doesn't honor padding on its outer style prop.
+    root:          { flex: 1, backgroundColor: t.bg },
+    // Inner padding + extra bottom space so the last item doesn't sit flush
+    // with the tab bar on small phones (SE / mini).
+    scrollContent: { padding: 20, paddingBottom: 40 },
+    section:  {
+      backgroundColor: t.surface, borderRadius: 12, padding: 16,
+      marginBottom: 12, borderWidth: 1, borderColor: t.border,
+    },
+    label:    { fontSize: 11, color: t.slate, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 },
+    value:    { fontSize: 16, fontWeight: '600', color: t.navy },
+    sub:      { fontSize: 13, color: t.slate, marginTop: 2 },
+    feedHelp: { fontSize: 13, color: t.slate, lineHeight: 18, marginBottom: 12 },
+    feedHideText: { fontSize: 13, color: t.accent, fontWeight: '600' },
+    // Mirrors s.section's spacing so the collapsed feed sits flush with
+    // sibling sections: same horizontal alignment (no extra inset), same
+    // 12px gap below before the next section.
+    feedCollapsedBtn: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: t.surface,
+      paddingHorizontal: 16, paddingVertical: 14, borderRadius: 12,
+      borderWidth: 1, borderColor: t.border,
+      marginBottom: 12,
+    },
+    feedCollapsedTitle: {
+      fontSize: 12, fontWeight: '600', color: t.slate,
+      textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4,
+    },
+    feedCollapsedSub: { fontSize: 13, color: t.slate },
+    feedCollapsedChevron: { fontSize: 22, color: t.slateLight, fontWeight: '300', marginLeft: 8 },
+    upgradeBtn: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: t.surface, borderRadius: 12,
+      borderWidth: 1.5, borderColor: t.accent,
+      padding: 14, marginHorizontal: 16, marginVertical: 8,
+    },
+    upgradeIcon: {
+      width: 40, height: 40, borderRadius: 20,
+      backgroundColor: '#f0fbf6', alignItems: 'center', justifyContent: 'center',
+      marginRight: 12,
+    },
+    upgradeTitle:    { fontSize: 16, fontWeight: '700', color: t.navy },
+    upgradeSub:      { fontSize: 12, color: t.slate, marginTop: 3, lineHeight: 17 },
+    upgradeChevron:  { fontSize: 22, color: t.accent, marginLeft: 8, fontWeight: '300' },
+    setupBtn: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: t.navy, borderRadius: 12,
+      paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12,
+    },
+    setupTitle: { fontSize: 15, fontWeight: '600', color: t.accentOnDark },
+    setupSub:   { fontSize: 12, color: t.slateLight, marginTop: 2, lineHeight: 16 },
+    setupChevron: { fontSize: 22, color: t.accentOnDark, fontWeight: '300', marginLeft: 8 },
+    // Lighter sibling of setupBtn — the setup helper is the "primary" CTA
+    // (dark navy / accent green), this manage row is a quieter follow-up
+    // styled like a section card to fit visually below it.
+    manageBtn: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: t.surface, borderRadius: 12,
+      paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12,
+      borderWidth: 1, borderColor: t.border,
+    },
+    manageTitle: { fontSize: 15, fontWeight: '600', color: t.navy },
+    manageSub:   { fontSize: 12, color: t.slate, marginTop: 2, lineHeight: 16 },
+    manageChevron: { fontSize: 22, color: t.slateLight, fontWeight: '300', marginLeft: 8 },
+    inboundCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: t.surface, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 12,
+      borderWidth: 1, borderColor: t.border,
+      marginTop: 8,
+    },
+    inboundAddress: {
+      flex: 1, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+      fontSize: 13, color: t.navy,
+    },
+    inboundShare: { fontSize: 13, color: t.accent, fontWeight: '600' },
+    inboundWarn:  {
+      flexDirection: 'row', alignItems: 'flex-start', gap: 6,
+      marginTop: 8,
+      backgroundColor: 'rgba(255,180,0,0.08)', borderRadius: 6,
+      paddingHorizontal: 10, paddingVertical: 8,
+    },
+    inboundWarnText: { flex: 1, fontSize: 12, color: '#a87600', lineHeight: 17 },
+    feedPrimaryBtn: {
+      backgroundColor: t.cta, borderRadius: 10,
+      paddingVertical: 13, alignItems: 'center',
+    },
+    feedPrimaryText: { color: t.ctaText, fontSize: 15, fontWeight: '600' },
+    feedSecondaryBtn: {
+      borderWidth: 1, borderColor: t.border, borderRadius: 10,
+      paddingVertical: 12, alignItems: 'center', marginTop: 8,
+      backgroundColor: t.surface,
+    },
+    feedSecondaryText: { color: t.navy, fontSize: 14, fontWeight: '500' },
+    feedResetBtn: { paddingVertical: 10, alignItems: 'center', marginTop: 4 },
+    feedResetText: { color: t.slate, fontSize: 12, fontWeight: '500', textDecorationLine: 'underline' },
+    kidsHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 4 },
+    kidsAddBtn: {
+      backgroundColor: t.cta, borderRadius: 8,
+      paddingHorizontal: 12, paddingVertical: 8,
+    },
+    kidsAddText: { color: t.ctaText, fontSize: 14, fontWeight: '600' },
+    kidsEmpty: { fontSize: 13, color: t.slate, lineHeight: 18, marginTop: 4 },
+    kidRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      paddingVertical: 6,
+    },
+    kidAvatar: {
+      width: 32, height: 32, borderRadius: 16,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    kidAvatarText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+    kidName: { flex: 1, fontSize: 15, fontWeight: '500', color: t.navy },
+    kidShareBtn: {
+      backgroundColor: t.cta, borderRadius: 8,
+      paddingHorizontal: 14, paddingVertical: 7,
+    },
+    kidShareText: { color: t.ctaText, fontSize: 13, fontWeight: '600' },
+    logoutBtn:{
+      borderWidth: 1, borderColor: t.danger, borderRadius: 10,
+      paddingVertical: 14, alignItems: 'center', marginTop: 8, backgroundColor: t.surface,
+    },
+    logoutText: { color: t.danger, fontSize: 15, fontWeight: '500' },
+    deleteBtn: {
+      borderRadius: 10, paddingVertical: 14, alignItems: 'center',
+      marginTop: 24, backgroundColor: 'transparent',
+    },
+    deleteText: { color: t.slate, fontSize: 13, fontWeight: '500', textDecorationLine: 'underline' },
+    footer:   { textAlign: 'center', fontSize: 12, color: t.slate, marginTop: 32 },
+  });
+}
