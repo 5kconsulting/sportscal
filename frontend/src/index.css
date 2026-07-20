@@ -21,6 +21,10 @@
   --accent:     #00d68f;
   --accent-dim: #00b377;
   --accent-bg:  #e6fdf5;
+  /* Bridge tokens — let the beta skin flip contrast without JSX edits.
+     Classic values keep the current look exactly. */
+  --on-accent:      var(--navy);   /* text sitting on an --accent fill */
+  --accent-on-dark: var(--accent); /* --accent used on the dark sidebar */
 
   /* Status */
   --red:        #ff4757;
@@ -38,6 +42,88 @@
   --radius-lg:  16px;
   --shadow:     0 1px 3px rgba(15,22,41,0.08), 0 4px 16px rgba(15,22,41,0.06);
   --shadow-lg:  0 8px 32px rgba(15,22,41,0.12);
+}
+
+/* ============================================================
+   Design-system tokens — source of truth: design-system/MASTER.md
+   Names match MASTER (--color-*), so they don't collide with the
+   legacy tokens above. The beta skin adopts them by remapping the legacy
+   names under [data-skin="beta"] (see below).
+   Dark values are staged under [data-theme="dark"] but stay DORMANT:
+   there is no prefers-color-scheme auto-switch and no global theme
+   toggle yet, so the app stays light until dark mode ships app-wide.
+   ============================================================ */
+:root {
+  --color-primary:       #2563EB;  /* trust blue */
+  --color-primary-dim:   #1D4ED8;
+  --color-primary-tint:  #EFF4FE;  /* subtle wash: today / active backgrounds */
+  --color-on-primary:    #ffffff;
+  --color-secondary:     #059669;  /* confirmation green */
+  --color-accent:        #D97706;  /* warm amber — primary CTA */
+  --color-accent-dim:    #B45309;
+  --color-background:    #F8FAFC;
+  --color-surface:       #ffffff;
+  --color-muted:         #F1F5FD;
+  --color-foreground:    #0F172A;
+  --color-fg-muted:      #64748B;
+  --color-border:        #E4ECFC;
+  --color-border-strong: #CBD8F0;
+  --color-destructive:   #DC2626;
+  --color-ring:          rgba(37,99,235,0.30);
+}
+:root[data-theme="dark"] {
+  --color-primary:       #3B82F6;
+  --color-primary-dim:   #60A5FA;
+  --color-primary-tint:  #16233A;
+  --color-on-primary:    #ffffff;
+  --color-secondary:     #10B981;
+  --color-accent:        #F59E0B;
+  --color-accent-dim:    #FBBF24;
+  --color-background:    #0A101E;
+  --color-surface:       #111C30;
+  --color-muted:         #16233A;
+  --color-foreground:    #E8EEF9;
+  --color-fg-muted:      #94A3B8;
+  --color-border:        #233449;
+  --color-border-strong: #31465F;
+  --color-destructive:   #F87171;
+  --color-ring:          rgba(59,130,246,0.40);
+}
+
+/* ---- Beta skin — opt-in design-system reskin ---------------
+   Activated by data-skin="beta" on <html> (set in main.jsx from a
+   localStorage flag / ?skin= override, toggled in Settings). The
+   classic skin — no attribute — is untouched, so live users are
+   unaffected. This remaps the legacy tokens the whole app already
+   consumes onto the design-system palette (design-system/MASTER.md).
+   Semantic split the legacy palette conflated:
+     • nav / active / links / highlights / "Today"  → primary (blue)
+     • the one primary CTA per surface              → accent (amber)
+   The --navy family is left as-is so the dark sidebar chrome stays.
+   ------------------------------------------------------------ */
+:root[data-skin="beta"] {
+  --off-white:      var(--color-background);
+  --white:          var(--color-surface);
+  --slate:          var(--color-fg-muted);
+  --slate-light:    #94A3B8;
+  --border:         var(--color-border);
+  --accent:         var(--color-primary);      /* blue: nav, links, today, spinner */
+  --accent-dim:     var(--color-primary-dim);
+  --accent-bg:      var(--color-primary-tint);
+  --on-accent:      #ffffff;                    /* white text on a blue accent fill */
+  --accent-on-dark: #60A5FA;                    /* legible blue on the dark sidebar */
+}
+/* Primary CTA is the warm amber accent. Uses the deeper amber so white
+   label text clears WCAG AA (≈5:1); the brand #D97706 on white is only
+   3.2:1 and would fail for button-sized text. */
+:root[data-skin="beta"] .btn-primary {
+  background: var(--color-accent-dim);
+  color: #ffffff;
+}
+:root[data-skin="beta"] .btn-primary:hover { background: #92400E; }
+:root[data-skin="beta"] .input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-ring);
 }
 
 html, body, #root {

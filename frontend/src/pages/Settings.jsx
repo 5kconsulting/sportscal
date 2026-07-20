@@ -20,6 +20,18 @@ export default function Settings() {
   const [inboundAddress, setInboundAddress] = useState('');
   const [inboundConfigured, setInboundConfigured] = useState(false);
   const [inboundCopied, setInboundCopied] = useState(false);
+  const [betaSkin, setBetaSkin] = useState(
+    () => document.documentElement.getAttribute('data-skin') === 'beta'
+  );
+
+  // Client-only, per-device. No API call — the skin is a localStorage flag
+  // read at boot in main.jsx; toggling here updates it live.
+  function toggleSkin(next) {
+    setBetaSkin(next);
+    localStorage.setItem('sc_skin', next ? 'beta' : 'classic');
+    if (next) document.documentElement.setAttribute('data-skin', 'beta');
+    else document.documentElement.removeAttribute('data-skin');
+  }
   // Calendar feed section auto-collapses once the user has at least one
   // source — the URL is mostly relevant during initial onboarding to
   // subscribe a phone calendar, and clutters Settings forever after.
@@ -412,6 +424,33 @@ export default function Settings() {
           )}
         </div>
       </form>
+
+      {/* Appearance — client-only, opt-in reskin (per device) */}
+      <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border)' }}>
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--slate)',
+                     textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 16 }}>
+          Appearance
+        </h2>
+        <div className="card" style={{ padding: '20px 24px', display: 'flex',
+              alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 4,
+                          display: 'flex', alignItems: 'center', gap: 8 }}>
+              New look
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                    textTransform: 'uppercase', color: 'var(--on-accent)',
+                    background: 'var(--accent)', padding: '2px 7px', borderRadius: 6 }}>
+                Beta
+              </span>
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--slate)', lineHeight: 1.5, maxWidth: 380 }}>
+              A calmer, refreshed design. Applies across the app on this device
+              only — switch back anytime.
+            </div>
+          </div>
+          <Toggle checked={betaSkin} onChange={toggleSkin} />
+        </div>
+      </div>
 
       {/* Support */}
       <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border)' }}>

@@ -727,7 +727,7 @@ export default function SetupAgent({ onSourceAdded }) {
                 padding: '10px 14px',
                 borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                 background: isUser ? 'var(--accent)' : 'var(--card-bg, #fff)',
-                color: 'var(--navy)',
+                color: isUser ? 'var(--on-accent)' : 'var(--navy)',
                 fontSize: 14,
                 lineHeight: 1.6,
                 fontWeight: isUser ? 500 : 400,

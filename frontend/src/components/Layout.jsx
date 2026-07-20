@@ -94,13 +94,13 @@ export default function Layout() {
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '10px 12px', borderRadius: 8, marginBottom: 2,
               fontSize: 14, fontWeight: 500,
-              color: isActive ? 'var(--navy)' : 'var(--slate)',
+              color: isActive ? 'var(--on-accent)' : 'var(--slate)',
               background: isActive ? 'var(--accent)' : 'transparent',
               transition: 'all 0.15s', textDecoration: 'none',
             })}>
               {({ isActive }) => (
                 <>
-                  <Icon color={isActive ? 'var(--navy)' : 'var(--slate)'} />
+                  <Icon color={isActive ? 'var(--on-accent)' : 'var(--slate)'} />
                   {label}
                 </>
               )}
@@ -111,14 +111,14 @@ export default function Layout() {
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '10px 12px', borderRadius: 8, marginTop: 8,
               fontSize: 14, fontWeight: 500,
-              color: isActive ? 'var(--navy)' : 'var(--slate)',
+              color: isActive ? 'var(--on-accent)' : 'var(--slate)',
               background: isActive ? 'var(--accent)' : 'rgba(255,255,255,0.04)',
               transition: 'all 0.15s', textDecoration: 'none',
               border: '1px solid rgba(255,255,255,0.08)',
             })}>
               {({ isActive }) => (
                 <>
-                  <ShieldIcon color={isActive ? 'var(--navy)' : 'var(--slate)'} />
+                  <ShieldIcon color={isActive ? 'var(--on-accent)' : 'var(--slate)'} />
                   Admin
                 </>
               )}
@@ -211,13 +211,13 @@ export default function Layout() {
           <NavLink key={to} to={to} end={to === '/'} style={({ isActive }) => ({
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             gap: 3, padding: '4px 8px', borderRadius: 8,
-            color: isActive ? 'var(--accent)' : 'var(--slate)',
+            color: isActive ? 'var(--accent-on-dark)' : 'var(--slate)',
             textDecoration: 'none', transition: 'color 0.15s',
             minWidth: 48,
           })}>
             {({ isActive }) => (
               <>
-                <Icon color={isActive ? 'var(--accent)' : 'var(--slate)'} />
+                <Icon color={isActive ? 'var(--accent-on-dark)' : 'var(--slate)'} />
                 <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.02em' }}>
                   {label}
                 </span>
@@ -229,13 +229,13 @@ export default function Layout() {
           <NavLink to="/admin" style={({ isActive }) => ({
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             gap: 3, padding: '4px 8px', borderRadius: 8,
-            color: isActive ? 'var(--accent)' : 'var(--slate)',
+            color: isActive ? 'var(--accent-on-dark)' : 'var(--slate)',
             textDecoration: 'none', transition: 'color 0.15s',
             minWidth: 48,
           })}>
             {({ isActive }) => (
               <>
-                <ShieldIcon color={isActive ? 'var(--accent)' : 'var(--slate)'} />
+                <ShieldIcon color={isActive ? 'var(--accent-on-dark)' : 'var(--slate)'} />
                 <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.02em' }}>Admin</span>
               </>
             )}

@@ -376,7 +376,7 @@ function OnboardingBanner({ hasKids, hasSources, onDismiss }) {
             ✓ You're all set! Subscribe to your calendar feed above.
           </div>
           <button onClick={onDismiss} className="btn btn-sm" style={{
-            background: 'var(--accent)', color: 'var(--navy)', border: 'none',
+            background: 'var(--accent)', color: 'var(--on-accent)', border: 'none',
           }}>
             Got it
           </button>
@@ -669,7 +669,7 @@ function SubscribeGuide({ feedUrl, onClose }) {
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: '100%', padding: '12px',
-              background: 'var(--accent)', color: 'var(--navy)',
+              background: 'var(--accent)', color: 'var(--on-accent)',
               borderRadius: 10, fontWeight: 600, fontSize: 15,
               textDecoration: 'none', marginBottom: 20,
               transition: 'background 0.15s',

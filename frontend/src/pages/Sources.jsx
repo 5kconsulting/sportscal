@@ -375,7 +375,7 @@ function SourceHelpModal({ app, onClose }) {
                 )}
                 <div style={{
                   position: 'absolute', top: 10, left: 10,
-                  background: 'var(--accent)', color: 'var(--navy)',
+                  background: 'var(--accent)', color: 'var(--on-accent)',
                   borderRadius: '50%', width: 28, height: 28,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 13, fontWeight: 700,
@@ -425,7 +425,7 @@ function SourceHelpModal({ app, onClose }) {
                   <li key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                     <div style={{
                       width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                      background: 'var(--accent)', color: 'var(--navy)',
+                      background: 'var(--accent)', color: 'var(--on-accent)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 12, fontWeight: 700, marginTop: 1,
                     }}>
