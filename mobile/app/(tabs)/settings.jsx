@@ -260,6 +260,20 @@ export default function Settings() {
 
       <TouchableOpacity
         style={s.manageBtn}
+        onPress={() => router.push('/kids')}
+        activeOpacity={0.7}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={s.manageTitle}>My kids</Text>
+          <Text style={s.manageSub}>
+            Names, colors, and each kid's upcoming schedule at a glance.
+          </Text>
+        </View>
+        <Text style={s.manageChevron}>›</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={s.manageBtn}
         onPress={() => router.push('/sources')}
         activeOpacity={0.7}
       >
