@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { AddEventModal } from '../components/AddEventModal.jsx';
+import { EventDetailModal } from '../components/EventDetailModal.jsx';
 
 export default function Dashboard() {
   const { user, updateUser }  = useAuth();
@@ -832,6 +833,7 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogist
   const [deleting, setDeleting] = useState(false);
   const [showLogistics, setShowLogistics] = useState(false);
   const [showAttendance, setShowAttendance] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
   const [logistics, setLogistics] = useState(initialLogistics);
   const [overrides, setOverrides] = useState(eventOverrides);
 
@@ -929,12 +931,13 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogist
   const kidNames = event.kids?.map(k => k.name).join(', ');
 
   return (
-    <div className="card ev-card" style={{
+    <div className="card ev-card" onClick={() => setShowDetail(true)} style={{
       position: 'relative',
       display: 'flex',
       alignItems: 'stretch',
       padding: 0,
       overflow: 'hidden',
+      cursor: 'pointer',
       opacity: allNotGoing ? 0.55 : 1,
       transition: 'opacity 0.2s, box-shadow 0.18s',
     }}>
@@ -1007,79 +1010,31 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogist
         {/* location + source now live in the meta row above; carpool status
             is on the event detail / carpool action, not the resting card */}
 
-        {/* Attendance override UI */}
-        {showAttendance && event.kids?.length > 0 && (
-          <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--off-white)', borderRadius: 8 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--slate)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-              Who's going?
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {event.kids.map(kid => {
-                const attending = overrides[kid.id] !== false;
-                return (
-                  <label key={kid.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                    <input type="checkbox" checked={attending}
-                      onChange={e => setKidAttendance(kid.id, e.target.checked)}
-                      style={{ accentColor: kid.color, width: 14, height: 14 }} />
-                    <div style={{
-                      width: 18, height: 18, borderRadius: '50%',
-                      background: kid.color, flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 9, fontWeight: 700, color: 'white',
-                    }}>{kid.name[0]}</div>
-                    <span style={{ fontSize: 13, color: attending ? 'var(--navy)' : 'var(--slate)',
-                                   textDecoration: attending ? 'none' : 'line-through' }}>
-                      {kid.name}
-                    </span>
-                    {!attending && <span style={{ fontSize: 11, color: 'var(--slate)' }}>— not going</span>}
-                  </label>
-                );
-              })}
-            </div>
-            <p style={{ fontSize: 11, color: 'var(--slate-light)', marginTop: 8, lineHeight: 1.5 }}>
-              Unchecked kids are removed from this event in your calendar feed.
-            </p>
-          </div>
-        )}
+        {/* Attendance, carpool, and edit/delete moved into the click-through
+            EventDetailModal — the whole card opens it. */}
       </div>
 
-      {/* Actions — no-jump overlay: fades in over the right edge on hover/focus */}
+      {/* Chevron affordance — the whole card opens the detail modal */}
       <div className="ev-actions" style={{
         position: 'absolute', top: 0, right: 0, bottom: 0,
-        display: 'flex', alignItems: 'center', gap: 4,
-        padding: '0 12px 0 44px',
-        background: 'linear-gradient(90deg, transparent, var(--white) 42%)',
-      }}>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {event.kids?.length > 0 && (
-            <button onClick={toggleAttendance} className="btn btn-ghost btn-sm"
-              style={{ padding: '2px 8px', fontSize: 11,
-                       background: showAttendance ? 'var(--navy)' : 'transparent',
-                       color: showAttendance ? 'var(--white)' : 'var(--slate)' }}
-              title="Who's going?">
-              {showAttendance ? '✓ Going ▲' : '✓ Going ▼'}
-            </button>
-          )}
-          <button onClick={openLogistics} className="btn btn-ghost btn-sm"
-            style={{ padding: '2px 8px', fontSize: 11 }}
-            title="Manage drop-off & pick-up">
-            Carpool
-          </button>
-          {isManual && (
-            <>
-              <button onClick={() => onEdit(event)} className="btn btn-ghost btn-sm"
-                style={{ padding: '2px 8px', fontSize: 11 }}>
-                Edit
-              </button>
-              <button onClick={handleDelete} className="btn btn-ghost btn-sm"
-                disabled={deleting}
-                style={{ padding: '2px 8px', fontSize: 11, color: 'var(--red, #ef4444)' }}>
-                {deleting ? '…' : 'Delete'}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+        display: 'flex', alignItems: 'center', paddingRight: 12,
+        color: 'var(--slate-light)', pointerEvents: 'none',
+      }}>›</div>
+
+      {showDetail && (
+        <EventDetailModal
+          event={event}
+          overrides={overrides}
+          onToggleKid={setKidAttendance}
+          dropoff={dropoff}
+          pickup={pickup}
+          onManageRides={() => { setShowDetail(false); openLogistics(); }}
+          onEdit={isManual ? () => { setShowDetail(false); onEdit(event); } : null}
+          onDelete={isManual ? () => { setShowDetail(false); handleDelete(); } : null}
+          isManual={isManual}
+          onClose={() => setShowDetail(false)}
+        />
+      )}
 
       {showLogistics && (
         <LogisticsModal
