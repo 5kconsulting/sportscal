@@ -100,6 +100,10 @@ export default function Dashboard() {
   const grouped = groupByDay(filteredEvents);
   const hasEvents = Object.keys(grouped).length > 0;
 
+  // Per-kid event counts (within the loaded date range) for the filter chips.
+  const kidCounts = {};
+  for (const ev of events) for (const k of (ev.kids || [])) kidCounts[k.id] = (kidCounts[k.id] || 0) + 1;
+
   return (
     <div className="page-pad" style={{ padding: '40px', maxWidth: 720 }}>
       <style>{`
@@ -126,6 +130,15 @@ export default function Dashboard() {
           .ev-card .ev-secondary { display: flex; }
           .ev-card .ev-actions { opacity: 1; }
         }
+        /* Skeleton shimmer for the loading day-buckets */
+        @keyframes ev-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+        .sk {
+          background: linear-gradient(90deg, var(--off-white) 25%, var(--border) 37%, var(--off-white) 63%);
+          background-size: 400% 100%;
+          animation: ev-shimmer 1.4s ease infinite;
+          border-radius: 8px;
+        }
+        @media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
       `}</style>
 
       {/* Header */}
@@ -224,6 +237,12 @@ export default function Dashboard() {
                   </div>
                 )}
                 {kid ? kid.name : 'Everyone'}
+                <span style={{
+                  fontSize: 11, fontWeight: 700, marginLeft: 2,
+                  color: isActive ? 'rgba(255,255,255,0.8)' : 'var(--slate-light)',
+                }}>
+                  {kid ? (kidCounts[kid.id] || 0) : events.length}
+                </span>
               </button>
             );
           })}
@@ -253,8 +272,24 @@ export default function Dashboard() {
 
       {/* Events */}
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
-          <div className="spinner" style={{ width: 28, height: 28 }} />
+        <div className="fade-up">
+          {[0, 1].map(g => (
+            <div key={g} style={{ marginBottom: 28 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div className="sk" style={{ width: 90, height: 14 }} />
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              </div>
+              {[0, 1, 2].map(i => (
+                <div key={i} className="card" style={{ display: 'flex', alignItems: 'stretch', padding: 0, overflow: 'hidden', marginBottom: 8, height: 66 }}>
+                  <div className="sk" style={{ width: 66, borderRadius: 0 }} />
+                  <div style={{ flex: 1, padding: '14px 16px' }}>
+                    <div className="sk" style={{ width: '55%', height: 13, marginBottom: 8 }} />
+                    <div className="sk" style={{ width: '35%', height: 11 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       ) : !hasEvents ? (
         <EmptyState hasSources={sources.filter(s => s.name !== '__manual__').length > 0} />
