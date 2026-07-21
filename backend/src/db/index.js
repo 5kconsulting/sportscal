@@ -241,8 +241,18 @@ export async function rotateFeedToken(userId) {
 // --- Kids ---
 
 export async function getKidsByUser(userId) {
+  // calendar_count = connected calendars assigned to the kid (via kid_sources),
+  // excluding the synthetic __manual__ container. Additive column; existing
+  // callers that ignore it are unaffected.
   return query(
-    'SELECT * FROM kids WHERE user_id = $1 ORDER BY sort_order, name',
+    `SELECT k.*,
+       (SELECT COUNT(*)::int
+          FROM kid_sources ks
+          JOIN sources s ON s.id = ks.source_id
+         WHERE ks.kid_id = k.id AND s.name <> '__manual__') AS calendar_count
+     FROM kids k
+     WHERE k.user_id = $1
+     ORDER BY k.sort_order, k.name`,
     [userId]
   );
 }
