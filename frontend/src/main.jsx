@@ -15,7 +15,9 @@ import './index.css';
   if (override === 'beta' || override === 'classic') {
     localStorage.setItem('sc_skin', override);
   }
-  if (localStorage.getItem('sc_skin') === 'beta') {
+  // The new look is the default now; only an explicit 'classic' opt-out
+  // (the Settings escape hatch or ?skin=classic) falls back to the old skin.
+  if (localStorage.getItem('sc_skin') !== 'classic') {
     document.documentElement.setAttribute('data-skin', 'beta');
   }
 }

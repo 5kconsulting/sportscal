@@ -71,19 +71,21 @@ const SkinContext = createContext({
 });
 
 export function SkinProvider({ children }) {
-  const [skin, setSkinState] = useState('classic');
+  // New look is the default; only an explicit 'classic' opt-out (the Settings
+  // escape hatch) falls back to the old skin.
+  const [skin, setSkinState] = useState('beta');
 
-  // SecureStore is async, so the first paint is always classic; if the
-  // user opted into beta, we flip once the read resolves (a brief, one-
-  // time flash at cold launch only).
+  // SecureStore is async, so the first paint is always the default (beta);
+  // if the user switched to classic, we flip once the read resolves (a brief,
+  // one-time flash at cold launch only).
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
         const v = await SecureStore.getItemAsync(KEY);
-        if (alive && v === 'beta') setSkinState('beta');
+        if (alive && v === 'classic') setSkinState('classic');
       } catch {
-        // Non-fatal — fall back to classic.
+        // Non-fatal — keep the default.
       }
     })();
     return () => { alive = false; };

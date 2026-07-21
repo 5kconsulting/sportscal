@@ -434,18 +434,12 @@ export default function Settings() {
         <div className="card" style={{ padding: '20px 24px', display: 'flex',
               alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 4,
-                          display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>
               New look
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
-                    textTransform: 'uppercase', color: 'var(--on-accent)',
-                    background: 'var(--accent)', padding: '2px 7px', borderRadius: 6 }}>
-                Beta
-              </span>
             </div>
             <div style={{ fontSize: 13, color: 'var(--slate)', lineHeight: 1.5, maxWidth: 380 }}>
-              A calmer, refreshed design. Applies across the app on this device
-              only — switch back anytime.
+              On by default. Turn it off to go back to the classic look
+              (this device only).
             </div>
           </div>
           <Toggle checked={betaSkin} onChange={toggleSkin} />
