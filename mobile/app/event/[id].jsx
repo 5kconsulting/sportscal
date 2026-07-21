@@ -390,7 +390,12 @@ export default function EventDetail() {
 
   const kids = Array.isArray(event.kids) ? event.kids : [];
 
-  const sport = inferSport(event.display_title || event.raw_title || '');
+  // Match the calendar card: infer from source name + location too, so a
+  // soccer feed whose title omits "soccer" still gets the green sport hero
+  // (not a generic calendar motif). Keeps card and detail consistent.
+  const sport = inferSport(
+    [event.display_title || event.raw_title, event.source_name, event.location].filter(Boolean).join(' ')
+  );
   const heroColor = sport?.color || kids[0]?.color || t.accent;
   const heroFg = textOn(heroColor);
   const heroScrim = heroFg === '#ffffff' ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.10)';

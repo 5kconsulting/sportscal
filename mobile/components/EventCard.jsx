@@ -76,7 +76,10 @@ export function EventCard({ event, overrides = {} }) {
   const someNotGoing = notGoingKids.length > 0 && !allNotGoing;
 
   const title = event.display_title || event.raw_title;
-  const sport = inferSport(title);
+  // Infer from the source name + location too, not just the title: a soccer
+  // feed ("Albion Soccer") whose event title never says "soccer" should still
+  // get the sport chip. Keeps sibling events on the same feed consistent.
+  const sport = inferSport([title, event.source_name, event.location].filter(Boolean).join(' '));
   const a11yLabel = [title, time, event.location || null, allNotGoing ? 'not attending' : null]
     .filter(Boolean).join(', ');
 
