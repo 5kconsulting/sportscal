@@ -204,9 +204,14 @@ export default function Settings() {
         flexDirection: 'row', alignItems: 'center', gap: 12,
       }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 15, fontWeight: '600', color: t.navy }}>New look</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: t.navy }}>New look</Text>
+            <View style={{ backgroundColor: t.accent, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: t.onAccent, letterSpacing: 0.4 }}>BETA</Text>
+            </View>
+          </View>
           <Text style={{ fontSize: 12, color: t.slate, marginTop: 3, lineHeight: 16 }}>
-            On by default — turn off to switch back to classic.
+            A calmer, refreshed design. Switch back anytime.
           </Text>
         </View>
         <Switch
