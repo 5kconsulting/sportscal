@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
   KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Alert,
   ActionSheetIOS,
 } from 'react-native';
@@ -819,6 +819,9 @@ function Bubble({ message, onApprove, approving }) {
   const isUser = role === 'user';
   return (
     <View style={[s.bubbleRow, isUser ? s.bubbleRowRight : s.bubbleRowLeft]}>
+      {!isUser && (
+        <Image source={require('../assets/coach.png')} style={s.aiAvatar} accessibilityLabel="Assistant" />
+      )}
       <View style={[
         s.bubble,
         isUser ? s.bubbleUser : s.bubbleAssistant,
@@ -876,6 +879,7 @@ function makeStyles(t) {
   chipBtnArrow: { color: t.accentOnDark, fontSize: 17, opacity: 0.7 },
 
   bubbleRow:      { flexDirection: 'row', marginBottom: 2 },
+  aiAvatar:       { width: 30, height: 30, marginRight: 8, alignSelf: 'flex-end', marginBottom: 2 },
   bubbleRowLeft:  { justifyContent: 'flex-start' },
   bubbleRowRight: { justifyContent: 'flex-end' },
   bubble: {
