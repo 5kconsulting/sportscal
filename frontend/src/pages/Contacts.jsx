@@ -35,6 +35,14 @@ function parseRoster(text) {
   return String(text || '').split('\n').map(parseRosterLine).filter(Boolean);
 }
 
+// Deterministic avatar color from a name (contacts have no color field).
+const AV_COLORS = ['#2563EB', '#7C3AED', '#0D9488', '#DB2777', '#EA580C', '#0891B2', '#CA8A04', '#059669', '#9333EA', '#DC2626'];
+function avatarColor(name = '') {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return AV_COLORS[h % AV_COLORS.length];
+}
+
 export default function Contacts() {
   // Chip welcome triggers automatically for brand-new carpool users
   // (zero contacts AND zero teams). State-driven, not URL-gated:
@@ -215,22 +223,25 @@ function RideContacts({ initialShowForm = false }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {contacts.map(c => (
-              <div key={c.id} className="card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <div key={c.id} className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                 <div style={{
-                  width: 40, height: 40, borderRadius: '50%',
-                  background: 'var(--navy)', border: '2px solid var(--navy-mid)',
+                  width: 44, height: 44, borderRadius: 14,
+                  background: avatarColor(c.name),
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 16, fontWeight: 700, color: 'var(--accent)', flexShrink: 0,
+                  fontSize: 16, fontWeight: 800, color: '#fff', flexShrink: 0,
                 }}>
-                  {c.name[0]}
+                  {c.name[0].toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 16, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                  <div style={{ fontSize: 13, color: 'var(--slate)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {[c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info'}
+                  <div style={{ fontSize: 15.5, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                  <div style={{ fontSize: 13, color: 'var(--slate)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {c.phone || c.email || 'No contact info'}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
+                  {c.phone && <a className="btn btn-ghost btn-sm" href={`tel:${c.phone}`}>Call</a>}
+                  {c.phone && <a className="btn btn-ghost btn-sm" href={`sms:${c.phone}`}>Text</a>}
+                  {!c.phone && c.email && <a className="btn btn-ghost btn-sm" href={`mailto:${c.email}`}>Email</a>}
                   <button className="btn btn-ghost btn-sm" onClick={() => openEdit(c)}>Edit</button>
                   <button className="btn btn-danger btn-sm" onClick={() => handleDelete(c.id)}>Remove</button>
                 </div>
@@ -545,12 +556,41 @@ function Teams({ initialAdding = false }) {
                 <div key={team.id} className="card" style={{ padding: '16px 20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 16, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {team.name}
                       </div>
                       <div style={{ fontSize: 13, color: 'var(--slate)', marginTop: 2 }}>
                         {memberCount} {memberCount === 1 ? 'member' : 'members'}
                       </div>
+                      {memberCount > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+                          {(team.members || []).slice(0, 6).map((m, i) => (
+                            <div key={m.id ?? i} title={m.name} style={{
+                              width: 28, height: 28, borderRadius: '50%',
+                              border: '2px solid var(--white)', marginLeft: i === 0 ? 0 : -8,
+                              background: avatarColor(m.name || ''),
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 11, fontWeight: 700, color: '#fff',
+                            }}>
+                              {(m.name || '?')[0].toUpperCase()}
+                            </div>
+                          ))}
+                          {memberCount > 6 && (
+                            <div style={{
+                              width: 28, height: 28, borderRadius: '50%',
+                              border: '2px solid var(--white)', marginLeft: -8,
+                              background: 'var(--off-white)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 11, fontWeight: 700, color: 'var(--slate)',
+                            }}>
+                              +{memberCount - 6}
+                            </div>
+                          )}
+                          <span style={{ marginLeft: 12, fontSize: 11, fontWeight: 700, color: '#16a34a', background: '#16a34a22', padding: '3px 9px', borderRadius: 999 }}>
+                            {(team.members || []).filter(m => m.phone).length} reachable
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       <button className="btn btn-ghost btn-sm" onClick={() => setExpanded(isOpen ? null : team.id)}>
