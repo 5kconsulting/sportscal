@@ -27,7 +27,7 @@ function UpgradeBanner() {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      background: 'linear-gradient(135deg, var(--navy) 0%, #1a3050 100%)',
+      background: 'var(--navy)',
       borderRadius: 12, padding: '16px 20px', marginBottom: 28,
       border: '1px solid rgba(0,214,143,0.2)',
       flexWrap: 'wrap', gap: 12,
@@ -766,6 +766,42 @@ function EmptyState({ icon, title, body, cta }) {
   );
 }
 
+function StatusIcon({ name }) {
+  if (name === 'spin') return <span className="spinner" style={{ width: 11, height: 11, borderTopColor: 'currentColor' }} />;
+  const p = {
+    check: <path d="M20 6 9 17l-5-5" />,
+    alert: <><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h16.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /></>,
+    pause: <><line x1="9" y1="7" x2="9" y2="17" /><line x1="15" y1="7" x2="15" y2="17" /></>,
+    dot: <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />,
+  }[name];
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      {p}
+    </svg>
+  );
+}
+
+// Semantic sync-status chip (icon + color) — replaces the old emoji status line.
+function SyncStatus({ source, refreshing }) {
+  let color, label, icon;
+  if (!source.enabled) { color = 'var(--slate)'; label = 'Paused'; icon = 'pause'; }
+  else if (refreshing) { color = 'var(--slate)'; label = 'Syncing…'; icon = 'spin'; }
+  else if (source.last_fetch_status === 'error') { color = 'var(--red, #ef4444)'; label = source.last_fetch_error || 'Sync failed'; icon = 'alert'; }
+  else if (source.last_fetched_at) { color = '#16a34a'; label = `Synced ${timeAgo(source.last_fetched_at)} · ${source.last_event_count || 0} events`; icon = 'check'; }
+  else { color = 'var(--slate)'; label = 'Not yet synced'; icon = 'dot'; }
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: '100%',
+      fontSize: 12, fontWeight: 600, color,
+      background: `color-mix(in srgb, ${color} 12%, transparent)`,
+      padding: '4px 10px', borderRadius: 999,
+    }}>
+      <StatusIcon name={icon} />
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+    </div>
+  );
+}
+
 function SourceCard({ source, onRefresh, onDelete, onToggle, onEdit, refreshing }) {
   const appInfo = APP_OPTIONS.find(a => a.value === source.app);
   const hasError = source.last_fetch_status === 'error';
@@ -810,12 +846,8 @@ function SourceCard({ source, onRefresh, onDelete, onToggle, onEdit, refreshing 
         </div>
       )}
 
-      <div style={{ fontSize: 12, color: hasError ? 'var(--red)' : 'var(--slate)', marginBottom: 12 }}>
-        {hasError
-          ? `⚠ ${source.last_fetch_error || 'Last fetch failed'}`
-          : source.last_fetched_at
-            ? `✓ Synced ${timeAgo(source.last_fetched_at)} · ${source.last_event_count || 0} events`
-            : 'Not yet synced'}
+      <div style={{ marginBottom: 12 }}>
+        <SyncStatus source={source} refreshing={refreshing} />
       </div>
 
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
