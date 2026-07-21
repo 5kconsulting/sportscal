@@ -3,6 +3,7 @@ import { api } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { useIngestion } from '../hooks/useIngestion.js';
 import IngestionReviewModal from '../components/IngestionReviewModal.jsx';
+import { AssistantMascot } from '../components/AssistantMascot.jsx';
 
 // The system prompt + APP_INSTRUCTIONS / DEMO_FEEDS that used to live in
 // this file moved to backend/src/lib/setupAgentPrompt.js when web migrated
@@ -538,8 +539,12 @@ export default function SetupAgent({ onSourceAdded }) {
         </div>
 
         <div className="card" style={{ padding: 32, textAlign: 'center' }}>
-          <div style={{ marginBottom: 16 }}>
-            <img src="/robot.svg" alt="SportsCal assistant" style={{ width: 120, height: 120, marginBottom: 16 }} />
+          <div style={{
+            width: 108, height: 108, borderRadius: '50%', margin: '0 auto 16px',
+            background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <AssistantMascot size={72} />
           </div>
           <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8, letterSpacing: '-0.01em' }}>
             Your calendar setup assistant
@@ -715,11 +720,12 @@ export default function SetupAgent({ onSourceAdded }) {
             <div key={i} style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
               {!isUser && (
                 <div style={{
-                  width: 56, height: 56, borderRadius: 8, flexShrink: 0,
-                  background: 'var(--navy)', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', marginRight: 8, marginTop: 2,
+                  width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                  background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginRight: 8, alignSelf: 'flex-end', marginBottom: 2,
                 }}>
-                  <img src="/robot-head.svg" alt="" style={{ width: 48, height: 48 }} />
+                  <AssistantMascot size={26} />
                 </div>
               )}
               <div style={{
@@ -791,18 +797,21 @@ export default function SetupAgent({ onSourceAdded }) {
             color: 'var(--slate)',
             cursor: uploading ? 'default' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 18, flexShrink: 0,
+            flexShrink: 0,
             opacity: uploading ? 0.4 : 1,
           }}
+          aria-label="Attach a PDF"
         >
-          📎
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+          </svg>
         </button>
         <textarea
           ref={inputRef}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message, paste a URL, or tap 📎 to upload a PDF..."
+          placeholder="Type a message, paste a URL, or attach a PDF…"
           rows={1}
           style={{
             flex: 1, border: 'none', outline: 'none', resize: 'none',
@@ -824,15 +833,18 @@ export default function SetupAgent({ onSourceAdded }) {
             color: input.trim() && !loading ? 'var(--navy)' : 'var(--slate)',
             cursor: input.trim() && !loading ? 'pointer' : 'default',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16, flexShrink: 0, transition: 'all 0.15s',
+            flexShrink: 0, transition: 'all 0.15s',
           }}
+          aria-label="Send"
         >
-          ↑
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 19V5M5 12l7-7 7 7" />
+          </svg>
         </button>
       </div>
 
       <p style={{ fontSize: 11, color: 'var(--slate)', textAlign: 'center', marginTop: 8 }}>
-        Press Enter to send · Shift+Enter for new line · 📎 for PDF
+        Press Enter to send · Shift+Enter for new line · attach a PDF
       </p>
 
       {showReviewModal && ingestion?.status === 'ready_for_review' && (
