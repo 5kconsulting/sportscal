@@ -699,16 +699,22 @@ export default function SetupAgent({ onSourceAdded }) {
       }}>
         {messages.map((msg, i) => {
           if (msg.role === 'system') {
+            const sysColor = msg.error ? 'var(--red, #ef4444)' : '#16a34a';
             return (
-              <div key={i} style={{
-                textAlign: 'center', fontSize: 13, fontWeight: 500,
-                color: msg.error ? '#ef4444' : 'var(--accent)',
-                padding: '6px 12px',
-                background: msg.error ? 'rgba(239,68,68,0.08)' : 'rgba(0,214,143,0.08)',
-                borderRadius: 8,
-                border: '1px solid ' + (msg.error ? 'rgba(239,68,68,0.2)' : 'rgba(0,214,143,0.2)'),
-              }}>
-                {msg.content}
+              <div key={i} style={{ display: 'flex', justifyContent: 'center' }}>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: '92%',
+                  fontSize: 13, fontWeight: 600, color: sysColor,
+                  background: `color-mix(in srgb, ${sysColor} 12%, transparent)`,
+                  padding: '5px 12px', borderRadius: 999,
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    {msg.error
+                      ? <><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h16.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /></>
+                      : <path d="M20 6 9 17l-5-5" />}
+                  </svg>
+                  <span>{msg.content}</span>
+                </div>
               </div>
             );
           }
