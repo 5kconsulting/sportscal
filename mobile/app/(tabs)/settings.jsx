@@ -453,7 +453,7 @@ export default function Settings() {
           : <Text style={s.deleteText}>Delete account</Text>}
       </TouchableOpacity>
 
-      <Text style={s.footer}>SportsCal v0.1.0 — mobile beta</Text>
+      <Text style={s.footer}>SportsCal v1.0.0</Text>
     </ScrollView>
   );
 }
