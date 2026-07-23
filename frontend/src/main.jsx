@@ -6,8 +6,8 @@ import * as Sentry from '@sentry/react';
 import './index.css';
 
 // ---- Skin selection ---------------------------------------------------
-// Classic is the default for everyone; the design-system reskin is opt-in
-// ("beta"), toggled in Settings. `?skin=beta` / `?skin=classic` overrides
+// The design-system look is the default for everyone; classic is the opt-out
+// escape hatch, toggled in Settings. `?skin=beta` / `?skin=classic` overrides
 // and persists (handy for sharing a preview link). Setting the attribute
 // before render avoids a flash of the wrong skin.
 {
@@ -15,7 +15,8 @@ import './index.css';
   if (override === 'beta' || override === 'classic') {
     localStorage.setItem('sc_skin', override);
   }
-  if (localStorage.getItem('sc_skin') === 'beta') {
+  // Default to the new look; only an explicit 'classic' opt-out falls back.
+  if (localStorage.getItem('sc_skin') !== 'classic') {
     document.documentElement.setAttribute('data-skin', 'beta');
   }
 }
