@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SportsCal — new-look icon concepts</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+  :root{
+    --navy:#0f1629; --blue:#2563EB; --blue-dim:#1D4ED8; --blue-light:#60A5FA;
+    --amber:#D97706; --amber-deep:#B45309; --slate:#64748B; --bg:#F8FAFC; --border:#E4ECFC;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--navy);
+       -webkit-font-smoothing:antialiased;line-height:1.5}
+  header{padding:48px 32px 8px;max-width:1080px;margin:0 auto}
+  h1{font-size:30px;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px}
+  header p{margin:0;color:var(--slate);max-width:60ch}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 32px 80px;
+        display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:20px;padding:24px;
+        box-shadow:0 1px 2px rgba(15,22,41,.04)}
+  .card h2{font-size:15px;font-weight:700;margin:0 0 2px;letter-spacing:.01em}
+  .tag{display:inline-block;font-size:11px;font-weight:700;color:var(--blue);
+       background:#EFF4FF;border-radius:999px;padding:2px 9px;margin-bottom:14px}
+  .card p{font-size:13px;color:var(--slate);margin:10px 0 0}
+  /* icon showcase row */
+  .show{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+  .app{width:112px;height:112px;border-radius:25px;overflow:hidden;
+       box-shadow:0 8px 22px rgba(15,22,41,.18);flex:0 0 auto}
+  .app svg,.fav svg{display:block;width:100%;height:100%}
+  .fav{width:40px;height:40px;border-radius:9px;overflow:hidden;box-shadow:0 2px 6px rgba(15,22,41,.14)}
+  .lock{display:flex;align-items:center;gap:9px}
+  .lock .fav{width:30px;height:30px;border-radius:7px}
+  .lock span{font-size:18px;font-weight:600;letter-spacing:-.02em}
+  .mini{font-size:11px;color:var(--slate);margin-top:6px;text-align:center}
+  .col{display:flex;flex-direction:column;align-items:center;gap:0}
+  /* dark strip to preview on a home screen-ish ground */
+  .ground{margin-top:18px;background:linear-gradient(135deg,#1b2740,#0f1629);border-radius:14px;
+          padding:16px;display:flex;gap:18px;align-items:center}
+  .ground .app{width:72px;height:72px;border-radius:16px;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+  .ground .label{color:#cbd5e1;font-size:12px}
+  .note{max-width:1080px;margin:0 auto;padding:0 32px 64px}
+  .note div{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px 24px;font-size:14px;color:#334155}
+  .note b{color:var(--navy)}
+</style>
+</head>
+<body>
+<header>
+  <h1>New-look icon concepts</h1>
+  <p>Same recognizable calendar + ball mark, restyled flat in the blue / amber palette (no neon glow). Each drives all three surfaces — iOS app icon, App Store logo, and the web favicon. Pick a letter.</p>
+</header>
+
+<div class="wrap">
+
+  <!-- A: Navy ground, blue mark (closest to today) -->
+  <div class="card">
+    <span class="tag">Concept A</span>
+    <h2>Navy ground · blue mark</h2>
+    <div class="show">
+      <div class="col">
+        <div class="app">
+          <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+            <rect width="256" height="256" fill="#0f1629"/>
+            <rect x="86" y="40" width="16" height="42" rx="8" fill="#D97706"/>
+            <rect x="154" y="40" width="16" height="42" rx="8" fill="#D97706"/>
+            <rect x="44" y="66" width="168" height="142" rx="20" fill="#2563EB"/>
+            <rect x="44" y="66" width="168" height="46" rx="20" fill="#1D4ED8"/>
+            <rect x="44" y="92" width="168" height="20" fill="#1D4ED8"/>
+            <text x="128" y="112" text-anchor="middle" font-family="DM Sans,sans-serif" font-weight="800" font-size="30" fill="#fff">12</text>
+            <circle cx="90" cy="150" r="6.5" fill="#fff" opacity=".55"/>
+            <circle cx="128" cy="150" r="6.5" fill="#fff" opacity=".55"/>
+            <circle cx="166" cy="150" r="6.5" fill="#fff" opacity=".55"/>
+            <circle cx="90" cy="180" r="6.5" fill="#fff" opacity=".3"/>
+            <circle cx="128" cy="180" r="6.5" fill="#fff" opacity=".3"/>
+            <circle cx="192" cy="196" r="42" fill="#0f1629"/>
+            <circle cx="192" cy="196" r="36" fill="#D97706"/>
+            <g stroke="#0f1629" stroke-width="4.5" stroke-linecap="round" fill="none">
+              <line x1="156" y1="196" x2="228" y2="196"/>
+              <line x1="192" y1="160" x2="192" y2="232"/>
+              <path d="M170 162 Q186 196 170 230"/>
+              <path d="M214 162 Q198 196 214 230"/>
+            </g>
+          </svg>
+        </div>
+        <div class="mini">app icon</div>
+      </div>
+      <div class="lock">
+        <div class="fav">
+          <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+            <rect width="256" height="256" fill="#0f1629"/>
+            <rect x="44" y="66" width="168" height="142" rx="20" fill="#2563EB"/>
+            <rect x="44" y="66" width="168" height="46" rx="20" fill="#1D4ED8"/>
+            <circle cx="192" cy="196" r="40" fill="#0f1629"/><circle cx="192" cy="196" r="34" fill="#D97706"/>
+            <text x="120" y="150" text-anchor="middle" font-family="DM Sans" font-weight="800" font-size="70" fill="#fff">12</text>
+          </svg>
+        </div>
+        <span>SportsCal</span>
+      </div>
+    </div>
+    <p>Keeps the navy chrome — most continuity with today's icon. Blue calendar, <b>amber ball</b> as the sport pop.</p>
+  </div>
+
+  <!-- B: Blue ground, white mark (boldest) -->
+  <div class="card">
+    <span class="tag">Concept B</span>
+    <h2>Blue ground · white mark</h2>
+    <div class="show">
+      <div class="col">
+        <div class="app">
+          <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+            <rect width="256" height="256" fill="#2563EB"/>
+            <rect x="86" y="40" width="16" height="42" rx="8" fill="#fff" opacity=".85"/>
+            <rect x="154" y="40" width="16" height="42" rx="8" fill="#fff" opacity=".85"/>
+            <rect x="44" y="66" width="168" height="142" rx="20" fill="#fff"/>
+            <rect x="44" y="66" width="168" height="46" rx="20" fill="#DCE7FF"/>
+            <rect x="44" y="92" width="168" height="20" fill="#DCE7FF"/>
+            <text x="128" y="112" text-anchor="middle" font-family="DM Sans,sans-serif" font-weight="800" font-size="30" fill="#1D4ED8">12</text>
+            <circle cx="90" cy="150" r="6.5" fill="#2563EB" opacity=".5"/>
+            <circle cx="128" cy="150" r="6.5" fill="#2563EB" opacity=".5"/>
+            <circle cx="166" cy="150" r="6.5" fill="#2563EB" opacity=".5"/>
+            <circle cx="90" cy="180" r="6.5" fill="#2563EB" opacity=".28"/>
+            <circle cx="128" cy="180" r="6.5" fill="#2563EB" opacity=".28"/>
+            <circle cx="192" cy="196" r="42" fill="#2563EB"/>
+            <circle cx="192" cy="196" r="36" fill="#D97706"/>
+            <g stroke="#2563EB" stroke-width="4.5" stroke-linecap="round" fill="none">
+              <line x1="156" y1="196" x2="228" y2="196"/>
+              <line x1="192" y1="160" x2="192" y2="232"/>
+              <path d="M170 162 Q186 196 170 230"/>
+              <path d="M214 162 Q198 196 214 230"/>
+            </g>
+          </svg>
+        </div>
+        <div class="mini">app icon</div>
+      </div>
+      <div class="lock">
+        <div class="fav">
+          <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+            <rect width="256" height="256" fill="#2563EB"/>
+            <rect x="44" y="66" width="168" height="142" rx="20" fill="#fff"/>
+            <rect x="44" y="66" width="168" height="46" rx="20" fill="#DCE7FF"/>
+            <circle cx="192" cy="196" r="40" fill="#2563EB"/><circle cx="192" cy="196" r="34" fill="#D97706"/>
+            <text x="120" y="150" text-anchor="middle" font-family="DM Sans" font-weight="800" font-size="70" fill="#1D4ED8">12</text>
+          </svg>
+        </div>
+        <span>SportsCal</span>
+      </div>
+    </div>
+    <p>Highest recognition on a home screen — solid <b>trust-blue</b> ground reads instantly. White calendar, amber ball.</p>
+  </div>
+
+  <!-- C: Light ground, blue mark (matches the app bg) -->
+  <div class="card">
+    <span class="tag">Concept C</span>
+    <h2>Light ground · blue mark</h2>
+    <div class="show">
+      <div class="col">
+        <div class="app">
+          <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+            <rect width="256" height="256" fill="#EAF1FF"/>
+            <rect x="86" y="40" width="16" height="42" rx="8" fill="#93B4F5"/>
+            <rect x="154" y="40" width="16" height="42" rx="8" fill="#93B4F5"/>
+            <rect x="44" y="66" width="168" height="142" rx="20" fill="#2563EB"/>
+            <rect x="44" y="66" width="168" height="46" rx="20" fill="#1D4ED8"/>
+            <rect x="44" y="92" width="168" height="20" fill="#1D4ED8"/>
+            <text x="128" y="112" text-anchor="middle" font-family="DM Sans,sans-serif" font-weight="800" font-size="30" fill="#fff">12</text>
+            <circle cx="90" cy="150" r="6.5" fill="#fff" opacity=".55"/>
+            <circle cx="128" cy="150" r="6.5" fill="#fff" opacity=".55"/>
+            <circle cx="166" cy="150" r="6.5" fill="#fff" opacity=".55"/>
+            <circle cx="90" cy="180" r="6.5" fill="#fff" opacity=".3"/>
+            <circle cx="128" cy="180" r="6.5" fill="#fff" opacity=".3"/>
+            <circle cx="192" cy="196" r="42" fill="#EAF1FF"/>
+            <circle cx="192" cy="196" r="36" fill="#D97706"/>
+            <g stroke="#EAF1FF" stroke-width="4.5" stroke-linecap="round" fill="none">
+              <line x1="156" y1="196" x2="228" y2="196"/>
+              <line x1="192" y1="160" x2="192" y2="232"/>
+              <path d="M170 162 Q186 196 170 230"/>
+              <path d="M214 162 Q198 196 214 230"/>
+            </g>
+          </svg>
+        </div>
+        <div class="mini">app icon</div>
+      </div>
+      <div class="lock">
+        <div class="fav">
+          <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+            <rect width="256" height="256" fill="#EAF1FF"/>
+            <rect x="44" y="66" width="168" height="142" rx="20" fill="#2563EB"/>
+            <rect x="44" y="66" width="168" height="46" rx="20" fill="#1D4ED8"/>
+            <circle cx="192" cy="196" r="40" fill="#EAF1FF"/><circle cx="192" cy="196" r="34" fill="#D97706"/>
+            <text x="120" y="150" text-anchor="middle" font-family="DM Sans" font-weight="800" font-size="70" fill="#fff">12</text>
+          </svg>
+        </div>
+        <span>SportsCal</span>
+      </div>
+    </div>
+    <p>Matches the app's light background. Softer, calmer — but a light icon can wash out on a busy home screen.</p>
+  </div>
+
+  <!-- D: Amber-forward duotone -->
+  <div class="card">
+    <span class="tag">Concept D</span>
+    <h2>Navy ground · amber-forward</h2>
+    <div class="show">
+      <div class="col">
+        <div class="app">
+          <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+            <rect width="256" height="256" fill="#0f1629"/>
+            <rect x="86" y="40" width="16" height="42" rx="8" fill="#2563EB"/>
+            <rect x="154" y="40" width="16" height="42" rx="8" fill="#2563EB"/>
+            <rect x="44" y="66" width="168" height="142" rx="20" fill="none" stroke="#2563EB" stroke-width="13"/>
+            <rect x="50.5" y="72.5" width="155" height="40" rx="14" fill="#2563EB"/>
+            <text x="128" y="150" text-anchor="middle" font-family="DM Sans,sans-serif" font-weight="800" font-size="46" fill="#fff">12</text>
+            <circle cx="90" cy="180" r="6.5" fill="#2563EB" opacity=".55"/>
+            <circle cx="128" cy="180" r="6.5" fill="#2563EB" opacity=".55"/>
+            <circle cx="192" cy="198" r="44" fill="#0f1629"/>
+            <circle cx="192" cy="198" r="37" fill="#D97706"/>
+            <g stroke="#0f1629" stroke-width="4.5" stroke-linecap="round" fill="none">
+              <line x1="155" y1="198" x2="229" y2="198"/>
+              <line x1="192" y1="161" x2="192" y2="235"/>
+              <path d="M170 163 Q186 198 170 233"/>
+              <path d="M214 163 Q198 198 214 233"/>
+            </g>
+          </svg>
+        </div>
+        <div class="mini">app icon</div>
+      </div>
+      <div class="lock">
+        <div class="fav">
+          <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+            <rect width="256" height="256" fill="#0f1629"/>
+            <rect x="44" y="66" width="168" height="142" rx="20" fill="none" stroke="#2563EB" stroke-width="16"/>
+            <rect x="52" y="74" width="152" height="40" rx="12" fill="#2563EB"/>
+            <circle cx="192" cy="198" r="40" fill="#0f1629"/><circle cx="192" cy="198" r="33" fill="#D97706"/>
+          </svg>
+        </div>
+        <span>SportsCal</span>
+      </div>
+    </div>
+    <p>Outlined calendar (lighter, airier) with a bigger amber ball. The two brand colors carry equal weight.</p>
+  </div>
+
+</div>
+
+<div class="note">
+  <div>
+    <b>How to read this:</b> the big tile is the iOS app icon (real squircle rounding), the small tile beside the wordmark is the favicon at browser size. All four keep the <b>calendar + “12” + ball</b> silhouette so returning users still recognize it — they differ only in ground and which color leads. My pick for a home-screen icon is <b>B</b> (a bold solid ground reads best at small sizes); <b>A</b> is the safest continuity play. Tell me the letter (or mix — e.g. “B’s ground with A’s ball”) and I’ll cut the real assets.
+  </div>
+</div>
+
+</body>
+</html>

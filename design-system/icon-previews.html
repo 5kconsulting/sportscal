@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SportsCal icon — in-context previews</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+  :root{--navy:#0f1629;--blue:#2563EB;--slate:#64748B;--bg:#F8FAFC;--border:#E4ECFC}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--navy);-webkit-font-smoothing:antialiased}
+  h1{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
+  .sub{color:var(--slate);margin:0 0 4px}
+  header,.section{max-width:1160px;margin:0 auto;padding:0 32px}
+  header{padding-top:44px}
+  h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--slate);margin:44px 0 16px}
+
+  /* large hero row */
+  .hero{display:grid;grid-template-columns:repeat(4,1fr);gap:26px}
+  .hero .cell{text-align:center}
+  .hero .tile{width:100%;max-width:180px;aspect-ratio:1;margin:0 auto;border-radius:40px;overflow:hidden;
+              box-shadow:0 14px 34px rgba(15,22,41,.22)}
+  .hero svg{display:block;width:100%;height:100%}
+  .hero .lab{margin-top:12px;font-weight:700;font-size:15px}
+  .hero .desc{font-size:12px;color:var(--slate);margin-top:2px}
+
+  /* iOS home screen mock */
+  .home{border-radius:34px;padding:30px 26px 22px;background-size:cover;background-position:center;
+        box-shadow:inset 0 0 0 1px rgba(255,255,255,.06), 0 12px 30px rgba(15,22,41,.25)}
+  .home.dark{background:radial-gradient(120% 90% at 30% 10%,#2a3a5e 0%,#131c30 55%,#0a1120 100%)}
+  .home.light{background:linear-gradient(160deg,#dbe6ff 0%,#eef3ff 45%,#fbe9d3 100%)}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:26px;max-width:520px;margin:0 auto}
+  .app{text-align:center}
+  .app .ic{width:100%;max-width:88px;aspect-ratio:1;margin:0 auto;border-radius:20px;overflow:hidden;
+           box-shadow:0 5px 12px rgba(0,0,0,.3)}
+  .app svg{display:block;width:100%;height:100%}
+  .app .nm{margin-top:7px;font-size:12px;font-weight:500}
+  .home.dark .nm{color:#fff}
+  .home.light .nm{color:#1f2937}
+  .home .letter{font-size:11px;font-weight:700;margin-top:1px}
+  .home.dark .letter{color:#93b4f5}
+  .home.light .letter{color:#2563EB}
+
+  /* browser tabs */
+  .tabs{display:flex;gap:0;align-items:flex-end;flex-wrap:wrap}
+  .tab{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);
+       border-bottom:none;border-radius:12px 12px 0 0;padding:11px 16px;margin-right:6px;min-width:190px}
+  .tab .fav{width:18px;height:18px;border-radius:5px;overflow:hidden;flex:0 0 auto}
+  .tab .fav svg{display:block;width:100%;height:100%}
+  .tab .t{font-size:13px;font-weight:500;color:#1f2937;white-space:nowrap}
+  .tab .x{margin-left:auto;color:#9aa4b2;font-size:14px}
+  .tabsurface{background:#eef2f9;border-radius:0 0 14px 14px;height:14px;margin-top:-1px}
+  .grp{display:flex;flex-wrap:wrap;gap:24px}
+  .grp .tabs{flex-direction:column;align-items:flex-start}
+  footer{max-width:1160px;margin:0 auto;padding:40px 32px 80px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Icon previews — in context</h1>
+  <p class="sub">Each concept at large size, then on a dark and a light iOS home screen, then as a browser-tab favicon. All keep the calendar + “12” + ball silhouette.</p>
+</header>
+
+<!-- Reusable defs: we inline 4 marks; ids A/B/C/D via <symbol> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- A: navy ground, blue mark -->
+  <symbol id="A" viewBox="0 0 256 256">
+    <rect width="256" height="256" fill="#0f1629"/>
+    <rect x="86" y="40" width="16" height="42" rx="8" fill="#D97706"/>
+    <rect x="154" y="40" width="16" height="42" rx="8" fill="#D97706"/>
+    <rect x="44" y="66" width="168" height="142" rx="20" fill="#2563EB"/>
+    <rect x="44" y="66" width="168" height="46" rx="20" fill="#1D4ED8"/>
+    <rect x="44" y="92" width="168" height="20" fill="#1D4ED8"/>
+    <text x="128" y="112" text-anchor="middle" font-family="DM Sans,sans-serif" font-weight="800" font-size="30" fill="#fff">12</text>
+    <circle cx="90" cy="150" r="6.5" fill="#fff" opacity=".55"/><circle cx="128" cy="150" r="6.5" fill="#fff" opacity=".55"/><circle cx="166" cy="150" r="6.5" fill="#fff" opacity=".55"/>
+    <circle cx="90" cy="180" r="6.5" fill="#fff" opacity=".3"/><circle cx="128" cy="180" r="6.5" fill="#fff" opacity=".3"/>
+    <circle cx="192" cy="196" r="42" fill="#0f1629"/><circle cx="192" cy="196" r="36" fill="#D97706"/>
+    <g stroke="#0f1629" stroke-width="4.5" stroke-linecap="round" fill="none">
+      <line x1="156" y1="196" x2="228" y2="196"/><line x1="192" y1="160" x2="192" y2="232"/>
+      <path d="M170 162 Q186 196 170 230"/><path d="M214 162 Q198 196 214 230"/></g>
+  </symbol>
+  <!-- B: blue ground, white mark -->
+  <symbol id="B" viewBox="0 0 256 256">
+    <rect width="256" height="256" fill="#2563EB"/>
+    <rect x="86" y="40" width="16" height="42" rx="8" fill="#fff" opacity=".85"/><rect x="154" y="40" width="16" height="42" rx="8" fill="#fff" opacity=".85"/>
+    <rect x="44" y="66" width="168" height="142" rx="20" fill="#fff"/>
+    <rect x="44" y="66" width="168" height="46" rx="20" fill="#DCE7FF"/><rect x="44" y="92" width="168" height="20" fill="#DCE7FF"/>
+    <text x="128" y="112" text-anchor="middle" font-family="DM Sans,sans-serif" font-weight="800" font-size="30" fill="#1D4ED8">12</text>
+    <circle cx="90" cy="150" r="6.5" fill="#2563EB" opacity=".5"/><circle cx="128" cy="150" r="6.5" fill="#2563EB" opacity=".5"/><circle cx="166" cy="150" r="6.5" fill="#2563EB" opacity=".5"/>
+    <circle cx="90" cy="180" r="6.5" fill="#2563EB" opacity=".28"/><circle cx="128" cy="180" r="6.5" fill="#2563EB" opacity=".28"/>
+    <circle cx="192" cy="196" r="42" fill="#2563EB"/><circle cx="192" cy="196" r="36" fill="#D97706"/>
+    <g stroke="#2563EB" stroke-width="4.5" stroke-linecap="round" fill="none">
+      <line x1="156" y1="196" x2="228" y2="196"/><line x1="192" y1="160" x2="192" y2="232"/>
+      <path d="M170 162 Q186 196 170 230"/><path d="M214 162 Q198 196 214 230"/></g>
+  </symbol>
+  <!-- C: light ground, blue mark -->
+  <symbol id="C" viewBox="0 0 256 256">
+    <rect width="256" height="256" fill="#EAF1FF"/>
+    <rect x="86" y="40" width="16" height="42" rx="8" fill="#93B4F5"/><rect x="154" y="40" width="16" height="42" rx="8" fill="#93B4F5"/>
+    <rect x="44" y="66" width="168" height="142" rx="20" fill="#2563EB"/>
+    <rect x="44" y="66" width="168" height="46" rx="20" fill="#1D4ED8"/><rect x="44" y="92" width="168" height="20" fill="#1D4ED8"/>
+    <text x="128" y="112" text-anchor="middle" font-family="DM Sans,sans-serif" font-weight="800" font-size="30" fill="#fff">12</text>
+    <circle cx="90" cy="150" r="6.5" fill="#fff" opacity=".55"/><circle cx="128" cy="150" r="6.5" fill="#fff" opacity=".55"/><circle cx="166" cy="150" r="6.5" fill="#fff" opacity=".55"/>
+    <circle cx="90" cy="180" r="6.5" fill="#fff" opacity=".3"/><circle cx="128" cy="180" r="6.5" fill="#fff" opacity=".3"/>
+    <circle cx="192" cy="196" r="42" fill="#EAF1FF"/><circle cx="192" cy="196" r="36" fill="#D97706"/>
+    <g stroke="#EAF1FF" stroke-width="4.5" stroke-linecap="round" fill="none">
+      <line x1="156" y1="196" x2="228" y2="196"/><line x1="192" y1="160" x2="192" y2="232"/>
+      <path d="M170 162 Q186 196 170 230"/><path d="M214 162 Q198 196 214 230"/></g>
+  </symbol>
+  <!-- D: navy, amber-forward outline -->
+  <symbol id="D" viewBox="0 0 256 256">
+    <rect width="256" height="256" fill="#0f1629"/>
+    <rect x="86" y="40" width="16" height="42" rx="8" fill="#2563EB"/><rect x="154" y="40" width="16" height="42" rx="8" fill="#2563EB"/>
+    <rect x="44" y="66" width="168" height="142" rx="20" fill="none" stroke="#2563EB" stroke-width="13"/>
+    <rect x="50.5" y="72.5" width="155" height="40" rx="14" fill="#2563EB"/>
+    <text x="128" y="150" text-anchor="middle" font-family="DM Sans,sans-serif" font-weight="800" font-size="46" fill="#fff">12</text>
+    <circle cx="90" cy="180" r="6.5" fill="#2563EB" opacity=".55"/><circle cx="128" cy="180" r="6.5" fill="#2563EB" opacity=".55"/>
+    <circle cx="192" cy="198" r="44" fill="#0f1629"/><circle cx="192" cy="198" r="37" fill="#D97706"/>
+    <g stroke="#0f1629" stroke-width="4.5" stroke-linecap="round" fill="none">
+      <line x1="155" y1="198" x2="229" y2="198"/><line x1="192" y1="161" x2="192" y2="235"/>
+      <path d="M170 163 Q186 198 170 233"/><path d="M214 163 Q198 198 214 233"/></g>
+  </symbol>
+</svg>
+
+<div class="section">
+  <h2>1 · Large</h2>
+  <div class="hero">
+    <div class="cell"><div class="tile"><svg><use href="#A"/></svg></div><div class="lab">A</div><div class="desc">navy · blue mark</div></div>
+    <div class="cell"><div class="tile"><svg><use href="#B"/></svg></div><div class="lab">B</div><div class="desc">blue · white mark</div></div>
+    <div class="cell"><div class="tile"><svg><use href="#C"/></svg></div><div class="lab">C</div><div class="desc">light · blue mark</div></div>
+    <div class="cell"><div class="tile"><svg><use href="#D"/></svg></div><div class="lab">D</div><div class="desc">navy · amber-forward</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>2 · On a dark home screen</h2>
+  <div class="home dark">
+    <div class="grid">
+      <div class="app"><div class="ic"><svg><use href="#A"/></svg></div><div class="nm">SportsCal</div><div class="letter">A</div></div>
+      <div class="app"><div class="ic"><svg><use href="#B"/></svg></div><div class="nm">SportsCal</div><div class="letter">B</div></div>
+      <div class="app"><div class="ic"><svg><use href="#C"/></svg></div><div class="nm">SportsCal</div><div class="letter">C</div></div>
+      <div class="app"><div class="ic"><svg><use href="#D"/></svg></div><div class="nm">SportsCal</div><div class="letter">D</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>3 · On a light home screen</h2>
+  <div class="home light">
+    <div class="grid">
+      <div class="app"><div class="ic"><svg><use href="#A"/></svg></div><div class="nm">SportsCal</div><div class="letter">A</div></div>
+      <div class="app"><div class="ic"><svg><use href="#B"/></svg></div><div class="nm">SportsCal</div><div class="letter">B</div></div>
+      <div class="app"><div class="ic"><svg><use href="#C"/></svg></div><div class="nm">SportsCal</div><div class="letter">C</div></div>
+      <div class="app"><div class="ic"><svg><use href="#D"/></svg></div><div class="nm">SportsCal</div><div class="letter">D</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>4 · As a browser-tab favicon</h2>
+  <div class="tabs">
+    <div><div class="tab"><div class="fav"><svg><use href="#A"/></svg></div><div class="t">SportsCal — A</div><div class="x">×</div></div><div class="tabsurface"></div></div>
+    <div><div class="tab"><div class="fav"><svg><use href="#B"/></svg></div><div class="t">SportsCal — B</div><div class="x">×</div></div><div class="tabsurface"></div></div>
+    <div><div class="tab"><div class="fav"><svg><use href="#C"/></svg></div><div class="t">SportsCal — C</div><div class="x">×</div></div><div class="tabsurface"></div></div>
+    <div><div class="tab"><div class="fav"><svg><use href="#D"/></svg></div><div class="t">SportsCal — D</div><div class="x">×</div></div><div class="tabsurface"></div></div>
+  </div>
+</div>
+
+<footer></footer>
+</body>
+</html>
