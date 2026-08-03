@@ -14,3 +14,6 @@ mobile/screenshots/
 
 # Claude Code local config (preview launch.json, etc.)
 .claude/
+
+# Personal ASC/API debugging scripts — contain hardcoded local paths + auth IDs
+backend/scripts/asc-app-state.mjs
