@@ -95,12 +95,12 @@ export async function checkSourceHealth() {
 function buildAlertEmail(name, sources) {
   const sourceRows = sources.map(s => `
     <tr>
-      <td style="padding:12px 16px;border-bottom:1px solid #f4f6fa;">
-        <div style="font-size:14px;font-weight:500;color:#0f1629;">${s.name}</div>
-        <div style="font-size:12px;color:#8896b0;margin-top:2px;text-transform:capitalize;">${s.app}</div>
+      <td style="padding:12px 16px;border-bottom:1px solid #F8FAFC;">
+        <div style="font-size:14px;font-weight:500;color:#0F172A;">${s.name}</div>
+        <div style="font-size:12px;color:#64748B;margin-top:2px;text-transform:capitalize;">${s.app}</div>
         ${s.error ? `<div style="font-size:12px;color:#ef4444;margin-top:4px;font-family:monospace;">${s.error}</div>` : ''}
       </td>
-      <td style="padding:12px 16px;border-bottom:1px solid #f4f6fa;font-size:12px;color:#8896b0;white-space:nowrap;">
+      <td style="padding:12px 16px;border-bottom:1px solid #F8FAFC;font-size:12px;color:#64748B;white-space:nowrap;">
         ${s.last_fetched_at ? `Last tried ${timeAgo(new Date(s.last_fetched_at))}` : 'Never synced'}
       </td>
     </tr>
@@ -108,27 +108,27 @@ function buildAlertEmail(name, sources) {
 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f4f6fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<body style="margin:0;padding:0;background:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 16px;">
     <tr><td align="center">
       <table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#fff;border-radius:12px;overflow:hidden;">
-        <tr><td style="background:#0f1629;padding:24px 32px;">
+        <tr><td style="background:#2563EB;padding:24px 32px;">
           <span style="font-size:16px;font-weight:600;color:#fff;letter-spacing:-0.02em;">SportsCal</span>
         </td></tr>
         <tr><td style="padding:32px 32px 24px;">
-          <p style="margin:0 0 8px;font-size:22px;font-weight:600;color:#0f1629;letter-spacing:-0.02em;">
+          <p style="margin:0 0 8px;font-size:22px;font-weight:600;color:#0F172A;letter-spacing:-0.02em;">
             ${sources.length === 1 ? 'A calendar source needs attention' : `${sources.length} calendar sources need attention`}
           </p>
-          <p style="margin:0 0 24px;font-size:15px;color:#8896b0;line-height:1.6;">
+          <p style="margin:0 0 24px;font-size:15px;color:#64748B;line-height:1.6;">
             Hi ${name}, the following ${sources.length === 1 ? 'source has' : 'sources have'} stopped syncing. 
             Your calendar may be missing events until this is fixed.
           </p>
 
-          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8ecf4;border-radius:8px;overflow:hidden;margin-bottom:28px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E4ECFC;border-radius:8px;overflow:hidden;margin-bottom:28px;">
             <thead>
-              <tr style="background:#f4f6fa;">
-                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#8896b0;text-transform:uppercase;letter-spacing:0.05em;">Source</th>
-                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#8896b0;text-transform:uppercase;letter-spacing:0.05em;">Status</th>
+              <tr style="background:#F8FAFC;">
+                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;">Source</th>
+                <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;">Status</th>
               </tr>
             </thead>
             <tbody>${sourceRows}</tbody>
@@ -136,17 +136,17 @@ function buildAlertEmail(name, sources) {
 
           <p style="text-align:center;margin:0 0 24px;">
             <a href="${APP_URL}/sources"
-               style="display:inline-block;background:#00b377;color:#ffffff !important;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;text-decoration:none;border:2px solid #00b377;">
+               style="display:inline-block;background:#D97706;color:#ffffff !important;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;text-decoration:none;border:2px solid #D97706;">
               Fix my sources
             </a>
           </p>
 
-          <p style="margin:0;font-size:13px;color:#8896b0;line-height:1.6;">
+          <p style="margin:0;font-size:13px;color:#64748B;line-height:1.6;">
             Common fixes: the iCal URL may have expired (get a new one from your sports app), 
             or the app may have changed how they share calendars.
           </p>
         </td></tr>
-        <tr><td style="padding:16px 32px;border-top:1px solid #f4f6fa;">
+        <tr><td style="padding:16px 32px;border-top:1px solid #F8FAFC;">
           <p style="margin:0;font-size:12px;color:#b8c4d8;text-align:center;">SportsCal · <a href="${APP_URL}/settings" style="color:#b8c4d8;">Manage notifications</a></p>
         </td></tr>
       </table>

@@ -7,23 +7,23 @@ const BASE_URL = process.env.FRONTEND_URL || 'https://sportscalapp.com';
 const DEFAULT_TZ = 'America/Los_Angeles';
 
 const styles = {
-  body:    'margin:0;padding:0;background:#f4f6fa;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;',
-  wrapper: 'background:#f4f6fa;padding:40px 16px;',
+  body:    'margin:0;padding:0;background:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;',
+  wrapper: 'background:#F8FAFC;padding:40px 16px;',
   card:    'background:#ffffff;border-radius:12px;max-width:600px;width:100%;margin:0 auto;overflow:hidden;',
-  header:  'background:#0f1629;padding:28px 32px;',
+  header:  'background:#2563EB;padding:28px 32px;',
   body_pad:'padding:32px;',
-  footer:  'background:#f4f6fa;padding:20px 32px;border-top:1px solid #e8ecf4;',
+  footer:  'background:#F8FAFC;padding:20px 32px;border-top:1px solid #E4ECFC;',
   h1:      'margin:0;font-size:22px;font-weight:600;color:#ffffff;letter-spacing:-0.02em;',
-  h2:      'margin:0 0 8px;font-size:20px;font-weight:600;color:#0f1629;letter-spacing:-0.02em;',
-  p:       'margin:0 0 16px;font-size:15px;color:#3d3d3a;line-height:1.6;',
-  muted:   'margin:0;font-size:13px;color:#8896b0;line-height:1.6;',
-  btn:     'display:inline-block;background:#00d68f;color:#0f1629;font-weight:600;font-size:14px;padding:12px 24px;border-radius:8px;text-decoration:none;',
-  dayLabel:'font-size:11px;font-weight:600;color:#8896b0;text-transform:uppercase;letter-spacing:0.06em;padding:16px 0 8px;border-top:1px solid #f4f6fa;margin-top:8px;',
-  eventRow:'padding:10px 0;border-bottom:1px solid #f9fafb;',
-  eventTitle:'margin:0 0 3px;font-size:15px;font-weight:500;color:#0f1629;',
-  eventMeta:'margin:0;font-size:13px;color:#8896b0;',
+  h2:      'margin:0 0 8px;font-size:20px;font-weight:600;color:#0F172A;letter-spacing:-0.02em;',
+  p:       'margin:0 0 16px;font-size:15px;color:#0F172A;line-height:1.6;',
+  muted:   'margin:0;font-size:13px;color:#64748B;line-height:1.6;',
+  btn:     'display:inline-block;background:#D97706;color:#FFFFFF;font-weight:600;font-size:14px;padding:12px 24px;border-radius:8px;text-decoration:none;',
+  dayLabel:'font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.06em;padding:16px 0 8px;border-top:1px solid #F8FAFC;margin-top:8px;',
+  eventRow:'padding:10px 0;border-bottom:1px solid #F1F5FD;',
+  eventTitle:'margin:0 0 3px;font-size:15px;font-weight:500;color:#0F172A;',
+  eventMeta:'margin:0;font-size:13px;color:#64748B;',
   logo:    'display:inline-flex;align-items:center;gap:8px;text-decoration:none;',
-  logoMark:'display:inline-block;width:28px;height:28px;background:#00d68f;border-radius:6px;',
+  logoMark:'display:inline-block;width:28px;height:28px;background:#D97706;border-radius:6px;',
   logoText:'font-size:16px;font-weight:600;color:#ffffff;letter-spacing:-0.02em;',
 };
 
@@ -55,8 +55,8 @@ function layout(content, preheader = '') {
         <!-- Footer -->
         <tr><td style="${styles.footer}">
           <p style="${styles.muted}">
-            SportsCal · <a href="${BASE_URL}/settings" style="color:#8896b0;">manage preferences</a>
-            &nbsp;·&nbsp; <a href="${BASE_URL}/settings" style="color:#8896b0;">unsubscribe</a>
+            SportsCal · <a href="${BASE_URL}/settings" style="color:#64748B;">manage preferences</a>
+            &nbsp;·&nbsp; <a href="${BASE_URL}/settings" style="color:#64748B;">unsubscribe</a>
           </p>
         </td></tr>
       </table>
@@ -79,26 +79,26 @@ export function welcomeEmail(user) {
 
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
       <tr>
-        <td style="padding:12px 0;border-bottom:1px solid #f4f6fa;">
+        <td style="padding:12px 0;border-bottom:1px solid #F8FAFC;">
           <table cellpadding="0" cellspacing="0">
             <tr>
-              <td style="width:32px;height:32px;background:#e6fdf5;border-radius:50%;text-align:center;vertical-align:middle;font-size:14px;font-weight:600;color:#00b377;">1</td>
+              <td style="width:32px;height:32px;background:#DBEAFE;border-radius:50%;text-align:center;vertical-align:middle;font-size:14px;font-weight:600;color:#2563EB;">1</td>
               <td style="padding-left:12px;">
-                <p style="margin:0;font-size:14px;font-weight:500;color:#0f1629;">Add your family members</p>
-                <p style="margin:0;font-size:13px;color:#8896b0;">Give each kid a name and color</p>
+                <p style="margin:0;font-size:14px;font-weight:500;color:#0F172A;">Add your family members</p>
+                <p style="margin:0;font-size:13px;color:#64748B;">Give each kid a name and color</p>
               </td>
             </tr>
           </table>
         </td>
       </tr>
       <tr>
-        <td style="padding:12px 0;border-bottom:1px solid #f4f6fa;">
+        <td style="padding:12px 0;border-bottom:1px solid #F8FAFC;">
           <table cellpadding="0" cellspacing="0">
             <tr>
-              <td style="width:32px;height:32px;background:#e6fdf5;border-radius:50%;text-align:center;vertical-align:middle;font-size:14px;font-weight:600;color:#00b377;">2</td>
+              <td style="width:32px;height:32px;background:#DBEAFE;border-radius:50%;text-align:center;vertical-align:middle;font-size:14px;font-weight:600;color:#2563EB;">2</td>
               <td style="padding-left:12px;">
-                <p style="margin:0;font-size:14px;font-weight:500;color:#0f1629;">Connect your sports apps</p>
-                <p style="margin:0;font-size:13px;color:#8896b0;">Paste iCal links from TeamSnap, GameChanger, PlayMetrics & more</p>
+                <p style="margin:0;font-size:14px;font-weight:500;color:#0F172A;">Connect your sports apps</p>
+                <p style="margin:0;font-size:13px;color:#64748B;">Paste iCal links from TeamSnap, GameChanger, PlayMetrics & more</p>
               </td>
             </tr>
           </table>
@@ -108,10 +108,10 @@ export function welcomeEmail(user) {
         <td style="padding:12px 0;">
           <table cellpadding="0" cellspacing="0">
             <tr>
-              <td style="width:32px;height:32px;background:#e6fdf5;border-radius:50%;text-align:center;vertical-align:middle;font-size:14px;font-weight:600;color:#00b377;">3</td>
+              <td style="width:32px;height:32px;background:#DBEAFE;border-radius:50%;text-align:center;vertical-align:middle;font-size:14px;font-weight:600;color:#2563EB;">3</td>
               <td style="padding-left:12px;">
-                <p style="margin:0;font-size:14px;font-weight:500;color:#0f1629;">Subscribe your calendar feed</p>
-                <p style="margin:0;font-size:13px;color:#8896b0;">One URL works in Apple Calendar, Google Calendar & Outlook</p>
+                <p style="margin:0;font-size:14px;font-weight:500;color:#0F172A;">Subscribe your calendar feed</p>
+                <p style="margin:0;font-size:13px;color:#64748B;">One URL works in Apple Calendar, Google Calendar & Outlook</p>
               </td>
             </tr>
           </table>
@@ -123,7 +123,7 @@ export function welcomeEmail(user) {
       <a href="${BASE_URL}" style="${styles.btn}">Get started →</a>
     </p>
     <p style="text-align:center;margin:0;">
-      <span style="font-size:13px;color:#8896b0;">Takes about 5 minutes to set up</span>
+      <span style="font-size:13px;color:#64748B;">Takes about 5 minutes to set up</span>
     </p>
   `;
 
@@ -163,12 +163,12 @@ export function digestEmail(user, events) {
 
     ${dayRows}
 
-    <div style="margin-top:24px;padding:16px;background:#f4f6fa;border-radius:8px;">
-      <p style="margin:0 0 8px;font-size:13px;font-weight:500;color:#0f1629;">Your calendar feed</p>
-      <p style="margin:0 0 12px;font-size:12px;color:#8896b0;font-family:monospace;word-break:break-all;">
+    <div style="margin-top:24px;padding:16px;background:#F8FAFC;border-radius:8px;">
+      <p style="margin:0 0 8px;font-size:13px;font-weight:500;color:#0F172A;">Your calendar feed</p>
+      <p style="margin:0 0 12px;font-size:12px;color:#64748B;font-family:monospace;word-break:break-all;">
         ${BASE_URL}/feed/${user.feed_token}.ics
       </p>
-      <a href="${BASE_URL}" style="font-size:13px;color:#00b377;text-decoration:none;">Open dashboard →</a>
+      <a href="${BASE_URL}" style="font-size:13px;color:#2563EB;text-decoration:none;">Open dashboard →</a>
     </div>
   `;
 
@@ -188,25 +188,25 @@ export function reminderEmail(user, event) {
   const hoursUntil = Math.round((startsAt - Date.now()) / 3_600_000);
 
   const content = `
-    <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#00b377;text-transform:uppercase;letter-spacing:0.06em;">
+    <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#D97706;text-transform:uppercase;letter-spacing:0.06em;">
       Reminder · in ~${hoursUntil} hour${hoursUntil !== 1 ? 's' : ''}
     </p>
     <h2 style="${styles.h2};margin-bottom:20px;">${escapeHtml(event.display_title)}</h2>
 
     <table cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
       <tr>
-        <td style="font-size:14px;color:#8896b0;padding:6px 16px 6px 0;white-space:nowrap;">When</td>
-        <td style="font-size:14px;color:#0f1629;font-weight:500;padding:6px 0;">
+        <td style="font-size:14px;color:#64748B;padding:6px 16px 6px 0;white-space:nowrap;">When</td>
+        <td style="font-size:14px;color:#0F172A;font-weight:500;padding:6px 0;">
           ${formatFullDateTime(startsAt, tz)}
           ${event.ends_at ? ` – ${formatTime(new Date(event.ends_at), tz)}` : ''}
         </td>
       </tr>
       ${event.location ? `
       <tr>
-        <td style="font-size:14px;color:#8896b0;padding:6px 16px 6px 0;white-space:nowrap;">Where</td>
-        <td style="font-size:14px;color:#0f1629;font-weight:500;padding:6px 0;">
+        <td style="font-size:14px;color:#64748B;padding:6px 16px 6px 0;white-space:nowrap;">Where</td>
+        <td style="font-size:14px;color:#0F172A;font-weight:500;padding:6px 0;">
           <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}"
-             style="color:#00b377;text-decoration:none;">
+             style="color:#2563EB;text-decoration:none;">
             ${escapeHtml(event.location)} ↗
           </a>
         </td>

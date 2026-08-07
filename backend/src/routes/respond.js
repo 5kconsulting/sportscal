@@ -132,43 +132,43 @@ function renderRespondPage({ event, role, winner, pending }) {
     html, body { margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f4f6fa; color: #0f1629;
+      background: #F8FAFC; color: #0F172A;
       min-height: 100vh; padding: 24px 16px env(safe-area-inset-bottom, 24px);
       display: flex; flex-direction: column; align-items: center;
     }
-    .brand { font-size: 14px; font-weight: 600; color: #00d68f; letter-spacing: -0.01em; margin-bottom: 24px; }
+    .brand { font-size: 14px; font-weight: 600; color: #2563EB; letter-spacing: -0.01em; margin-bottom: 24px; }
     .card {
       width: 100%; max-width: 440px;
       background: #fff; border-radius: 16px;
       box-shadow: 0 1px 3px rgba(15,22,41,0.06), 0 8px 24px rgba(15,22,41,0.04);
-      padding: 28px 24px; border: 1px solid #e8ecf4;
+      padding: 28px 24px; border: 1px solid #E4ECFC;
     }
     h1 { font-size: 22px; line-height: 1.25; margin: 0 0 8px; letter-spacing: -0.02em; }
     h1 .ask { color: #4a5670; font-weight: 500; }
     h2 { font-size: 18px; margin: 0 0 4px; letter-spacing: -0.01em; }
     .meta { font-size: 14px; color: #4a5670; margin: 4px 0; }
-    .meta strong { color: #0f1629; font-weight: 500; }
-    .divider { height: 1px; background: #e8ecf4; margin: 18px 0; }
+    .meta strong { color: #0F172A; font-weight: 500; }
+    .divider { height: 1px; background: #E4ECFC; margin: 18px 0; }
     .prompt { font-size: 13px; color: #4a5670; margin: 0 0 14px; line-height: 1.5; }
     .buttons { display: flex; flex-direction: column; gap: 8px; }
     .claim-btn {
       display: block; padding: 14px 16px;
-      background: #00d68f; color: #0f1629;
+      background: #D97706; color: #FFFFFF;
       text-decoration: none; font-weight: 600; font-size: 15px;
       border-radius: 10px; text-align: center;
       transition: background 0.15s, transform 0.05s;
     }
-    .claim-btn:hover { background: #00b377; }
+    .claim-btn:hover { background: #D97706; }
     .claim-btn:active { transform: scale(0.98); }
     .claimed { text-align: center; padding: 8px 0; }
     .claimed .check {
       width: 48px; height: 48px; margin: 0 auto 12px;
-      background: #00d68f; color: #fff;
+      background: #D97706; color: #fff;
       border-radius: 50%; font-size: 28px; line-height: 48px;
     }
     .claimed p { font-size: 14px; color: #4a5670; margin: 6px 0 0; line-height: 1.55; }
-    .footer { font-size: 12px; color: #8896b0; margin-top: 20px; text-align: center; }
-    .footer a { color: #00b377; text-decoration: none; }
+    .footer { font-size: 12px; color: #64748B; margin-top: 20px; text-align: center; }
+    .footer a { color: #2563EB; text-decoration: none; }
   </style>
 </head>
 <body>
@@ -192,7 +192,7 @@ function notFoundPage() {
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SportsCal</title>
-<style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f4f6fa;color:#0f1629;padding:48px 24px;text-align:center;}h1{font-size:20px;margin-bottom:8px}p{color:#4a5670;font-size:14px}</style>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8FAFC;color:#0F172A;padding:48px 24px;text-align:center;}h1{font-size:20px;margin-bottom:8px}p{color:#4a5670;font-size:14px}</style>
 </head>
 <body><h1>Request not found</h1><p>This link may have expired or been superseded by a newer request.</p></body></html>`;
 }
@@ -201,7 +201,7 @@ function errorPage() {
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SportsCal</title>
-<style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f4f6fa;color:#0f1629;padding:48px 24px;text-align:center;}h1{font-size:20px;margin-bottom:8px}p{color:#4a5670;font-size:14px}</style>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#F8FAFC;color:#0F172A;padding:48px 24px;text-align:center;}h1{font-size:20px;margin-bottom:8px}p{color:#4a5670;font-size:14px}</style>
 </head>
 <body><h1>Something went wrong</h1><p>Please try the link again or contact ${APP_URL.replace(/^https?:\/\//, '')} for help.</p></body></html>`;
 }
