@@ -36,6 +36,8 @@ app.get('/pricing', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 
 app.get('/terms', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'terms.html')));
 app.get('/privacy', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'privacy.html')));
 app.get('/help', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'help.html')));
+app.get('/rides/group',  (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'rides-group.html')));
+app.get('/rides/direct', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'rides-direct.html')));
 
 // Static assets
 app.use(express.static(path.join(__dirname, 'dist')));

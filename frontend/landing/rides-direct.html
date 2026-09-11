@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="SportsCal's direct ride ask: three ways to reach one contact — email, iMessage, or silent assign — all confirming in the same pickup slot." />
+  <link rel="canonical" href="https://www.sportscalapp.com/rides/direct" />
+  <meta name="robots" content="index, follow" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+<title>Direct ride ask</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --ink: #0F172A;
+    --ink-2: #1E293B;
+    --ground: #F5F7FB;
+    --card: #FFFFFF;
+    --muted: #64748B;
+    --muted-2: #94A3B8;
+    --border: #E4ECFC;
+    --border-strong: #CBD5E1;
+    --blue: #2563EB;
+    --blue-tint: #DBEAFE;
+    --sky: #EFF6FF;
+    --amber: #D97706;
+    --amber-tint: #FEF3C7;
+    --success: #059669;
+    --success-tint: #D1FAE5;
+    --warning: #DC2626;
+    --warning-tint: #FEE2E2;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+    --shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+    --font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #E2E8F0;
+      --ink-2: #CBD5E1;
+      --ground: #0A1224;
+      --card: #111A2F;
+      --muted: #94A3B8;
+      --muted-2: #64748B;
+      --border: #1E293B;
+      --border-strong: #334155;
+      --blue: #60A5FA;
+      --blue-tint: #1E3A8A;
+      --sky: #172554;
+      --amber: #FBBF24;
+      --amber-tint: #78350F;
+      --success: #34D399;
+      --success-tint: #064E3B;
+      --warning: #F87171;
+      --warning-tint: #7F1D1D;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+      --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #E2E8F0;
+    --ink-2: #CBD5E1;
+    --ground: #0A1224;
+    --card: #111A2F;
+    --muted: #94A3B8;
+    --muted-2: #64748B;
+    --border: #1E293B;
+    --border-strong: #334155;
+    --blue: #60A5FA;
+    --blue-tint: #1E3A8A;
+    --sky: #172554;
+    --amber: #FBBF24;
+    --amber-tint: #78350F;
+    --success: #34D399;
+    --success-tint: #064E3B;
+    --warning: #F87171;
+    --warning-tint: #7F1D1D;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  code { font-family: var(--mono); }
+
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 24px 72px;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--blue);
+  }
+  h1 {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    margin: 10px 0 14px;
+    text-wrap: balance;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  .subtitle {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 62ch;
+    line-height: 1.6;
+    margin: 0;
+  }
+  .subtitle strong { color: var(--ink-2); font-weight: 600; }
+
+  .companion {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 14px;
+  }
+  .companion a { color: var(--blue); text-decoration: none; border-bottom: 1px solid var(--blue-tint); }
+  .companion a:hover { border-bottom-color: var(--blue); }
+
+  .section-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.018em;
+    margin: 56px 0 20px;
+    color: var(--ink);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 720px) {
+    .grid { grid-template-columns: 1fr; }
+    .page { padding: 32px 20px 64px; }
+    h1 { font-size: 30px; }
+  }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    box-shadow: var(--shadow-sm);
+  }
+  .step {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: var(--muted-2);
+  }
+  .panel h3 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin: 0 0 6px;
+  }
+  .panel p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 0;
+  }
+  .panel p strong { color: var(--ink-2); font-weight: 600; }
+  .panel p code {
+    font-size: 12.5px;
+    background: var(--blue-tint);
+    color: var(--blue);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  .screen {
+    background: var(--sky);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 240px;
+  }
+  .screen-header {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .screen-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+  }
+  .screen-meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+    line-height: 1.4;
+  }
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted-2);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .slot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .slot-label { font-size: 13px; color: var(--ink); font-weight: 500; }
+  .slot-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+  .btn {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 12px;
+    border-radius: 8px;
+    background: var(--amber);
+    color: #fff;
+    border: 0;
+    cursor: default;
+  }
+  .btn-outline {
+    background: transparent;
+    color: var(--blue);
+    border: 1px solid var(--blue);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: default;
+  }
+
+  .sheet-wrap { margin-top: auto; }
+  .sheet {
+    background: var(--card);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+  .sheet-title {
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+  .sheet-row {
+    padding: 13px 16px;
+    font-size: 14px;
+    color: var(--ink);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .sheet-row:last-child { border-bottom: 0; }
+  .sheet-row.chosen {
+    color: var(--blue);
+    font-weight: 600;
+    background: var(--sky);
+  }
+  .sheet-row.dim { color: var(--muted); }
+  .sheet-row .sheet-icon { font-size: 15px; }
+
+  /* Contact picker */
+  .picker-search {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 12.5px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .picker-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .picker-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .picker-row.chosen {
+    background: var(--blue-tint);
+    border-color: var(--blue);
+  }
+  .picker-row.chosen .picker-name { color: var(--blue); font-weight: 600; }
+  .picker-name { font-size: 13px; color: var(--ink); font-weight: 500; }
+  .picker-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--muted-2);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12.5px;
+    flex-shrink: 0;
+  }
+  .avatar.blue { background: var(--blue); }
+  .avatar.amber { background: var(--amber); }
+  .avatar.slate { background: var(--muted-2); }
+
+  /* Email mock */
+  .email {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .email-meta {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .email-meta strong { color: var(--ink); font-weight: 600; }
+  .email-brand-bar {
+    background: var(--blue);
+    padding: 12px 16px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+  }
+  .email-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.55;
+  }
+  .email-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .email-btn-primary {
+    background: var(--amber);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    border: 0;
+    cursor: default;
+  }
+  .email-btn-secondary {
+    background: transparent;
+    color: var(--blue);
+    border: 1px solid var(--blue);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 9px;
+    border-radius: 8px;
+    text-align: center;
+    cursor: default;
+  }
+
+  /* Confirmed slot on dashboard */
+  .driver-chip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .driver-name { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+  .driver-status {
+    font-size: 11.5px;
+    color: var(--success);
+    font-weight: 600;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .quick-actions { display: flex; gap: 6px; margin-left: auto; }
+  .qa-btn {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--blue);
+    border: 1px solid var(--border-strong);
+    cursor: default;
+  }
+
+  /* Notify options strip */
+  .options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 720px) {
+    .options { grid-template-columns: 1fr; }
+  }
+  .option-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: var(--shadow-sm);
+  }
+  .option-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+  }
+  .option-icon.mail { background: var(--blue-tint); color: var(--blue); }
+  .option-icon.chat { background: var(--amber-tint); color: var(--amber); }
+  .option-icon.silent {
+    background: var(--sky);
+    color: var(--muted);
+    border: 1px dashed var(--border-strong);
+  }
+  .option-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+  }
+  .option-copy {
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.55;
+    margin: 0;
+  }
+  .option-when {
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    margin-top: 6px;
+  }
+  .option-when strong { color: var(--ink-2); font-weight: 600; text-transform: none; letter-spacing: 0; }
+
+  .footer {
+    font-size: 12.5px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .footer code { font-size: 12px; color: var(--ink-2); }
+</style>
+
+</head><body><a href="/" style="display:block;font-size:12px;font-weight:600;color:var(--blue);text-decoration:none;padding:20px 24px 0;max-width:960px;margin:0 auto;">&larr; sportscalapp.com</a><div class="page">
+
+  <div class="eyebrow">SportsCal · Flow diagram</div>
+  <h1>Direct ride ask</h1>
+  <p class="subtitle">
+    Sometimes you don't want to ping a whole group — you want to ask one specific person. Same starting event as the group flow, different fork after tapping <strong>+ Assign</strong>, and three ways to reach out. Here's what each side sees.
+  </p>
+  <div class="companion">Companion piece to <a href="/rides/group">Group ride ask</a> — same event, same first tap, different fork.</div>
+
+  <div class="section-title">The flow</div>
+
+  <div class="grid">
+
+    <!-- Panel 1 -->
+    <div class="panel">
+      <span class="step">STEP 1 · PARENT</span>
+      <div class="screen">
+        <div class="screen-header">
+          <div class="screen-title">Practice: 5th &amp; 6th (BLACK)</div>
+          <div class="screen-meta">Tue Sep 8 · 3:30 – 5:00 PM<br>West Hills Christian School · Field</div>
+        </div>
+        <div class="section-label">Ride coordination</div>
+        <div class="slot">
+          <div>
+            <div class="slot-label">Pick-up</div>
+            <div class="slot-sub">Not assigned</div>
+          </div>
+          <button class="btn" type="button">+ Assign</button>
+        </div>
+        <div class="slot">
+          <div>
+            <div class="slot-label">Drop-off</div>
+            <div class="slot-sub">Not assigned</div>
+          </div>
+          <button class="btn-outline" type="button">+ Assign</button>
+        </div>
+      </div>
+      <div>
+        <h3>Tap + Assign</h3>
+        <p>Parent opens the practice event and taps <strong>+ Assign</strong> next to Pick-up — same starting action as the group ask.</p>
+      </div>
+    </div>
+
+    <!-- Panel 2 -->
+    <div class="panel">
+      <span class="step">STEP 2 · PARENT</span>
+      <div class="screen">
+        <div style="font-size: 12px; color: var(--muted);">Event detail dimmed behind the sheet…</div>
+        <div class="sheet-wrap">
+          <div class="sheet">
+            <div class="sheet-title">Who handles pick up?</div>
+            <div class="sheet-row chosen">Pick a contact</div>
+            <div class="sheet-row dim">Ask a group</div>
+            <div class="sheet-row dim">Cancel</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3>Fork: Pick a contact</h3>
+        <p>At the same action sheet as the group flow, Parent taps <strong>Pick a contact</strong> to route the ask to one specific person instead of a team.</p>
+      </div>
+    </div>
+
+    <!-- Panel 3 -->
+    <div class="panel">
+      <span class="step">STEP 3 · PARENT</span>
+      <div class="screen">
+        <div class="screen-header">
+          <div class="screen-title">Choose a contact</div>
+          <div class="screen-meta">Ride contacts you've saved</div>
+        </div>
+        <div class="picker-search">
+          <span>🔍</span>
+          <span>Search contacts…</span>
+        </div>
+        <div class="picker-list">
+          <div class="picker-row chosen">
+            <div class="avatar blue">MC</div>
+            <div>
+              <div class="picker-name">Morgan Chen</div>
+              <div class="picker-sub">morgan.chen@example.com</div>
+            </div>
+          </div>
+          <div class="picker-row">
+            <div class="avatar slate">JP</div>
+            <div>
+              <div class="picker-name">Jamie Patel</div>
+              <div class="picker-sub">(503) 555 · 0198</div>
+            </div>
+          </div>
+          <div class="picker-row">
+            <div class="avatar slate">TK</div>
+            <div>
+              <div class="picker-name">Taylor Kim</div>
+              <div class="picker-sub">taylor.k@example.com</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3>Pick one contact</h3>
+        <p>The contact picker slides up with saved ride contacts. Parent taps <strong>Morgan Chen</strong>.</p>
+      </div>
+    </div>
+
+    <!-- Panel 4 -->
+    <div class="panel">
+      <span class="step">STEP 4 · PARENT</span>
+      <div class="screen">
+        <div style="font-size: 12px; color: var(--muted);">Contact picker dimmed behind the sheet…</div>
+        <div class="sheet-wrap">
+          <div class="sheet">
+            <div class="sheet-title">How should we reach Morgan?</div>
+            <div class="sheet-row chosen">
+              <span class="sheet-icon">📧</span>
+              <span>Email</span>
+            </div>
+            <div class="sheet-row">
+              <span class="sheet-icon">💬</span>
+              <span>Open Messages</span>
+            </div>
+            <div class="sheet-row">
+              <span class="sheet-icon">📝</span>
+              <span>Just assign (no message)</span>
+            </div>
+            <div class="sheet-row dim">Cancel</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3>Pick how to reach them</h3>
+        <p>Three ways to notify. Parent taps <strong>Email</strong> — SportsCal drops a formatted request into Morgan's inbox with Confirm and Decline buttons.</p>
+      </div>
+    </div>
+
+    <!-- Panel 5 -->
+    <div class="panel">
+      <span class="step">STEP 5 · CONTACT'S INBOX</span>
+      <div class="screen">
+        <div class="email">
+          <div class="email-meta">
+            From: <strong>SportsCal</strong> · noreply@mail.sportscalapp.com<br>
+            Subject: <strong>Can you pick up practice on Tuesday?</strong>
+          </div>
+          <div class="email-brand-bar">SportsCal</div>
+          <div class="email-body">
+            <div>Hi Morgan 👋</div>
+            <div>The parent asked if you could pick up practice <strong>Tuesday 3:30pm</strong> at West Hills Christian.</div>
+            <div class="email-actions">
+              <div class="email-btn-primary">Yes, I can do it →</div>
+              <div class="email-btn-secondary">Sorry, can't this time</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3>Email arrives</h3>
+        <p>Morgan taps <strong>Yes, I can do it</strong>. Same claim endpoint under the hood — the pending row flips to <code>confirmed</code> and the parent gets notified.</p>
+      </div>
+    </div>
+
+    <!-- Panel 6 -->
+    <div class="panel">
+      <span class="step">STEP 6 · PARENT</span>
+      <div class="screen">
+        <div class="screen-header">
+          <div class="screen-title">Practice: 5th &amp; 6th (BLACK)</div>
+          <div class="screen-meta">Tue Sep 8 · 3:30 – 5:00 PM</div>
+        </div>
+        <div class="section-label">Ride coordination</div>
+        <div class="driver-chip">
+          <div class="avatar blue">MC</div>
+          <div>
+            <div class="driver-name">Morgan Chen</div>
+            <div class="driver-status">✓ Confirmed pickup</div>
+          </div>
+          <div class="quick-actions">
+            <button class="qa-btn" type="button">Call</button>
+            <button class="qa-btn" type="button">Text</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3>Slot flips to Confirmed</h3>
+        <p>Back in the app the Pick-up slot shows Morgan with quick <strong>Call</strong> and <strong>Text</strong> buttons. The <code>.ics</code> feed also injects the driver into Apple Calendar.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section-title">Three ways to notify</div>
+
+  <div class="options">
+    <div class="option-card">
+      <div class="option-icon mail">📧</div>
+      <div class="option-name">Email</div>
+      <p class="option-copy">Sends a formatted email with Confirm and Decline tap-buttons. Same claim endpoint as the group flow — first tap wins on the backend.</p>
+      <div class="option-when">Best when · <strong>you have their email but not their phone</strong></div>
+    </div>
+    <div class="option-card">
+      <div class="option-icon chat">💬</div>
+      <div class="option-name">Open Messages</div>
+      <p class="option-copy">Opens iMessage with the request pre-filled for one recipient. Parent can tweak the text before sending — good for a personal note.</p>
+      <div class="option-when">Best when · <strong>you want to say something extra</strong></div>
+    </div>
+    <div class="option-card">
+      <div class="option-icon silent">📝</div>
+      <div class="option-name">Just assign</div>
+      <p class="option-copy">Marks the person as assigned on the event. No email, no message, no ping. They won't know unless you tell them separately.</p>
+      <div class="option-when">Best when · <strong>you already talked to them</strong></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Confirm and decline taps route through <code>sportscalapp.com/r/…</code> · same atomic claim as the group flow
+  </div>
+
+</div>
+</body></html>

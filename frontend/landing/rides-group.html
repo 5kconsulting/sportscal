@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="How SportsCal's group ride ask works — iMessage tap-links, first-yes-wins pickup claims, and confirmed rides in Apple Calendar." />
+  <link rel="canonical" href="https://www.sportscalapp.com/rides/group" />
+  <meta name="robots" content="index, follow" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+<title>Group ride ask</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --ink: #0F172A;
+    --ink-2: #1E293B;
+    --ground: #F5F7FB;
+    --card: #FFFFFF;
+    --muted: #64748B;
+    --muted-2: #94A3B8;
+    --border: #E4ECFC;
+    --border-strong: #CBD5E1;
+    --blue: #2563EB;
+    --blue-tint: #DBEAFE;
+    --sky: #EFF6FF;
+    --amber: #D97706;
+    --amber-tint: #FEF3C7;
+    --success: #059669;
+    --success-tint: #D1FAE5;
+    --warning: #DC2626;
+    --warning-tint: #FEE2E2;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+    --shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+    --font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #E2E8F0;
+      --ink-2: #CBD5E1;
+      --ground: #0A1224;
+      --card: #111A2F;
+      --muted: #94A3B8;
+      --muted-2: #64748B;
+      --border: #1E293B;
+      --border-strong: #334155;
+      --blue: #60A5FA;
+      --blue-tint: #1E3A8A;
+      --sky: #172554;
+      --amber: #FBBF24;
+      --amber-tint: #78350F;
+      --success: #34D399;
+      --success-tint: #064E3B;
+      --warning: #F87171;
+      --warning-tint: #7F1D1D;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+      --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #E2E8F0;
+    --ink-2: #CBD5E1;
+    --ground: #0A1224;
+    --card: #111A2F;
+    --muted: #94A3B8;
+    --muted-2: #64748B;
+    --border: #1E293B;
+    --border-strong: #334155;
+    --blue: #60A5FA;
+    --blue-tint: #1E3A8A;
+    --sky: #172554;
+    --amber: #FBBF24;
+    --amber-tint: #78350F;
+    --success: #34D399;
+    --success-tint: #064E3B;
+    --warning: #F87171;
+    --warning-tint: #7F1D1D;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  code { font-family: var(--mono); }
+
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 24px 72px;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--blue);
+  }
+  h1 {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    margin: 10px 0 14px;
+    text-wrap: balance;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  .subtitle {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 60ch;
+    line-height: 1.6;
+    margin: 0;
+  }
+  .subtitle strong { color: var(--ink-2); font-weight: 600; }
+
+  .section-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.018em;
+    margin: 56px 0 20px;
+    color: var(--ink);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  @media (max-width: 720px) {
+    .grid { grid-template-columns: 1fr; }
+    .page { padding: 32px 20px 64px; }
+    h1 { font-size: 30px; }
+  }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    box-shadow: var(--shadow-sm);
+  }
+  .step {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: var(--muted-2);
+  }
+  .panel h3 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin: 0 0 6px;
+  }
+  .panel p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 0;
+  }
+  .panel p strong { color: var(--ink-2); font-weight: 600; }
+  .panel p code {
+    font-size: 12.5px;
+    background: var(--blue-tint);
+    color: var(--blue);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  .screen {
+    background: var(--sky);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 210px;
+  }
+  .screen-header {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .screen-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+  }
+  .screen-meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+    line-height: 1.4;
+  }
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted-2);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .slot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .slot-label {
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .slot-sub {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .btn {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 12px;
+    border-radius: 8px;
+    background: var(--amber);
+    color: #fff;
+    border: 0;
+    cursor: default;
+  }
+  .btn-outline {
+    background: transparent;
+    color: var(--blue);
+    border: 1px solid var(--blue);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: default;
+  }
+
+  .sheet-wrap {
+    margin-top: auto;
+  }
+  .sheet {
+    background: var(--card);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+  .sheet-title {
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+  .sheet-row {
+    padding: 13px 16px;
+    font-size: 14px;
+    color: var(--ink);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+  }
+  .sheet-row:last-child { border-bottom: 0; }
+  .sheet-row.chosen {
+    color: var(--blue);
+    font-weight: 600;
+    background: var(--sky);
+  }
+  .sheet-row.dim { color: var(--muted); }
+
+  .imsg-recipients {
+    font-size: 11.5px;
+    color: var(--muted);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .imsg-recipients strong { color: var(--ink); font-weight: 600; }
+  .bubble {
+    background: var(--blue-tint);
+    color: var(--ink);
+    padding: 12px 14px;
+    border-radius: 16px;
+    border-top-left-radius: 4px;
+    font-size: 13px;
+    line-height: 1.5;
+    align-self: flex-start;
+    max-width: 100%;
+  }
+  .bubble a {
+    color: var(--blue);
+    text-decoration: underline;
+    word-break: break-all;
+  }
+  .bubble .tap-line { display: block; margin-top: 4px; }
+
+  .claim-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .claim-title { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+  .claim-meta { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+
+  .banner {
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    line-height: 1.4;
+  }
+  .banner.good { background: var(--success-tint); color: var(--success); }
+  .banner.late { background: var(--warning-tint); color: var(--warning); }
+  .banner-emoji { font-size: 18px; }
+
+  .driver-chip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .driver-name { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+  .driver-status {
+    font-size: 11.5px;
+    color: var(--success);
+    font-weight: 600;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .quick-actions { display: flex; gap: 6px; margin-left: auto; }
+  .qa-btn {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--blue);
+    border: 1px solid var(--border-strong);
+    cursor: default;
+  }
+
+  .race {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 36px;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+  }
+  @media (max-width: 720px) {
+    .race { grid-template-columns: 1fr; padding: 24px 22px; gap: 20px; }
+  }
+
+  .race-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 10px;
+    letter-spacing: -0.005em;
+  }
+  .race-copy p {
+    font-size: 14.5px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 0 0 10px;
+  }
+  .race-copy p:last-child { margin-bottom: 0; }
+  .race-copy code {
+    font-size: 12.5px;
+    background: var(--blue-tint);
+    color: var(--blue);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  .timeline { width: 100%; height: auto; overflow: visible; }
+  .tl-axis, .tl-tick { stroke: var(--border-strong); stroke-width: 1.5; fill: none; }
+  .tl-winner { fill: var(--success); }
+  .tl-loser { fill: var(--warning); opacity: 0.9; }
+  .tl-label { font-family: var(--font); font-size: 10.5px; font-weight: 600; fill: var(--muted); }
+  .tl-headline-win { font-family: var(--font); font-size: 11.5px; font-weight: 700; fill: var(--success); }
+  .tl-headline-lose { font-family: var(--font); font-size: 11.5px; font-weight: 700; fill: var(--warning); }
+
+  .footer {
+    font-size: 12.5px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .footer code {
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+</style>
+
+</head><body><a href="/" style="display:block;font-size:12px;font-weight:600;color:var(--blue);text-decoration:none;padding:20px 24px 0;max-width:960px;margin:0 auto;">&larr; sportscalapp.com</a><div class="page">
+
+  <div class="eyebrow">SportsCal · Flow diagram</div>
+  <h1>Group ride ask</h1>
+  <p class="subtitle">
+    A parent taps <strong>Ask a group</strong>, a shared iMessage goes out with tap-links, and the first Yes atomically claims the ride. Here's what each side sees along the way.
+  </p>
+
+  <div class="section-title">The flow</div>
+
+  <div class="grid">
+
+    <!-- Panel 1 -->
+    <div class="panel">
+      <span class="step">STEP 1 · PARENT</span>
+      <div class="screen">
+        <div class="screen-header">
+          <div class="screen-title">Practice: 5th &amp; 6th (BLACK)</div>
+          <div class="screen-meta">Tue Sep 8 · 3:30 – 5:00 PM<br>West Hills Christian School · Field</div>
+        </div>
+        <div class="section-label">Ride coordination</div>
+        <div class="slot">
+          <div>
+            <div class="slot-label">Pick-up</div>
+            <div class="slot-sub">Not assigned</div>
+          </div>
+          <button class="btn" type="button">+ Assign</button>
+        </div>
+        <div class="slot">
+          <div>
+            <div class="slot-label">Drop-off</div>
+            <div class="slot-sub">Not assigned</div>
+          </div>
+          <button class="btn-outline" type="button">+ Assign</button>
+        </div>
+      </div>
+      <div>
+        <h3>Tap + Assign</h3>
+        <p>Parent opens the practice event, scrolls to <strong>Ride coordination</strong>, taps <strong>+ Assign</strong> next to Pick-up.</p>
+      </div>
+    </div>
+
+    <!-- Panel 2 -->
+    <div class="panel">
+      <span class="step">STEP 2 · PARENT</span>
+      <div class="screen">
+        <div style="font-size: 12px; color: var(--muted);">Event detail dimmed behind the sheet…</div>
+        <div class="sheet-wrap">
+          <div class="sheet">
+            <div class="sheet-title">Who handles pick up?</div>
+            <div class="sheet-row">Pick a contact</div>
+            <div class="sheet-row chosen">Ask a group</div>
+            <div class="sheet-row dim">Cancel</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3>Choose the group</h3>
+        <p>iOS asks whether to pick one person or ask a whole group. Parent taps <strong>Ask a group</strong> and then picks a team like <strong>Basketball Parents</strong>.</p>
+      </div>
+    </div>
+
+    <!-- Panel 3 -->
+    <div class="panel">
+      <span class="step">STEP 3 · GROUP THREAD</span>
+      <div class="screen">
+        <div class="imsg-recipients">To: <strong>Basketball Parents (8)</strong></div>
+        <div class="bubble">
+          Hi 👋 anyone able to pick up practice Tue 3:30pm at West Hills Christian?
+          <span class="tap-line">Yes → <a href="#" onclick="return false">sportscalapp.com/r/claim/aB4kL9…</a></span>
+          <span class="tap-line">No thanks → <a href="#" onclick="return false">sportscalapp.com/r/decline/aB4kL9…</a></span>
+        </div>
+      </div>
+      <div>
+        <h3>iMessage goes out</h3>
+        <p>SportsCal opens iMessage pre-filled with the request and two tap-links. Each link carries a unique token tied to this one pickup slot.</p>
+      </div>
+    </div>
+
+    <!-- Panel 4 -->
+    <div class="panel">
+      <span class="step">STEP 4 · FIRST RESPONDER</span>
+      <div class="screen">
+        <div class="claim-card">
+          <div class="claim-title">Pick up · Practice (BLACK)</div>
+          <div class="claim-meta">Tue Sep 8 · 3:30 PM · West Hills Christian</div>
+        </div>
+        <div class="banner good">
+          <span class="banner-emoji">🎉</span>
+          <span>You're on! Parent has been notified.</span>
+        </div>
+      </div>
+      <div>
+        <h3>First Yes wins</h3>
+        <p>First tap on <strong>Yes</strong> hits the claim endpoint. Backend runs one atomic <code>UPDATE</code> on the pending row — first token in, wins the ride.</p>
+      </div>
+    </div>
+
+    <!-- Panel 5 -->
+    <div class="panel">
+      <span class="step">STEP 5 · LATE RESPONDER</span>
+      <div class="screen">
+        <div class="claim-card">
+          <div class="claim-title">Pick up · Practice (BLACK)</div>
+          <div class="claim-meta">Tue Sep 8 · 3:30 PM · West Hills Christian</div>
+        </div>
+        <div class="banner late">
+          <span class="banner-emoji">🙏</span>
+          <span>Someone beat you to it — thanks for offering!</span>
+        </div>
+      </div>
+      <div>
+        <h3>Later Yeses land softly</h3>
+        <p>Every later Yes tap comes back to a row that's already <code>confirmed</code>. No duplicate-confirmation storm; no one has to say no.</p>
+      </div>
+    </div>
+
+    <!-- Panel 6 -->
+    <div class="panel">
+      <span class="step">STEP 6 · PARENT</span>
+      <div class="screen">
+        <div class="screen-header">
+          <div class="screen-title">Practice: 5th &amp; 6th (BLACK)</div>
+          <div class="screen-meta">Tue Sep 8 · 3:30 – 5:00 PM</div>
+        </div>
+        <div class="section-label">Ride coordination</div>
+        <div class="driver-chip">
+          <div class="avatar">S</div>
+          <div>
+            <div class="driver-name">Sam Rivera</div>
+            <div class="driver-status">✓ Confirmed pickup</div>
+          </div>
+          <div class="quick-actions">
+            <button class="qa-btn" type="button">Call</button>
+            <button class="qa-btn" type="button">Text</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3>Slot flips to Confirmed</h3>
+        <p>Back in the app the Pick-up slot shows the driver with quick <strong>Call</strong> and <strong>Text</strong> buttons. The <code>.ics</code> feed also injects the driver into Apple Calendar.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section-title">How the race resolves</div>
+
+  <div class="race">
+    <div>
+      <svg class="timeline" viewBox="0 0 400 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline showing the first Yes tap winning at T=0 and later Yeses at +4s and +12s finding the row already claimed.">
+        <line class="tl-axis" x1="24" y1="72" x2="376" y2="72" />
+
+        <line class="tl-tick" x1="52" y1="67" x2="52" y2="77" />
+        <circle class="tl-winner" cx="52" cy="72" r="10" />
+        <text class="tl-label" x="52" y="102" text-anchor="middle">T = 0.0s</text>
+        <text class="tl-headline-win" x="52" y="46" text-anchor="middle">Claim confirmed</text>
+
+        <line class="tl-tick" x1="200" y1="67" x2="200" y2="77" />
+        <circle class="tl-loser" cx="200" cy="72" r="8" />
+        <text class="tl-label" x="200" y="102" text-anchor="middle">+4s</text>
+        <text class="tl-headline-lose" x="200" y="46" text-anchor="middle">Already taken</text>
+
+        <line class="tl-tick" x1="348" y1="67" x2="348" y2="77" />
+        <circle class="tl-loser" cx="348" cy="72" r="8" />
+        <text class="tl-label" x="348" y="102" text-anchor="middle">+12s</text>
+        <text class="tl-headline-lose" x="348" y="46" text-anchor="middle">Already taken</text>
+
+        <text class="tl-label" x="24" y="128">First tap wins · every later tap sees the friendly notice</text>
+      </svg>
+    </div>
+    <div class="race-copy">
+      <div class="race-title">One row, one winner</div>
+      <p>Each Yes link carries a unique token. The claim endpoint runs one atomic <code>UPDATE</code> against the pending row, matching on <code>status = 'pending'</code>. Only the first token to arrive flips the row to <code>confirmed</code> and returns success.</p>
+      <p>Every later Yes tap hits a row that's already claimed and sees the friendly "beat you to it" page. The parent gets a single notification — not one per Yes — and nobody in the group ends up as the awkward runner-up.</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    Ride requests go out via iMessage; claim + decline taps route through <code>sportscalapp.com/r/…</code>
+  </div>
+
+</div>
+</body></html>
