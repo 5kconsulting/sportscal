@@ -40,6 +40,9 @@ app.get('/how', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how
 app.get('/how/add-calendar',      (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how-add-calendar.html')));
 app.get('/how/share-kid-calendar',(_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how-share-kid-calendar.html')));
 app.get('/how/snap-photo',        (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how-snap-photo.html')));
+app.get('/how/chat-with-coach',   (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how-chat-with-coach.html')));
+app.get('/how/weekly-digest',     (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how-weekly-digest.html')));
+app.get('/how/bedtime-reminder',  (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how-bedtime-reminder.html')));
 app.get('/rides/group',  (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'rides-group.html')));
 app.get('/rides/direct', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'rides-direct.html')));
 

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bedtime reminder</title>
+  <meta name="description" content="How SportsCal's bedtime push works — an 8 PM notification listing tomorrow's events, so you can pack cleats and set alarms before you turn in." />
+  <link rel="canonical" href="https://www.sportscalapp.com/how/bedtime-reminder" />
+  <meta name="robots" content="index, follow" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" />
+  <style>
+    :root {
+      --ink: #0F172A;
+      --ink-2: #1E293B;
+      --ground: #F5F7FB;
+      --card: #FFFFFF;
+      --muted: #64748B;
+      --muted-2: #94A3B8;
+      --border: #E4ECFC;
+      --border-strong: #CBD5E1;
+      --blue: #2563EB;
+      --blue-tint: #DBEAFE;
+      --sky: #EFF6FF;
+      --amber: #D97706;
+      --amber-tint: #FEF3C7;
+      --success: #059669;
+      --success-tint: #D1FAE5;
+      --warning: #DC2626;
+      --warning-tint: #FEE2E2;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+      --font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --ink: #E2E8F0;
+        --ink-2: #CBD5E1;
+        --ground: #0A1224;
+        --card: #111A2F;
+        --muted: #94A3B8;
+        --muted-2: #64748B;
+        --border: #1E293B;
+        --border-strong: #334155;
+        --blue: #60A5FA;
+        --blue-tint: #1E3A8A;
+        --sky: #172554;
+        --amber: #FBBF24;
+        --amber-tint: #78350F;
+        --success: #34D399;
+        --success-tint: #064E3B;
+        --warning: #F87171;
+        --warning-tint: #7F1D1D;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+        --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+      }
+    }
+    :root[data-theme="dark"] {
+      --ink: #E2E8F0;
+      --ink-2: #CBD5E1;
+      --ground: #0A1224;
+      --card: #111A2F;
+      --muted: #94A3B8;
+      --muted-2: #64748B;
+      --border: #1E293B;
+      --border-strong: #334155;
+      --blue: #60A5FA;
+      --blue-tint: #1E3A8A;
+      --sky: #172554;
+      --amber: #FBBF24;
+      --amber-tint: #78350F;
+      --success: #34D399;
+      --success-tint: #064E3B;
+      --warning: #F87171;
+      --warning-tint: #7F1D1D;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+      --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      background: var(--ground);
+      color: var(--ink);
+      font-family: var(--font);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .home-link {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--blue);
+      text-decoration: none;
+      padding: 20px 24px 0;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .page { max-width: 960px; margin: 0 auto; padding: 32px 24px 72px; }
+    .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); }
+    h1 { font-size: 40px; font-weight: 700; letter-spacing: -0.025em; margin: 10px 0 14px; text-wrap: balance; color: var(--ink); line-height: 1.1; }
+    .subtitle { font-size: 16px; color: var(--muted); max-width: 62ch; line-height: 1.6; margin: 0; }
+    .subtitle strong { color: var(--ink-2); font-weight: 600; }
+    .section-title { font-size: 22px; font-weight: 700; letter-spacing: -0.018em; margin: 56px 0 20px; color: var(--ink); }
+
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .page { padding: 24px 20px 64px; } h1 { font-size: 32px; } }
+
+    .panel {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 22px; display: flex; flex-direction: column; gap: 18px; box-shadow: var(--shadow-sm);
+    }
+    .step { font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; color: var(--muted-2); }
+    .panel h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); margin: 0 0 6px; }
+    .panel p { font-size: 14px; color: var(--muted); line-height: 1.6; margin: 0; }
+    .panel p strong { color: var(--ink-2); font-weight: 600; }
+
+    .screen {
+      background: var(--sky); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 240px;
+    }
+    .screen-header { padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .screen-title { font-size: 14px; font-weight: 600; color: var(--ink); letter-spacing: -0.005em; }
+    .screen-meta { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+    .section-label { font-size: 10px; font-weight: 700; color: var(--muted-2); letter-spacing: 0.14em; text-transform: uppercase; }
+
+    .slot {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    }
+    .slot-label { font-size: 13px; color: var(--ink); font-weight: 600; }
+    .slot-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+    .btn {
+      font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px;
+      background: var(--amber); color: #fff; border: 0; cursor: default;
+    }
+    .btn-outline {
+      background: transparent; color: var(--blue); border: 1px solid var(--blue);
+      font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 8px; cursor: default;
+    }
+
+    .sheet-wrap { margin-top: auto; }
+    .sheet { background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    .sheet-title { padding: 12px 16px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border); text-align: center; }
+    .sheet-row { padding: 13px 16px; font-size: 14px; color: var(--ink); border-bottom: 1px solid var(--border); text-align: center; }
+    .sheet-row:last-child { border-bottom: 0; }
+    .sheet-row.chosen {
+      color: var(--blue); font-weight: 600; background: var(--sky);
+      display: flex; justify-content: space-between; align-items: center; text-align: left; padding-right: 12px;
+    }
+    .sheet-row.dim { color: var(--muted); }
+
+    .picker-list { display: flex; flex-direction: column; gap: 6px; }
+    .picker-row {
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    }
+    .picker-row.chosen { background: var(--sky); border-color: var(--blue-tint); }
+    .picker-name { font-size: 13px; color: var(--ink); font-weight: 600; }
+    .picker-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%; color: #fff;
+      display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12.5px; flex-shrink: 0;
+    }
+    .checkmark {
+      margin-left: auto; width: 22px; height: 22px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+    }
+    .checkmark.on { background: var(--blue); color: #fff; }
+    .checkmark.off { background: var(--card); border: 1.5px solid var(--border-strong); }
+
+    /* URL input mockup */
+    .url-input {
+      background: var(--card); border: 1.5px solid var(--blue); border-radius: 10px;
+      padding: 11px 14px; font-family: var(--mono); font-size: 11px; color: var(--ink);
+      word-break: break-all; line-height: 1.4;
+    }
+    .pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+      letter-spacing: 0.1em; text-transform: uppercase; align-self: flex-start;
+    }
+    .pill.detected { background: var(--success-tint); color: var(--success); }
+
+    /* Sync progress */
+    .sync-block {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      padding: 24px 0 16px; flex: 1;
+    }
+    .spinner {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 3px solid var(--blue-tint); border-top-color: var(--blue);
+    }
+    .sync-headline { font-size: 13.5px; color: var(--ink); font-weight: 600; text-align: center; }
+    .sync-sub { font-size: 11.5px; color: var(--muted); text-align: center; margin-top: -6px; }
+
+    /* Event cards on dashboard */
+    .event-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 12px; border-left-width: 3px; border-left-style: solid;
+    }
+    .event-card .event-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .event-card .event-meta { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+    .banner {
+      padding: 10px 12px; border-radius: 10px; font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .banner.good { background: var(--success-tint); color: var(--success); }
+
+    /* Tap indicators */
+    .tap-cluster { display: flex; align-items: center; gap: 10px; }
+    .tap-cluster.end { justify-content: flex-end; align-self: flex-end; margin-top: auto; }
+    .tap-cluster.center { justify-content: center; margin-top: auto; }
+    .tap-hint {
+      display: inline-flex; align-items: center; background: var(--amber); color: #fff;
+      font-size: 9.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+      letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(217, 119, 6, 0.35); line-height: 1.2;
+    }
+
+    /* App logos strip for closing "Where to find the URL" */
+    .apps-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+    }
+    @media (min-width: 720px) { .apps-grid { grid-template-columns: repeat(4, 1fr); } }
+    .app-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow-sm);
+    }
+    .app-card .app-name { font-size: 13.5px; font-weight: 700; color: var(--ink); letter-spacing: -0.005em; }
+    .app-card .app-hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .app-card .app-icon {
+      width: 32px; height: 32px; border-radius: 8px; background: var(--sky); color: var(--blue);
+      display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; margin-bottom: 6px;
+    }
+
+    .footer { font-size: 12.5px; color: var(--muted); text-align: center; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .companion { font-size: 12.5px; color: var(--muted); margin-top: 14px; }
+    .companion a { color: var(--blue); text-decoration: none; border-bottom: 1px solid var(--blue-tint); }
+    .companion a:hover { border-bottom-color: var(--blue); }
+  </style>
+  <style>
+  .toggle {
+    width: 44px; height: 24px; background: var(--border-strong); border-radius: 999px; position: relative;
+  }
+  .toggle.on { background: var(--blue); }
+  .toggle-thumb {
+    width: 20px; height: 20px; background: #fff; border-radius: 50%;
+    position: absolute; top: 2px; left: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle.on .toggle-thumb { left: 22px; }
+  .lock-screen {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 14px; padding: 16px; color: white; flex: 1;
+    display: flex; flex-direction: column; justify-content: space-between; min-height: 220px;
+  }
+  .lock-time {
+    text-align: center; padding: 6px 0;
+  }
+  .lock-date {
+    font-size: 10px; color: rgba(255,255,255,0.6); letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .lock-hour {
+    font-size: 44px; font-weight: 300; margin-top: 2px; letter-spacing: -0.03em;
+  }
+  .push-notif {
+    background: rgba(255,255,255,0.16); backdrop-filter: blur(10px);
+    padding: 11px 13px; border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .push-notif-header {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10px; color: rgba(255,255,255,0.75);
+    margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .push-notif-title {
+    font-size: 12.5px; font-weight: 700; margin-bottom: 2px;
+  }
+  .push-notif-body {
+    font-size: 11.5px; color: rgba(255,255,255,0.85); line-height: 1.4;
+  }
+</style>
+</head>
+<body>
+  <a class="home-link" href="/how">&larr; All guides</a>
+  <div class="page">
+    <div class="eyebrow">SportsCal &middot; Guides</div>
+    <h1>Bedtime reminder</h1>
+    <p class="subtitle">Every night at 8 PM, a push notification lands on your lock screen listing tomorrow's events. Enough time to pack cleats, wash uniforms, and set the right alarms.</p>
+    <div class="companion">Best for the family member who does the &quot;what does everyone need tomorrow?&quot; math the night before &mdash; and would rather have it handed to them.</div>
+    <div class="section-title">The flow</div>
+    <div class="grid">
+      <div class="panel">
+        <span class="step">STEP 1 &middot; TURN PUSH ON</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Settings &middot; Notifications</div>
+          </div>
+          <div class="section-label">Bedtime reminder</div>
+          <div style="font-size: 12px; color: var(--muted); line-height: 1.5;">A push notification at 8 PM listing tomorrow's events, so you can pack cleats and set alarms before you turn in.</div>
+          <div class="slot">
+            <div>
+              <div class="slot-label">Bedtime push</div>
+              <div class="slot-sub">Off</div>
+            </div>
+            <div class="tap-cluster">
+              <div class="toggle"><div class="toggle-thumb"></div></div>
+              <span class="tap-hint">Tap</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3>Toggle the reminder on</h3>
+          <p>Under <strong>Settings &rarr; Notifications</strong>, flip <strong>Bedtime push</strong> on. First tap triggers the iOS permission prompt &mdash; you have to say yes there too.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 2 &middot; iOS PERMISSION</span>
+        <div class="screen">
+          <div style="font-size: 12px; color: var(--muted);">SportsCal dimmed behind the prompt&hellip;</div>
+          <div class="sheet-wrap">
+            <div class="sheet" style="padding: 20px; text-align: center;">
+              <div style="font-size: 14.5px; font-weight: 700; color: var(--ink); margin-bottom: 6px;">"SportsCal" Would Like to Send You Notifications</div>
+              <div style="font-size: 11.5px; color: var(--muted); line-height: 1.5; margin-bottom: 14px;">Notifications may include alerts, sounds, and icon badges. You can configure these in Settings.</div>
+              <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
+                <button class="btn-outline" type="button">Don't Allow</button>
+                <div class="tap-cluster">
+                  <button class="btn" style="background: var(--blue);" type="button">Allow</button>
+                  <span class="tap-hint">Tap</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3>Tap Allow</h3>
+          <p>Standard iOS permission ask &mdash; one time only per install. Tap <strong>Allow</strong> and SportsCal is greenlit to send you the bedtime push (and nothing else, unless you turn on more).</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 3 &middot; PICK THE TIME</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Bedtime reminder</div>
+            <div class="screen-meta">When does the family wind down?</div>
+          </div>
+          <div class="section-label">Time</div>
+          <div class="slot">
+            <div class="slot-label">8:00 PM</div>
+            <span style="font-size: 11px; color: var(--muted);">Your local time</span>
+          </div>
+          <div style="font-size: 11.5px; color: var(--muted); line-height: 1.5;">Fires every night at your local 8 PM, wherever you happen to be. Nothing arrives on days with no events tomorrow.</div>
+          <div class="tap-cluster end">
+            <button class="btn" type="button">Save</button>
+            <span class="tap-hint">Tap</span>
+          </div>
+        </div>
+        <div>
+          <h3>8 PM by default &mdash; change if you want</h3>
+          <p>Early-bird family? Roll it back to 7 PM. Night owls? Push it to 9 PM. SportsCal's scheduler respects your local time, so travel doesn't break anything.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 4 &middot; 8 PM PUSH LANDS</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Your iPhone lock screen</div>
+            <div class="screen-meta">Tonight &middot; 8:00 PM</div>
+          </div>
+          <div class="lock-screen">
+            <div class="lock-time">
+              <div class="lock-date">Tuesday, September 17</div>
+              <div class="lock-hour">8:00</div>
+            </div>
+            <div class="push-notif">
+              <div class="push-notif-header">
+                <span>&#127761;</span> <span>SportsCal &middot; now</span>
+              </div>
+              <div class="push-notif-title">Tomorrow's schedule</div>
+              <div class="push-notif-body">Baseball practice 4:30pm (Riley) &middot; Basketball game 6pm (Sam)</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3>Push arrives on your lock screen</h3>
+          <p>Right at 8 PM, a compact push notification lands on your lock screen with tomorrow's events listed inline. No need to open anything &mdash; the info is right there.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 5 &middot; TAP IT</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Your iPhone lock screen</div>
+            <div class="screen-meta">Tap opens SportsCal to tomorrow</div>
+          </div>
+          <div class="lock-screen">
+            <div class="lock-time">
+              <div class="lock-date">Tuesday, September 17</div>
+              <div class="lock-hour">8:00</div>
+            </div>
+            <div class="tap-cluster" style="align-items: stretch;">
+              <div class="push-notif" style="flex: 1; box-shadow: 0 0 0 2px var(--amber);">
+                <div class="push-notif-header">
+                  <span>&#127761;</span> <span>SportsCal &middot; now</span>
+                </div>
+                <div class="push-notif-title">Tomorrow's schedule</div>
+                <div class="push-notif-body">Baseball practice 4:30pm (Riley) &middot; Basketball game 6pm (Sam)</div>
+              </div>
+              <span class="tap-hint">Tap</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3>Tap for the full picture</h3>
+          <p>Need to check where "Field 3" is or who's picking up? Tap the push and SportsCal opens straight to tomorrow's Dashboard &mdash; every event on one screen.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 6 &middot; PREP</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Tomorrow &middot; Wednesday Sep 18</div>
+            <div class="screen-meta">2 events across the family</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="event-card" style="border-left-color: var(--blue);">
+              <div class="event-title">Baseball practice &middot; Riley</div>
+              <div class="event-meta">4:30 &ndash; 6:00 PM &middot; Field 3</div>
+            </div>
+            <div class="event-card" style="border-left-color: var(--amber);">
+              <div class="event-title">Basketball game &middot; Sam</div>
+              <div class="event-meta">6:00 &ndash; 8:00 PM &middot; Community gym</div>
+            </div>
+          </div>
+          <div class="banner good">
+            <span>&#128712;</span>
+            <span>Pack cleats for Riley, ball shoes for Sam</span>
+          </div>
+        </div>
+        <div>
+          <h3>Prep before bed, not in the morning</h3>
+          <p>Full visibility into tomorrow before your head hits the pillow. Pack the gear, set the alarms, line up a pickup for the practice you know you can't make.</p>
+        </div>
+      </div>
+    </div>
+    <div class="section-title">A note on timezones</div>
+    <div class="apps-grid" style="grid-template-columns: repeat(2, 1fr);">
+      <div class="app-card">
+        <div class="app-icon">&#127760;</div>
+        <div class="app-name">Local time, not UTC</div>
+        <div class="app-hint">SportsCal fires at 8 PM in <strong>your</strong> local time. Traveling east or west doesn't shift when it lands.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">&#128564;</div>
+        <div class="app-name">Nothing tomorrow? Nothing arrives.</div>
+        <div class="app-hint">Empty schedule tomorrow means no push. Your evening stays quiet.</div>
+      </div>
+    </div>
+    <div class="footer">Prefer a broader look at the whole week? <a href="/how/weekly-digest" style="color: var(--blue); font-weight: 600; text-decoration: none;">Weekly digest email</a> lands Friday mornings.</div>
+  </div>
+</body>
+</html>
