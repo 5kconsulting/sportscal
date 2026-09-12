@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add a calendar</title>
+  <meta name="description" content="How to add a calendar to SportsCal — paste an iCal URL from TeamSnap, GameChanger, PlayMetrics, SportsYou, or any other sports app in about a minute." />
+  <link rel="canonical" href="https://www.sportscalapp.com/how/add-calendar" />
+  <meta name="robots" content="index, follow" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" />
+  <style>
+    :root {
+      --ink: #0F172A;
+      --ink-2: #1E293B;
+      --ground: #F5F7FB;
+      --card: #FFFFFF;
+      --muted: #64748B;
+      --muted-2: #94A3B8;
+      --border: #E4ECFC;
+      --border-strong: #CBD5E1;
+      --blue: #2563EB;
+      --blue-tint: #DBEAFE;
+      --sky: #EFF6FF;
+      --amber: #D97706;
+      --amber-tint: #FEF3C7;
+      --success: #059669;
+      --success-tint: #D1FAE5;
+      --warning: #DC2626;
+      --warning-tint: #FEE2E2;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+      --font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --ink: #E2E8F0;
+        --ink-2: #CBD5E1;
+        --ground: #0A1224;
+        --card: #111A2F;
+        --muted: #94A3B8;
+        --muted-2: #64748B;
+        --border: #1E293B;
+        --border-strong: #334155;
+        --blue: #60A5FA;
+        --blue-tint: #1E3A8A;
+        --sky: #172554;
+        --amber: #FBBF24;
+        --amber-tint: #78350F;
+        --success: #34D399;
+        --success-tint: #064E3B;
+        --warning: #F87171;
+        --warning-tint: #7F1D1D;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+        --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+      }
+    }
+    :root[data-theme="dark"] {
+      --ink: #E2E8F0;
+      --ink-2: #CBD5E1;
+      --ground: #0A1224;
+      --card: #111A2F;
+      --muted: #94A3B8;
+      --muted-2: #64748B;
+      --border: #1E293B;
+      --border-strong: #334155;
+      --blue: #60A5FA;
+      --blue-tint: #1E3A8A;
+      --sky: #172554;
+      --amber: #FBBF24;
+      --amber-tint: #78350F;
+      --success: #34D399;
+      --success-tint: #064E3B;
+      --warning: #F87171;
+      --warning-tint: #7F1D1D;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+      --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      background: var(--ground);
+      color: var(--ink);
+      font-family: var(--font);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .home-link {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--blue);
+      text-decoration: none;
+      padding: 20px 24px 0;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .page { max-width: 960px; margin: 0 auto; padding: 32px 24px 72px; }
+    .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); }
+    h1 { font-size: 40px; font-weight: 700; letter-spacing: -0.025em; margin: 10px 0 14px; text-wrap: balance; color: var(--ink); line-height: 1.1; }
+    .subtitle { font-size: 16px; color: var(--muted); max-width: 62ch; line-height: 1.6; margin: 0; }
+    .subtitle strong { color: var(--ink-2); font-weight: 600; }
+    .section-title { font-size: 22px; font-weight: 700; letter-spacing: -0.018em; margin: 56px 0 20px; color: var(--ink); }
+
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .page { padding: 24px 20px 64px; } h1 { font-size: 32px; } }
+
+    .panel {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 22px; display: flex; flex-direction: column; gap: 18px; box-shadow: var(--shadow-sm);
+    }
+    .step { font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; color: var(--muted-2); }
+    .panel h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); margin: 0 0 6px; }
+    .panel p { font-size: 14px; color: var(--muted); line-height: 1.6; margin: 0; }
+    .panel p strong { color: var(--ink-2); font-weight: 600; }
+
+    .screen {
+      background: var(--sky); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 240px;
+    }
+    .screen-header { padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .screen-title { font-size: 14px; font-weight: 600; color: var(--ink); letter-spacing: -0.005em; }
+    .screen-meta { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+    .section-label { font-size: 10px; font-weight: 700; color: var(--muted-2); letter-spacing: 0.14em; text-transform: uppercase; }
+
+    .slot {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    }
+    .slot-label { font-size: 13px; color: var(--ink); font-weight: 600; }
+    .slot-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+    .btn {
+      font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px;
+      background: var(--amber); color: #fff; border: 0; cursor: default;
+    }
+    .btn-outline {
+      background: transparent; color: var(--blue); border: 1px solid var(--blue);
+      font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 8px; cursor: default;
+    }
+
+    .sheet-wrap { margin-top: auto; }
+    .sheet { background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    .sheet-title { padding: 12px 16px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border); text-align: center; }
+    .sheet-row { padding: 13px 16px; font-size: 14px; color: var(--ink); border-bottom: 1px solid var(--border); text-align: center; }
+    .sheet-row:last-child { border-bottom: 0; }
+    .sheet-row.chosen {
+      color: var(--blue); font-weight: 600; background: var(--sky);
+      display: flex; justify-content: space-between; align-items: center; text-align: left; padding-right: 12px;
+    }
+    .sheet-row.dim { color: var(--muted); }
+
+    .picker-list { display: flex; flex-direction: column; gap: 6px; }
+    .picker-row {
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    }
+    .picker-row.chosen { background: var(--sky); border-color: var(--blue-tint); }
+    .picker-name { font-size: 13px; color: var(--ink); font-weight: 600; }
+    .picker-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%; color: #fff;
+      display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12.5px; flex-shrink: 0;
+    }
+    .checkmark {
+      margin-left: auto; width: 22px; height: 22px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+    }
+    .checkmark.on { background: var(--blue); color: #fff; }
+    .checkmark.off { background: var(--card); border: 1.5px solid var(--border-strong); }
+
+    /* URL input mockup */
+    .url-input {
+      background: var(--card); border: 1.5px solid var(--blue); border-radius: 10px;
+      padding: 11px 14px; font-family: var(--mono); font-size: 11px; color: var(--ink);
+      word-break: break-all; line-height: 1.4;
+    }
+    .pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+      letter-spacing: 0.1em; text-transform: uppercase; align-self: flex-start;
+    }
+    .pill.detected { background: var(--success-tint); color: var(--success); }
+
+    /* Sync progress */
+    .sync-block {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      padding: 24px 0 16px; flex: 1;
+    }
+    .spinner {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 3px solid var(--blue-tint); border-top-color: var(--blue);
+    }
+    .sync-headline { font-size: 13.5px; color: var(--ink); font-weight: 600; text-align: center; }
+    .sync-sub { font-size: 11.5px; color: var(--muted); text-align: center; margin-top: -6px; }
+
+    /* Event cards on dashboard */
+    .event-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 12px; border-left-width: 3px; border-left-style: solid;
+    }
+    .event-card .event-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .event-card .event-meta { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+    .banner {
+      padding: 10px 12px; border-radius: 10px; font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .banner.good { background: var(--success-tint); color: var(--success); }
+
+    /* Tap indicators */
+    .tap-cluster { display: flex; align-items: center; gap: 10px; }
+    .tap-cluster.end { justify-content: flex-end; align-self: flex-end; margin-top: auto; }
+    .tap-cluster.center { justify-content: center; margin-top: auto; }
+    .tap-hint {
+      display: inline-flex; align-items: center; background: var(--amber); color: #fff;
+      font-size: 9.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+      letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(217, 119, 6, 0.35); line-height: 1.2;
+    }
+
+    /* App logos strip for closing "Where to find the URL" */
+    .apps-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+    }
+    @media (min-width: 720px) { .apps-grid { grid-template-columns: repeat(4, 1fr); } }
+    .app-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow-sm);
+    }
+    .app-card .app-name { font-size: 13.5px; font-weight: 700; color: var(--ink); letter-spacing: -0.005em; }
+    .app-card .app-hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .app-card .app-icon {
+      width: 32px; height: 32px; border-radius: 8px; background: var(--sky); color: var(--blue);
+      display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; margin-bottom: 6px;
+    }
+
+    .footer { font-size: 12.5px; color: var(--muted); text-align: center; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .companion { font-size: 12.5px; color: var(--muted); margin-top: 14px; }
+    .companion a { color: var(--blue); text-decoration: none; border-bottom: 1px solid var(--blue-tint); }
+    .companion a:hover { border-bottom-color: var(--blue); }
+  </style>
+</head>
+<body>
+  <a class="home-link" href="/how">&larr; All guides</a>
+  <div class="page">
+
+    <div class="eyebrow">SportsCal · Guides</div>
+    <h1>Add a calendar</h1>
+    <p class="subtitle">
+      Every SportsCal setup starts here: paste one iCal URL from your kid's sports app, and the events show up on the family Dashboard automatically. About a minute, no tech skills needed.
+    </p>
+    <div class="companion">Works with <strong>TeamSnap</strong>, <strong>GameChanger</strong>, <strong>PlayMetrics</strong>, <strong>SportsYou</strong>, <strong>SportsEngine</strong>, <strong>BYGA</strong>, and about a dozen more.</div>
+
+    <div class="section-title">The flow</div>
+
+    <div class="grid">
+
+      <!-- Panel 1 -->
+      <div class="panel">
+        <span class="step">STEP 1 · IN SPORTSCAL</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">My calendars</div>
+            <div class="screen-meta">Sports apps connected to SportsCal</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="slot">
+              <div>
+                <div class="slot-label">Baseball · GameChanger</div>
+                <div class="slot-sub">✓ Synced · 12 events · 2h ago</div>
+              </div>
+            </div>
+            <div class="slot">
+              <div>
+                <div class="slot-label">Basketball · PlayMetrics</div>
+                <div class="slot-sub">✓ Synced · 8 events · 2h ago</div>
+              </div>
+            </div>
+          </div>
+          <div class="tap-cluster center">
+            <button class="btn" type="button">+ Add calendar</button>
+            <span class="tap-hint">Tap</span>
+          </div>
+        </div>
+        <div>
+          <h3>Open My calendars</h3>
+          <p>Open SportsCal and go to <strong>My calendars</strong>. Existing calendars sit at the top; the <strong>+ Add calendar</strong> button is what you tap to add a new one.</p>
+        </div>
+      </div>
+
+      <!-- Panel 2 -->
+      <div class="panel">
+        <span class="step">STEP 2 · CHOOSE INPUT</span>
+        <div class="screen">
+          <div style="font-size: 12px; color: var(--muted);">My calendars dimmed behind the sheet…</div>
+          <div class="sheet-wrap">
+            <div class="sheet">
+              <div class="sheet-title">How would you like to add?</div>
+              <div class="sheet-row chosen"><span>Paste a URL</span><span class="tap-hint">Tap</span></div>
+              <div class="sheet-row">Snap a photo</div>
+              <div class="sheet-row">Chat with Coach</div>
+              <div class="sheet-row">Add manually</div>
+              <div class="sheet-row dim">Cancel</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3>Tap Paste a URL</h3>
+          <p>Four ways to add. If you already have a link from TeamSnap, GameChanger, or another sports app, <strong>Paste a URL</strong> is the fastest — you'll be done in about 45 seconds.</p>
+        </div>
+      </div>
+
+      <!-- Panel 3 -->
+      <div class="panel">
+        <span class="step">STEP 3 · PASTE + CONFIRM</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Paste your calendar URL</div>
+            <div class="screen-meta">From TeamSnap, GameChanger, PlayMetrics…</div>
+          </div>
+          <div class="url-input">webcal://ta1.teamsnap.com/calendars/team_5f39b32e_dc21.ics</div>
+          <span class="pill detected">✓ TeamSnap detected</span>
+          <div style="font-size: 11.5px; color: var(--muted); line-height: 1.5;">
+            SportsCal will name this calendar <strong>&ldquo;Baseball · TeamSnap&rdquo;</strong>. You can rename it later.
+          </div>
+          <div class="tap-cluster end">
+            <button class="btn" type="button">Continue</button>
+            <span class="tap-hint">Tap</span>
+          </div>
+        </div>
+        <div>
+          <h3>SportsCal recognizes the app</h3>
+          <p>Paste the URL and SportsCal usually knows which sports app it came from and pre-fills a sensible name. Not sure how to grab the URL? Coach can walk you through it (see the last section).</p>
+        </div>
+      </div>
+
+      <!-- Panel 4 -->
+      <div class="panel">
+        <span class="step">STEP 4 · ASSIGN A KID</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Who does this calendar cover?</div>
+            <div class="screen-meta">Check all that apply</div>
+          </div>
+          <div class="picker-list">
+            <div class="picker-row chosen">
+              <div class="avatar" style="background: var(--blue);">R</div>
+              <div>
+                <div class="picker-name">Riley</div>
+                <div class="picker-sub">Age 10 · Baseball, soccer</div>
+              </div>
+              <span class="checkmark on">✓</span>
+            </div>
+            <div class="picker-row chosen">
+              <div class="avatar" style="background: #059669;">S</div>
+              <div>
+                <div class="picker-name">Sam</div>
+                <div class="picker-sub">Age 12 · Baseball, basketball</div>
+              </div>
+              <span class="checkmark on">✓</span>
+            </div>
+            <div class="picker-row">
+              <div class="avatar" style="background: var(--amber);">J</div>
+              <div>
+                <div class="picker-name">Jordan</div>
+                <div class="picker-sub">Age 7 · Soccer</div>
+              </div>
+              <span class="checkmark off"></span>
+            </div>
+          </div>
+          <div class="tap-cluster end">
+            <button class="btn" type="button">Save</button>
+            <span class="tap-hint">Tap</span>
+          </div>
+        </div>
+        <div>
+          <h3>Pick which kid it's for</h3>
+          <p>If this calendar is just for one kid, pick them. If it covers a team of siblings (baseball with Riley + Sam, say), check both — SportsCal will show every event for both kids.</p>
+        </div>
+      </div>
+
+      <!-- Panel 5 -->
+      <div class="panel">
+        <span class="step">STEP 5 · SYNCING</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Syncing your calendar</div>
+            <div class="screen-meta">Reading events from TeamSnap</div>
+          </div>
+          <div class="sync-block">
+            <div class="spinner"></div>
+            <div class="sync-headline">Reading dates, times, and locations…</div>
+            <div class="sync-sub">Usually takes a few seconds</div>
+          </div>
+        </div>
+        <div>
+          <h3>SportsCal pulls the events</h3>
+          <p>First sync takes a few seconds. After that, SportsCal re-syncs every couple of hours automatically — so if the coach reschedules practice, the new time shows up without you doing anything.</p>
+        </div>
+      </div>
+
+      <!-- Panel 6 -->
+      <div class="panel">
+        <span class="step">STEP 6 · RESULT</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">This week</div>
+            <div class="screen-meta">3 events across the family</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="event-card" style="border-left-color: var(--blue);">
+              <div class="event-title">Baseball practice</div>
+              <div class="event-meta">Wed · 4:30 PM · Field 3 · Riley + Sam</div>
+            </div>
+            <div class="event-card" style="border-left-color: var(--amber);">
+              <div class="event-title">Basketball game</div>
+              <div class="event-meta">Fri · 6:00 PM · Community gym · Sam</div>
+            </div>
+            <div class="event-card" style="border-left-color: var(--success);">
+              <div class="event-title">Batting practice</div>
+              <div class="event-meta">Sat · 10:00 AM · Field 3 · Riley + Sam</div>
+            </div>
+          </div>
+          <div class="banner good">
+            <span>✓</span>
+            <span>Calendar added — syncs every 2 hours automatically</span>
+          </div>
+        </div>
+        <div>
+          <h3>Events on your Dashboard</h3>
+          <p>New calendar shows up in <strong>My calendars</strong> with a green ✓ Synced label, and every event lands on your family Dashboard — colored by kid, sorted by day.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="section-title">Where to find the URL in your sports app</div>
+
+    <div class="apps-grid">
+      <div class="app-card">
+        <div class="app-icon">TS</div>
+        <div class="app-name">TeamSnap</div>
+        <div class="app-hint">Team page &rarr; <strong>Schedule</strong> tab &rarr; three-dot menu &rarr; <strong>Subscribe to Calendar</strong> &rarr; Copy the webcal URL.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">GC</div>
+        <div class="app-name">GameChanger</div>
+        <div class="app-hint">Team page &rarr; Settings gear &rarr; <strong>Calendar subscription</strong> &rarr; Copy link. Works on the web app, not the mobile one.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">PM</div>
+        <div class="app-name">PlayMetrics</div>
+        <div class="app-hint">Family app &rarr; <strong>Calendar</strong> &rarr; Share icon &rarr; <strong>Subscribe (iCal)</strong> &rarr; Copy the link.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">SY</div>
+        <div class="app-name">SportsYou</div>
+        <div class="app-hint">Team &rarr; <strong>Calendar</strong> &rarr; Export icon &rarr; <strong>Subscribe URL</strong> &rarr; Copy.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">SE</div>
+        <div class="app-name">SportsEngine</div>
+        <div class="app-hint">Team page &rarr; Schedule &rarr; <strong>Subscribe</strong> &rarr; Copy the .ics link.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">BY</div>
+        <div class="app-name">BYGA</div>
+        <div class="app-hint">Team &rarr; <strong>Export calendar</strong> &rarr; Copy the URL. If you only see an email option, tap it and copy the link from the email.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">📅</div>
+        <div class="app-name">Google Calendar</div>
+        <div class="app-hint">Calendar settings &rarr; <strong>Integrate calendar</strong> &rarr; Copy the <strong>Secret address in iCal format</strong>. Keep it secret — anyone with the link can see the events.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">💬</div>
+        <div class="app-name">Not on this list?</div>
+        <div class="app-hint">Most sports apps let you export a calendar somewhere in Team settings. Or use Chat with Coach — Coach walks you through the exact taps for your app.</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Once your calendars are in, the next step is <a href="/how/share-kid-calendar" style="color: var(--blue); font-weight: 600; text-decoration: none;">sharing a kid's calendar</a> so they can see their own schedule on their phone.
+    </div>
+
+  </div>
+</body>
+</html>
