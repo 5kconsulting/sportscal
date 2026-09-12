@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="How SportsCal's group ride ask works — iMessage tap-links, first-yes-wins pickup claims, and confirmed rides in Apple Calendar." />
+  <meta name="description" content="How SportsCal's group ride ask works — a shared iMessage goes out with Yes/No tap-links, and the first Yes locks in the ride for the whole team." />
   <link rel="canonical" href="https://www.sportscalapp.com/rides/group" />
   <meta name="robots" content="index, follow" />
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
@@ -440,7 +440,7 @@
   <div class="eyebrow">SportsCal · Flow diagram</div>
   <h1>Group ride ask</h1>
   <p class="subtitle">
-    A parent taps <strong>Ask a group</strong>, a shared iMessage goes out with tap-links, and the first Yes atomically claims the ride. Here's what each side sees along the way.
+    A parent taps <strong>Ask a group</strong>, a shared iMessage goes out with Yes/No tap-links, and the first Yes locks in the ride for everyone. Here's what each side sees along the way.
   </p>
 
   <div class="section-title">The flow</div>
@@ -452,8 +452,8 @@
       <span class="step">STEP 1 · PARENT</span>
       <div class="screen">
         <div class="screen-header">
-          <div class="screen-title">Practice: 5th &amp; 6th (BLACK)</div>
-          <div class="screen-meta">Tue Sep 8 · 3:30 – 5:00 PM<br>West Hills Christian School · Field</div>
+          <div class="screen-title">Basketball practice</div>
+          <div class="screen-meta">Tue · 3:30 – 5:00 PM<br>Community Rec Center · Court B</div>
         </div>
         <div class="section-label">Ride coordination</div>
         <div class="slot">
@@ -493,7 +493,7 @@
       </div>
       <div>
         <h3>Choose the group</h3>
-        <p>iOS asks whether to pick one person or ask a whole group. Parent taps <strong>Ask a group</strong> and then picks a team like <strong>Basketball Parents</strong>.</p>
+        <p>SportsCal asks whether to pick one person or ping a whole group. Parent taps <strong>Ask a group</strong> and picks a team.</p>
       </div>
     </div>
 
@@ -501,16 +501,16 @@
     <div class="panel">
       <span class="step">STEP 3 · GROUP THREAD</span>
       <div class="screen">
-        <div class="imsg-recipients">To: <strong>Basketball Parents (8)</strong></div>
+        <div class="imsg-recipients">To: <strong>Team parents (8)</strong></div>
         <div class="bubble">
-          Hi 👋 anyone able to pick up practice Tue 3:30pm at West Hills Christian?
+          Hi 👋 anyone able to pick up practice Tue 3:30pm at the gym?
           <span class="tap-line">Yes → <a href="#" onclick="return false">sportscalapp.com/r/claim/aB4kL9…</a></span>
           <span class="tap-line">No thanks → <a href="#" onclick="return false">sportscalapp.com/r/decline/aB4kL9…</a></span>
         </div>
       </div>
       <div>
         <h3>iMessage goes out</h3>
-        <p>SportsCal opens iMessage pre-filled with the request and two tap-links. Each link carries a unique token tied to this one pickup slot.</p>
+        <p>SportsCal opens Messages pre-filled with the request. Two tap-links — <strong>Yes</strong> and <strong>No thanks</strong> — go out to the whole team at once.</p>
       </div>
     </div>
 
@@ -519,17 +519,17 @@
       <span class="step">STEP 4 · FIRST RESPONDER</span>
       <div class="screen">
         <div class="claim-card">
-          <div class="claim-title">Pick up · Practice (BLACK)</div>
-          <div class="claim-meta">Tue Sep 8 · 3:30 PM · West Hills Christian</div>
+          <div class="claim-title">Pick up · Basketball practice</div>
+          <div class="claim-meta">Tue · 3:30 PM · the gym</div>
         </div>
         <div class="banner good">
           <span class="banner-emoji">🎉</span>
-          <span>You're on! Parent has been notified.</span>
+          <span>You're on! The parent has been notified.</span>
         </div>
       </div>
       <div>
         <h3>First Yes wins</h3>
-        <p>First tap on <strong>Yes</strong> hits the claim endpoint. Backend runs one atomic <code>UPDATE</code> on the pending row — first token in, wins the ride.</p>
+        <p>The first parent to tap <strong>Yes</strong> gets the ride. SportsCal locks it in right away so no one else claims it by mistake.</p>
       </div>
     </div>
 
@@ -538,8 +538,8 @@
       <span class="step">STEP 5 · LATE RESPONDER</span>
       <div class="screen">
         <div class="claim-card">
-          <div class="claim-title">Pick up · Practice (BLACK)</div>
-          <div class="claim-meta">Tue Sep 8 · 3:30 PM · West Hills Christian</div>
+          <div class="claim-title">Pick up · Basketball practice</div>
+          <div class="claim-meta">Tue · 3:30 PM · the gym</div>
         </div>
         <div class="banner late">
           <span class="banner-emoji">🙏</span>
@@ -548,7 +548,7 @@
       </div>
       <div>
         <h3>Later Yeses land softly</h3>
-        <p>Every later Yes tap comes back to a row that's already <code>confirmed</code>. No duplicate-confirmation storm; no one has to say no.</p>
+        <p>Everyone else who taps Yes after sees a friendly "someone else got there first" page. No duplicate confirmations; nobody has to say no.</p>
       </div>
     </div>
 
@@ -557,8 +557,8 @@
       <span class="step">STEP 6 · PARENT</span>
       <div class="screen">
         <div class="screen-header">
-          <div class="screen-title">Practice: 5th &amp; 6th (BLACK)</div>
-          <div class="screen-meta">Tue Sep 8 · 3:30 – 5:00 PM</div>
+          <div class="screen-title">Basketball practice</div>
+          <div class="screen-meta">Tue · 3:30 – 5:00 PM</div>
         </div>
         <div class="section-label">Ride coordination</div>
         <div class="driver-chip">
@@ -575,13 +575,13 @@
       </div>
       <div>
         <h3>Slot flips to Confirmed</h3>
-        <p>Back in the app the Pick-up slot shows the driver with quick <strong>Call</strong> and <strong>Text</strong> buttons. The <code>.ics</code> feed also injects the driver into Apple Calendar.</p>
+        <p>Back in the app the Pick-up slot shows the driver with quick <strong>Call</strong> and <strong>Text</strong> buttons. The pickup also shows up in Apple Calendar automatically.</p>
       </div>
     </div>
 
   </div>
 
-  <div class="section-title">How the race resolves</div>
+  <div class="section-title">What happens when several parents tap Yes</div>
 
   <div class="race">
     <div>
@@ -591,7 +591,7 @@
         <line class="tl-tick" x1="52" y1="67" x2="52" y2="77" />
         <circle class="tl-winner" cx="52" cy="72" r="10" />
         <text class="tl-label" x="52" y="102" text-anchor="middle">T = 0.0s</text>
-        <text class="tl-headline-win" x="52" y="46" text-anchor="middle">Claim confirmed</text>
+        <text class="tl-headline-win" x="52" y="46" text-anchor="middle">Ride claimed</text>
 
         <line class="tl-tick" x1="200" y1="67" x2="200" y2="77" />
         <circle class="tl-loser" cx="200" cy="72" r="8" />
@@ -607,14 +607,14 @@
       </svg>
     </div>
     <div class="race-copy">
-      <div class="race-title">One row, one winner</div>
-      <p>Each Yes link carries a unique token. The claim endpoint runs one atomic <code>UPDATE</code> against the pending row, matching on <code>status = 'pending'</code>. Only the first token to arrive flips the row to <code>confirmed</code> and returns success.</p>
-      <p>Every later Yes tap hits a row that's already claimed and sees the friendly "beat you to it" page. The parent gets a single notification — not one per Yes — and nobody in the group ends up as the awkward runner-up.</p>
+      <div class="race-title">First tap wins — everyone else lands gently</div>
+      <p>Each Yes link is unique to the person who got it. When someone taps it, SportsCal locks the ride in for them right away — no one else can double-book by accident.</p>
+      <p>Every later tap sees a friendly "someone beat you to it" page. You get one notification — the confirmed driver — not one per response. Nobody in the group ends up as the awkward runner-up.</p>
     </div>
   </div>
 
   <div class="footer">
-    Ride requests go out via iMessage; claim + decline taps route through <code>sportscalapp.com/r/…</code>
+    Group asks go out via Messages. Yes and No taps come back to SportsCal — one confirmed driver per ride.
   </div>
 
 </div>

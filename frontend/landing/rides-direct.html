@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="SportsCal's direct ride ask: three ways to reach one contact — email, iMessage, or silent assign — all confirming in the same pickup slot." />
+  <meta name="description" content="SportsCal's direct ride ask — pick one contact, then reach out by email, iMessage, or silent assign. Three ways to notify, one shared claim." />
   <link rel="canonical" href="https://www.sportscalapp.com/rides/direct" />
   <meta name="robots" content="index, follow" />
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
@@ -519,8 +519,8 @@
       <span class="step">STEP 1 · PARENT</span>
       <div class="screen">
         <div class="screen-header">
-          <div class="screen-title">Practice: 5th &amp; 6th (BLACK)</div>
-          <div class="screen-meta">Tue Sep 8 · 3:30 – 5:00 PM<br>West Hills Christian School · Field</div>
+          <div class="screen-title">Basketball practice</div>
+          <div class="screen-meta">Tue · 3:30 – 5:00 PM<br>Community Rec Center · Court B</div>
         </div>
         <div class="section-label">Ride coordination</div>
         <div class="slot">
@@ -560,7 +560,7 @@
       </div>
       <div>
         <h3>Fork: Pick a contact</h3>
-        <p>At the same action sheet as the group flow, Parent taps <strong>Pick a contact</strong> to route the ask to one specific person instead of a team.</p>
+        <p>Same first tap as the group flow, but this time Parent picks <strong>Pick a contact</strong> — the ask goes to one specific person.</p>
       </div>
     </div>
 
@@ -632,7 +632,7 @@
       </div>
       <div>
         <h3>Pick how to reach them</h3>
-        <p>Three ways to notify. Parent taps <strong>Email</strong> — SportsCal drops a formatted request into Morgan's inbox with Confirm and Decline buttons.</p>
+        <p>Three ways to notify. Parent taps <strong>Email</strong> — SportsCal sends a formatted request to Morgan's inbox with Yes and No buttons.</p>
       </div>
     </div>
 
@@ -648,7 +648,7 @@
           <div class="email-brand-bar">SportsCal</div>
           <div class="email-body">
             <div>Hi Morgan 👋</div>
-            <div>The parent asked if you could pick up practice <strong>Tuesday 3:30pm</strong> at West Hills Christian.</div>
+            <div>The parent asked if you could pick up practice on <strong>Tuesday at 3:30pm</strong>.</div>
             <div class="email-actions">
               <div class="email-btn-primary">Yes, I can do it →</div>
               <div class="email-btn-secondary">Sorry, can't this time</div>
@@ -658,7 +658,7 @@
       </div>
       <div>
         <h3>Email arrives</h3>
-        <p>Morgan taps <strong>Yes, I can do it</strong>. Same claim endpoint under the hood — the pending row flips to <code>confirmed</code> and the parent gets notified.</p>
+        <p>Morgan taps <strong>Yes, I can do it</strong>. Same rules as the group ask — the ride is locked in right away and the parent gets notified.</p>
       </div>
     </div>
 
@@ -667,8 +667,8 @@
       <span class="step">STEP 6 · PARENT</span>
       <div class="screen">
         <div class="screen-header">
-          <div class="screen-title">Practice: 5th &amp; 6th (BLACK)</div>
-          <div class="screen-meta">Tue Sep 8 · 3:30 – 5:00 PM</div>
+          <div class="screen-title">Basketball practice</div>
+          <div class="screen-meta">Tue · 3:30 – 5:00 PM</div>
         </div>
         <div class="section-label">Ride coordination</div>
         <div class="driver-chip">
@@ -685,7 +685,7 @@
       </div>
       <div>
         <h3>Slot flips to Confirmed</h3>
-        <p>Back in the app the Pick-up slot shows Morgan with quick <strong>Call</strong> and <strong>Text</strong> buttons. The <code>.ics</code> feed also injects the driver into Apple Calendar.</p>
+        <p>Back in the app the Pick-up slot shows Morgan with quick <strong>Call</strong> and <strong>Text</strong> buttons. The pickup also shows up in Apple Calendar automatically.</p>
       </div>
     </div>
 
@@ -697,7 +697,7 @@
     <div class="option-card">
       <div class="option-icon mail">📧</div>
       <div class="option-name">Email</div>
-      <p class="option-copy">Sends a formatted email with Confirm and Decline tap-buttons. Same claim endpoint as the group flow — first tap wins on the backend.</p>
+      <p class="option-copy">Sends a formatted email with Yes and No tap-buttons. Same rule as the group flow — first tap wins.</p>
       <div class="option-when">Best when · <strong>you have their email but not their phone</strong></div>
     </div>
     <div class="option-card">
@@ -715,7 +715,7 @@
   </div>
 
   <div class="footer">
-    Confirm and decline taps route through <code>sportscalapp.com/r/…</code> · same atomic claim as the group flow
+    Yes and No taps come back to SportsCal — same one-driver-per-ride rule as the group flow.
   </div>
 
 </div>
