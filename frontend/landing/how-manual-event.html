@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add a manual event</title>
+  <meta name="description" content="How to add a one-off event to SportsCal that isn't in any team app — birthdays, dentist appointments, family scrimmages, whatever." />
+  <link rel="canonical" href="https://www.sportscalapp.com/how/manual-event" />
+  <meta name="robots" content="index, follow" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" />
+  <style>
+    :root {
+      --ink: #0F172A;
+      --ink-2: #1E293B;
+      --ground: #F5F7FB;
+      --card: #FFFFFF;
+      --muted: #64748B;
+      --muted-2: #94A3B8;
+      --border: #E4ECFC;
+      --border-strong: #CBD5E1;
+      --blue: #2563EB;
+      --blue-tint: #DBEAFE;
+      --sky: #EFF6FF;
+      --amber: #D97706;
+      --amber-tint: #FEF3C7;
+      --success: #059669;
+      --success-tint: #D1FAE5;
+      --warning: #DC2626;
+      --warning-tint: #FEE2E2;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+      --font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --ink: #E2E8F0;
+        --ink-2: #CBD5E1;
+        --ground: #0A1224;
+        --card: #111A2F;
+        --muted: #94A3B8;
+        --muted-2: #64748B;
+        --border: #1E293B;
+        --border-strong: #334155;
+        --blue: #60A5FA;
+        --blue-tint: #1E3A8A;
+        --sky: #172554;
+        --amber: #FBBF24;
+        --amber-tint: #78350F;
+        --success: #34D399;
+        --success-tint: #064E3B;
+        --warning: #F87171;
+        --warning-tint: #7F1D1D;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+        --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+      }
+    }
+    :root[data-theme="dark"] {
+      --ink: #E2E8F0;
+      --ink-2: #CBD5E1;
+      --ground: #0A1224;
+      --card: #111A2F;
+      --muted: #94A3B8;
+      --muted-2: #64748B;
+      --border: #1E293B;
+      --border-strong: #334155;
+      --blue: #60A5FA;
+      --blue-tint: #1E3A8A;
+      --sky: #172554;
+      --amber: #FBBF24;
+      --amber-tint: #78350F;
+      --success: #34D399;
+      --success-tint: #064E3B;
+      --warning: #F87171;
+      --warning-tint: #7F1D1D;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+      --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      background: var(--ground);
+      color: var(--ink);
+      font-family: var(--font);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .home-link {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--blue);
+      text-decoration: none;
+      padding: 20px 24px 0;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .page { max-width: 960px; margin: 0 auto; padding: 32px 24px 72px; }
+    .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); }
+    h1 { font-size: 40px; font-weight: 700; letter-spacing: -0.025em; margin: 10px 0 14px; text-wrap: balance; color: var(--ink); line-height: 1.1; }
+    .subtitle { font-size: 16px; color: var(--muted); max-width: 62ch; line-height: 1.6; margin: 0; }
+    .subtitle strong { color: var(--ink-2); font-weight: 600; }
+    .section-title { font-size: 22px; font-weight: 700; letter-spacing: -0.018em; margin: 56px 0 20px; color: var(--ink); }
+
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .page { padding: 24px 20px 64px; } h1 { font-size: 32px; } }
+
+    .panel {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 22px; display: flex; flex-direction: column; gap: 18px; box-shadow: var(--shadow-sm);
+    }
+    .step { font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; color: var(--muted-2); }
+    .panel h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); margin: 0 0 6px; }
+    .panel p { font-size: 14px; color: var(--muted); line-height: 1.6; margin: 0; }
+    .panel p strong { color: var(--ink-2); font-weight: 600; }
+
+    .screen {
+      background: var(--sky); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 240px;
+    }
+    .screen-header { padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .screen-title { font-size: 14px; font-weight: 600; color: var(--ink); letter-spacing: -0.005em; }
+    .screen-meta { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+    .section-label { font-size: 10px; font-weight: 700; color: var(--muted-2); letter-spacing: 0.14em; text-transform: uppercase; }
+
+    .slot {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    }
+    .slot-label { font-size: 13px; color: var(--ink); font-weight: 600; }
+    .slot-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+    .btn {
+      font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px;
+      background: var(--amber); color: #fff; border: 0; cursor: default;
+    }
+    .btn-outline {
+      background: transparent; color: var(--blue); border: 1px solid var(--blue);
+      font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 8px; cursor: default;
+    }
+
+    .sheet-wrap { margin-top: auto; }
+    .sheet { background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    .sheet-title { padding: 12px 16px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border); text-align: center; }
+    .sheet-row { padding: 13px 16px; font-size: 14px; color: var(--ink); border-bottom: 1px solid var(--border); text-align: center; }
+    .sheet-row:last-child { border-bottom: 0; }
+    .sheet-row.chosen {
+      color: var(--blue); font-weight: 600; background: var(--sky);
+      display: flex; justify-content: space-between; align-items: center; text-align: left; padding-right: 12px;
+    }
+    .sheet-row.dim { color: var(--muted); }
+
+    .picker-list { display: flex; flex-direction: column; gap: 6px; }
+    .picker-row {
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    }
+    .picker-row.chosen { background: var(--sky); border-color: var(--blue-tint); }
+    .picker-name { font-size: 13px; color: var(--ink); font-weight: 600; }
+    .picker-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%; color: #fff;
+      display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12.5px; flex-shrink: 0;
+    }
+    .checkmark {
+      margin-left: auto; width: 22px; height: 22px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+    }
+    .checkmark.on { background: var(--blue); color: #fff; }
+    .checkmark.off { background: var(--card); border: 1.5px solid var(--border-strong); }
+
+    /* URL input mockup */
+    .url-input {
+      background: var(--card); border: 1.5px solid var(--blue); border-radius: 10px;
+      padding: 11px 14px; font-family: var(--mono); font-size: 11px; color: var(--ink);
+      word-break: break-all; line-height: 1.4;
+    }
+    .pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+      letter-spacing: 0.1em; text-transform: uppercase; align-self: flex-start;
+    }
+    .pill.detected { background: var(--success-tint); color: var(--success); }
+
+    /* Sync progress */
+    .sync-block {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      padding: 24px 0 16px; flex: 1;
+    }
+    .spinner {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 3px solid var(--blue-tint); border-top-color: var(--blue);
+    }
+    .sync-headline { font-size: 13.5px; color: var(--ink); font-weight: 600; text-align: center; }
+    .sync-sub { font-size: 11.5px; color: var(--muted); text-align: center; margin-top: -6px; }
+
+    /* Event cards on dashboard */
+    .event-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 12px; border-left-width: 3px; border-left-style: solid;
+    }
+    .event-card .event-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .event-card .event-meta { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+    .banner {
+      padding: 10px 12px; border-radius: 10px; font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .banner.good { background: var(--success-tint); color: var(--success); }
+
+    /* Tap indicators */
+    .tap-cluster { display: flex; align-items: center; gap: 10px; }
+    .tap-cluster.end { justify-content: flex-end; align-self: flex-end; margin-top: auto; }
+    .tap-cluster.center { justify-content: center; margin-top: auto; }
+    .tap-hint {
+      display: inline-flex; align-items: center; background: var(--amber); color: #fff;
+      font-size: 9.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+      letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(217, 119, 6, 0.35); line-height: 1.2;
+    }
+
+    /* App logos strip for closing "Where to find the URL" */
+    .apps-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+    }
+    @media (min-width: 720px) { .apps-grid { grid-template-columns: repeat(4, 1fr); } }
+    .app-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow-sm);
+    }
+    .app-card .app-name { font-size: 13.5px; font-weight: 700; color: var(--ink); letter-spacing: -0.005em; }
+    .app-card .app-hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .app-card .app-icon {
+      width: 32px; height: 32px; border-radius: 8px; background: var(--sky); color: var(--blue);
+      display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; margin-bottom: 6px;
+    }
+
+    .footer { font-size: 12.5px; color: var(--muted); text-align: center; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .companion { font-size: 12.5px; color: var(--muted); margin-top: 14px; }
+    .companion a { color: var(--blue); text-decoration: none; border-bottom: 1px solid var(--blue-tint); }
+    .companion a:hover { border-bottom-color: var(--blue); }
+  </style>
+  <style>
+  .toggle {
+    width: 44px; height: 24px; background: var(--border-strong); border-radius: 999px; position: relative;
+  }
+  .toggle.on { background: var(--blue); }
+  .toggle-thumb {
+    width: 20px; height: 20px; background: #fff; border-radius: 50%;
+    position: absolute; top: 2px; left: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle.on .toggle-thumb { left: 22px; }
+  .field-input {
+    background: var(--card); border: 1.5px solid var(--blue); border-radius: 8px;
+    padding: 10px 12px; font-size: 13px; color: var(--ink);
+  }
+  .field-input.empty {
+    border: 1px dashed var(--border-strong);
+    color: var(--muted-2); font-style: italic;
+  }
+  .caret { opacity: 0.5; }
+</style>
+</head>
+<body>
+  <a class="home-link" href="/how">&larr; All guides</a>
+  <div class="page">
+    <div class="eyebrow">SportsCal &middot; Guides</div>
+    <h1>Add a manual event</h1>
+    <p class="subtitle">A birthday party, a dentist appointment, a family scrimmage &mdash; anything not in a team app that still needs to be on the family calendar. Four short steps and you're done.</p>
+    <div class="companion">Manual events show up on the Dashboard right next to synced events and push to Apple Calendar through the same feed.</div>
+    <div class="section-title">The flow</div>
+    <div class="grid">
+      <div class="panel">
+        <span class="step">STEP 1 &middot; DASHBOARD</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Dashboard</div>
+            <div class="screen-meta">This week</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="event-card" style="border-left-color: var(--blue);">
+              <div class="event-title">Baseball practice</div>
+              <div class="event-meta">Wed 4:30 PM &middot; Field 3 &middot; Riley</div>
+            </div>
+            <div class="event-card" style="border-left-color: var(--amber);">
+              <div class="event-title">Basketball game</div>
+              <div class="event-meta">Fri 6:00 PM &middot; Community gym &middot; Sam</div>
+            </div>
+          </div>
+          <div class="tap-cluster center">
+            <button class="btn" type="button">+ Add event</button>
+            <span class="tap-hint">Tap</span>
+          </div>
+        </div>
+        <div>
+          <h3>Tap + Add event</h3>
+          <p>From the family Dashboard, tap <strong>+ Add event</strong> to create a one-off that isn't in any team app &mdash; a birthday party, a dentist appointment, a family scrimmage, whatever.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 2 &middot; NAME IT</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">New event</div>
+            <div class="screen-meta">Step 1 of 4 &middot; Title</div>
+          </div>
+          <div class="section-label">Title</div>
+          <div class="field-input">Team pizza night<span class="caret">|</span></div>
+          <div style="font-size: 11.5px; color: var(--muted); line-height: 1.5;">Type whatever you'd call the event. Kept short is fine &mdash; you can always add notes below.</div>
+          <div class="tap-cluster end">
+            <button class="btn" type="button">Next</button>
+            <span class="tap-hint">Tap</span>
+          </div>
+        </div>
+        <div>
+          <h3>Type a title</h3>
+          <p>Start with the title &mdash; "Team pizza night", "Dentist", "Riley's birthday party". Anything a family member would recognize on the Dashboard.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 3 &middot; WHEN</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">New event</div>
+            <div class="screen-meta">Step 2 of 4 &middot; When</div>
+          </div>
+          <div class="section-label">Date</div>
+          <div class="slot">
+            <div class="slot-label">Friday, September 20</div>
+          </div>
+          <div class="section-label">Time</div>
+          <div class="slot">
+            <div class="slot-label">6:00 &ndash; 8:30 PM</div>
+          </div>
+          <div style="font-size: 11.5px; color: var(--muted); line-height: 1.5;">All-day event? Skip the time and toggle "All day" underneath.</div>
+          <div class="tap-cluster end">
+            <button class="btn" type="button">Next</button>
+            <span class="tap-hint">Tap</span>
+          </div>
+        </div>
+        <div>
+          <h3>Pick the date and time</h3>
+          <p>Standard date picker plus start and end times. Repeating weekly? Skip that here &mdash; recurring events live on a proper calendar source, not on manual entries.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 4 &middot; WHO'S INVITED</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">New event</div>
+            <div class="screen-meta">Step 3 of 4 &middot; Who's going?</div>
+          </div>
+          <div class="picker-list">
+            <div class="picker-row chosen">
+              <div class="avatar" style="background: var(--blue);">R</div>
+              <div>
+                <div class="picker-name">Riley</div>
+              </div>
+              <span class="checkmark on" style="margin-left: auto;">&#10003;</span>
+            </div>
+            <div class="picker-row chosen">
+              <div class="avatar" style="background: #059669;">S</div>
+              <div>
+                <div class="picker-name">Sam</div>
+              </div>
+              <span class="checkmark on" style="margin-left: auto;">&#10003;</span>
+            </div>
+            <div class="picker-row">
+              <div class="avatar" style="background: var(--amber);">J</div>
+              <div>
+                <div class="picker-name">Jordan</div>
+              </div>
+              <span class="checkmark off" style="margin-left: auto;"></span>
+            </div>
+          </div>
+          <div class="tap-cluster end">
+            <button class="btn" type="button">Next</button>
+            <span class="tap-hint">Tap</span>
+          </div>
+        </div>
+        <div>
+          <h3>Check which kids are going</h3>
+          <p>Some events are for one kid (a dentist appointment), some are for the whole family (a party). Check whoever's actually involved &mdash; the event will show up on their individual feeds too.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 5 &middot; SHARING</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">New event</div>
+            <div class="screen-meta">Step 4 of 4 &middot; Sharing</div>
+          </div>
+          <div class="section-label">Share with the whole family</div>
+          <div style="font-size: 11.5px; color: var(--muted); line-height: 1.5;">On means everyone sees it on the family Dashboard. Off keeps it in Riley's and Sam's personal feeds only.</div>
+          <div class="slot">
+            <div>
+              <div class="slot-label">Visible on family Dashboard</div>
+              <div class="slot-sub">On</div>
+            </div>
+            <div class="toggle on"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="tap-cluster end">
+            <button class="btn" type="button">Save</button>
+            <span class="tap-hint">Tap</span>
+          </div>
+        </div>
+        <div>
+          <h3>Family-wide, or just theirs</h3>
+          <p>For a party or family outing, keep it on. For something like a dentist appointment you don't want your other kids to notice on the shared Dashboard, flip it off &mdash; the event still lives in Riley's own feed.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 6 &middot; RESULT</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Dashboard</div>
+            <div class="screen-meta">This week</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="event-card" style="border-left-color: var(--blue);">
+              <div class="event-title">Baseball practice</div>
+              <div class="event-meta">Wed 4:30 PM &middot; Field 3 &middot; Riley</div>
+            </div>
+            <div class="event-card" style="border-left-color: var(--success);">
+              <div class="event-title">Team pizza night</div>
+              <div class="event-meta">Fri 6:00 PM &middot; Riley + Sam</div>
+            </div>
+            <div class="event-card" style="border-left-color: var(--amber);">
+              <div class="event-title">Basketball game</div>
+              <div class="event-meta">Fri 6:00 PM &middot; Community gym &middot; Sam</div>
+            </div>
+          </div>
+          <div class="banner good">
+            <span>&#10003;</span>
+            <span>Manual event added &mdash; syncs to Apple Calendar too</span>
+          </div>
+        </div>
+        <div>
+          <h3>On the Dashboard right away</h3>
+          <p>Manual events live on your Dashboard mixed in with automatically-synced ones, and get pushed to Apple Calendar through the same feed URL. Edit or delete anytime by tapping the event.</p>
+        </div>
+      </div>
+    </div>
+    <div class="section-title">When to add manually</div>
+    <div class="apps-grid">
+      <div class="app-card">
+        <div class="app-icon">&#127874;</div>
+        <div class="app-name">Birthday parties</div>
+        <div class="app-hint">A friend's party, a family gathering, anything that would clash with a practice you should reschedule.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">&#128737;</div>
+        <div class="app-name">Doctor / dentist</div>
+        <div class="app-hint">Appointments that need to be blocked out on the family calendar &mdash; and shared with a co-parent handling pickups.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">&#9917;</div>
+        <div class="app-name">Backyard scrimmage</div>
+        <div class="app-hint">A pickup game or one-off practice the coach organizes over text, not through the team app.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">&#128204;</div>
+        <div class="app-name">Anything not in an app</div>
+        <div class="app-hint">Grandparent visits, school pickup swap days &mdash; if you'd write it on the fridge, add it here.</div>
+      </div>
+    </div>
+    <div class="footer">Have a single team calendar that covers multiple kids? See <a href="/how/route-to-kid" style="color: var(--blue); font-weight: 600; text-decoration: none;">Route events to the right kid</a> &mdash; SportsCal can split them by age group with a text pattern.</div>
+  </div>
+</body>
+</html>
