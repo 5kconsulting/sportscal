@@ -433,9 +433,47 @@
     font-size: 12px;
     color: var(--ink-2);
   }
+  /* Tap indicators — amber pill on each panel's tap target */
+  .tap-cluster {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .tap-cluster.end {
+    justify-content: flex-end;
+    align-self: flex-end;
+    margin-top: auto;
+  }
+  .tap-hint {
+    display: inline-flex;
+    align-items: center;
+    background: var(--amber);
+    color: #fff;
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(217, 119, 6, 0.35);
+    line-height: 1.2;
+  }
+  /* When a chosen sheet-row carries a tap hint, switch its layout so
+     the label sits left, tap pill sits right. */
+  .sheet-row.chosen {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+    padding-right: 12px;
+  }
+  .picker-row.chosen .tap-hint {
+    margin-left: auto;
+  }
 </style>
 
-</head><body><a href="/" style="display:block;font-size:12px;font-weight:600;color:var(--blue);text-decoration:none;padding:20px 24px 0;max-width:960px;margin:0 auto;">&larr; sportscalapp.com</a><div class="page">
+</head><body><a href="/how" style="display:block;font-size:12px;font-weight:600;color:var(--blue);text-decoration:none;padding:20px 24px 0;max-width:960px;margin:0 auto;">&larr; All guides</a><div class="page">
 
   <div class="eyebrow">SportsCal · Flow diagram</div>
   <h1>Group ride ask</h1>
@@ -461,7 +499,10 @@
             <div class="slot-label">Pick-up</div>
             <div class="slot-sub">Not assigned</div>
           </div>
-          <button class="btn" type="button">+ Assign</button>
+          <div class="tap-cluster">
+            <button class="btn" type="button">+ Assign</button>
+            <span class="tap-hint">Tap</span>
+          </div>
         </div>
         <div class="slot">
           <div>
@@ -486,7 +527,7 @@
           <div class="sheet">
             <div class="sheet-title">Who handles pick up?</div>
             <div class="sheet-row">Pick a contact</div>
-            <div class="sheet-row chosen">Ask a group</div>
+            <div class="sheet-row chosen"><span>Ask a group</span><span class="tap-hint">Tap</span></div>
             <div class="sheet-row dim">Cancel</div>
           </div>
         </div>
@@ -506,6 +547,10 @@
           Hi 👋 anyone able to pick up practice Tue 3:30pm at the gym?
           <span class="tap-line">Yes → <a href="#" onclick="return false">sportscalapp.com/r/claim/aB4kL9…</a></span>
           <span class="tap-line">No thanks → <a href="#" onclick="return false">sportscalapp.com/r/decline/aB4kL9…</a></span>
+        </div>
+        <div class="tap-cluster end">
+          <button class="btn" type="button">Send</button>
+          <span class="tap-hint">Tap</span>
         </div>
       </div>
       <div>
