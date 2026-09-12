@@ -37,7 +37,9 @@ app.get('/terms', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 't
 app.get('/privacy', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'privacy.html')));
 app.get('/help', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'help.html')));
 app.get('/how', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how.html')));
-app.get('/how/add-calendar', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how-add-calendar.html')));
+app.get('/how/add-calendar',      (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how-add-calendar.html')));
+app.get('/how/share-kid-calendar',(_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how-share-kid-calendar.html')));
+app.get('/how/snap-photo',        (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how-snap-photo.html')));
 app.get('/rides/group',  (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'rides-group.html')));
 app.get('/rides/direct', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'rides-direct.html')));
 
