@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Forward events by email</title>
+  <meta name="description" content="How to send meeting invites, school newsletters, and coach emails to your unique SportsCal inbox address — SportsCal reads them and drops the events on your family Dashboard." />
+  <link rel="canonical" href="https://www.sportscalapp.com/how/forward-by-email" />
+  <meta name="robots" content="index, follow" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" />
+  <style>
+    :root {
+      --ink: #0F172A;
+      --ink-2: #1E293B;
+      --ground: #F5F7FB;
+      --card: #FFFFFF;
+      --muted: #64748B;
+      --muted-2: #94A3B8;
+      --border: #E4ECFC;
+      --border-strong: #CBD5E1;
+      --blue: #2563EB;
+      --blue-tint: #DBEAFE;
+      --sky: #EFF6FF;
+      --amber: #D97706;
+      --amber-tint: #FEF3C7;
+      --success: #059669;
+      --success-tint: #D1FAE5;
+      --warning: #DC2626;
+      --warning-tint: #FEE2E2;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+      --font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --ink: #E2E8F0;
+        --ink-2: #CBD5E1;
+        --ground: #0A1224;
+        --card: #111A2F;
+        --muted: #94A3B8;
+        --muted-2: #64748B;
+        --border: #1E293B;
+        --border-strong: #334155;
+        --blue: #60A5FA;
+        --blue-tint: #1E3A8A;
+        --sky: #172554;
+        --amber: #FBBF24;
+        --amber-tint: #78350F;
+        --success: #34D399;
+        --success-tint: #064E3B;
+        --warning: #F87171;
+        --warning-tint: #7F1D1D;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+        --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+      }
+    }
+    :root[data-theme="dark"] {
+      --ink: #E2E8F0;
+      --ink-2: #CBD5E1;
+      --ground: #0A1224;
+      --card: #111A2F;
+      --muted: #94A3B8;
+      --muted-2: #64748B;
+      --border: #1E293B;
+      --border-strong: #334155;
+      --blue: #60A5FA;
+      --blue-tint: #1E3A8A;
+      --sky: #172554;
+      --amber: #FBBF24;
+      --amber-tint: #78350F;
+      --success: #34D399;
+      --success-tint: #064E3B;
+      --warning: #F87171;
+      --warning-tint: #7F1D1D;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+      --shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      background: var(--ground);
+      color: var(--ink);
+      font-family: var(--font);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .home-link {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--blue);
+      text-decoration: none;
+      padding: 20px 24px 0;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .page { max-width: 960px; margin: 0 auto; padding: 32px 24px 72px; }
+    .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); }
+    h1 { font-size: 40px; font-weight: 700; letter-spacing: -0.025em; margin: 10px 0 14px; text-wrap: balance; color: var(--ink); line-height: 1.1; }
+    .subtitle { font-size: 16px; color: var(--muted); max-width: 62ch; line-height: 1.6; margin: 0; }
+    .subtitle strong { color: var(--ink-2); font-weight: 600; }
+    .section-title { font-size: 22px; font-weight: 700; letter-spacing: -0.018em; margin: 56px 0 20px; color: var(--ink); }
+
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .page { padding: 24px 20px 64px; } h1 { font-size: 32px; } }
+
+    .panel {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 22px; display: flex; flex-direction: column; gap: 18px; box-shadow: var(--shadow-sm);
+    }
+    .step { font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; color: var(--muted-2); }
+    .panel h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); margin: 0 0 6px; }
+    .panel p { font-size: 14px; color: var(--muted); line-height: 1.6; margin: 0; }
+    .panel p strong { color: var(--ink-2); font-weight: 600; }
+
+    .screen {
+      background: var(--sky); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 240px;
+    }
+    .screen-header { padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .screen-title { font-size: 14px; font-weight: 600; color: var(--ink); letter-spacing: -0.005em; }
+    .screen-meta { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+    .section-label { font-size: 10px; font-weight: 700; color: var(--muted-2); letter-spacing: 0.14em; text-transform: uppercase; }
+
+    .slot {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    }
+    .slot-label { font-size: 13px; color: var(--ink); font-weight: 600; }
+    .slot-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+    .btn {
+      font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px;
+      background: var(--amber); color: #fff; border: 0; cursor: default;
+    }
+    .btn-outline {
+      background: transparent; color: var(--blue); border: 1px solid var(--blue);
+      font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 8px; cursor: default;
+    }
+
+    .sheet-wrap { margin-top: auto; }
+    .sheet { background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    .sheet-title { padding: 12px 16px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border); text-align: center; }
+    .sheet-row { padding: 13px 16px; font-size: 14px; color: var(--ink); border-bottom: 1px solid var(--border); text-align: center; }
+    .sheet-row:last-child { border-bottom: 0; }
+    .sheet-row.chosen {
+      color: var(--blue); font-weight: 600; background: var(--sky);
+      display: flex; justify-content: space-between; align-items: center; text-align: left; padding-right: 12px;
+    }
+    .sheet-row.dim { color: var(--muted); }
+
+    .picker-list { display: flex; flex-direction: column; gap: 6px; }
+    .picker-row {
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    }
+    .picker-row.chosen { background: var(--sky); border-color: var(--blue-tint); }
+    .picker-name { font-size: 13px; color: var(--ink); font-weight: 600; }
+    .picker-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%; color: #fff;
+      display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12.5px; flex-shrink: 0;
+    }
+    .checkmark {
+      margin-left: auto; width: 22px; height: 22px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+    }
+    .checkmark.on { background: var(--blue); color: #fff; }
+    .checkmark.off { background: var(--card); border: 1.5px solid var(--border-strong); }
+
+    /* URL input mockup */
+    .url-input {
+      background: var(--card); border: 1.5px solid var(--blue); border-radius: 10px;
+      padding: 11px 14px; font-family: var(--mono); font-size: 11px; color: var(--ink);
+      word-break: break-all; line-height: 1.4;
+    }
+    .pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+      letter-spacing: 0.1em; text-transform: uppercase; align-self: flex-start;
+    }
+    .pill.detected { background: var(--success-tint); color: var(--success); }
+
+    /* Sync progress */
+    .sync-block {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      padding: 24px 0 16px; flex: 1;
+    }
+    .spinner {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 3px solid var(--blue-tint); border-top-color: var(--blue);
+    }
+    .sync-headline { font-size: 13.5px; color: var(--ink); font-weight: 600; text-align: center; }
+    .sync-sub { font-size: 11.5px; color: var(--muted); text-align: center; margin-top: -6px; }
+
+    /* Event cards on dashboard */
+    .event-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 12px; border-left-width: 3px; border-left-style: solid;
+    }
+    .event-card .event-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .event-card .event-meta { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+    .banner {
+      padding: 10px 12px; border-radius: 10px; font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .banner.good { background: var(--success-tint); color: var(--success); }
+
+    /* Tap indicators */
+    .tap-cluster { display: flex; align-items: center; gap: 10px; }
+    .tap-cluster.end { justify-content: flex-end; align-self: flex-end; margin-top: auto; }
+    .tap-cluster.center { justify-content: center; margin-top: auto; }
+    .tap-hint {
+      display: inline-flex; align-items: center; background: var(--amber); color: #fff;
+      font-size: 9.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+      letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(217, 119, 6, 0.35); line-height: 1.2;
+    }
+
+    /* App logos strip for closing "Where to find the URL" */
+    .apps-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+    }
+    @media (min-width: 720px) { .apps-grid { grid-template-columns: repeat(4, 1fr); } }
+    .app-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow-sm);
+    }
+    .app-card .app-name { font-size: 13.5px; font-weight: 700; color: var(--ink); letter-spacing: -0.005em; }
+    .app-card .app-hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .app-card .app-icon {
+      width: 32px; height: 32px; border-radius: 8px; background: var(--sky); color: var(--blue);
+      display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; margin-bottom: 6px;
+    }
+
+    .footer { font-size: 12.5px; color: var(--muted); text-align: center; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .companion { font-size: 12.5px; color: var(--muted); margin-top: 14px; }
+    .companion a { color: var(--blue); text-decoration: none; border-bottom: 1px solid var(--blue-tint); }
+    .companion a:hover { border-bottom-color: var(--blue); }
+  </style>
+  <style>
+  .field-input {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 12px; font-size: 12.5px; color: var(--ink);
+  }
+  .email {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .email-meta {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    font-size: 11px; color: var(--muted); line-height: 1.5;
+  }
+  .email-meta strong { color: var(--ink); font-weight: 600; }
+  .email-brand-bar {
+    background: var(--blue); padding: 10px 14px; color: #fff;
+    font-size: 13px; font-weight: 700; letter-spacing: -0.005em;
+  }
+  .email-body {
+    padding: 14px; display: flex; flex-direction: column; gap: 10px;
+    font-size: 12.5px; color: var(--ink); line-height: 1.55;
+  }
+  .attachment {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--sky); border: 1px solid var(--border);
+    padding: 8px 12px; border-radius: 8px;
+    font-size: 12px; color: var(--ink); font-weight: 600;
+    align-self: flex-start;
+  }
+  .attachment .att-size { color: var(--muted); font-weight: 400; }
+  .address-pill {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; font-family: var(--mono); font-size: 11.5px; color: var(--ink);
+    word-break: break-all;
+  }
+</style>
+</head>
+<body>
+  <a class="home-link" href="/how">&larr; All guides</a>
+  <div class="page">
+    <div class="eyebrow">SportsCal &middot; Guides</div>
+    <h1>Forward events by email</h1>
+    <p class="subtitle">Got a work meeting, a school district calendar, or a coach's email with practice times? Forward it to your unique SportsCal address and the events show up on your Dashboard &mdash; no copy-paste, no re-typing.</p>
+    <div class="companion">Best for events that live outside your kids' sports apps &mdash; work calendars, school district newsletters, one-off invites &mdash; that still need to show up next to the family schedule.</div>
+    <div class="section-title">The flow</div>
+    <div class="grid">
+      <div class="panel">
+        <span class="step">STEP 1 &middot; GRAB YOUR ADDRESS</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Settings</div>
+            <div class="screen-meta">Add events by email</div>
+          </div>
+          <div class="section-label">Your SportsCal inbox</div>
+          <div style="font-size: 12px; color: var(--muted); line-height: 1.5;">
+            Forward any email to this address &mdash; meeting invites, school district calendars, coach emails &mdash; and SportsCal adds the events.
+          </div>
+          <div class="address-pill">add+8a12d81b@inbox.sportscalapp.com</div>
+          <div class="tap-cluster center">
+            <button class="btn" type="button">Copy address</button>
+            <span class="tap-hint">Tap</span>
+          </div>
+        </div>
+        <div>
+          <h3>Copy your unique address</h3>
+          <p>Every SportsCal account gets its own <code>add+&lt;code&gt;@inbox.sportscalapp.com</code> address. Anything you forward to it lands on your family Dashboard. Tap <strong>Copy</strong> and paste it into your Contacts so you can address it as easily as any other name.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 2 &middot; OPEN THE INVITE</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Your inbox &middot; Gmail</div>
+            <div class="screen-meta">Meeting invite from work</div>
+          </div>
+          <div class="email">
+            <div class="email-meta">
+              From: <strong>hr@company.com</strong><br>
+              Subject: <strong>Company all-hands &middot; Friday Sept 27</strong>
+            </div>
+            <div class="email-body">
+              <div>Reminder &mdash; our quarterly all-hands is Friday Sept 27 at 2:00 PM in the main conference room.</div>
+              <div>Subscribe to the full company calendar: <a href="#" style="color: var(--blue);">webcal://company.example.com/team.ics</a></div>
+              <div class="attachment">&#128206; invite.ics <span class="att-size">&middot; 2 KB</span></div>
+            </div>
+          </div>
+          <div class="tap-cluster center">
+            <button class="btn" type="button">Forward</button>
+            <span class="tap-hint">Tap</span>
+          </div>
+        </div>
+        <div>
+          <h3>Tap Forward on the invite</h3>
+          <p>Whether it's an HR email, a school district newsletter, or the coach's Sunday planning message &mdash; open it and tap <strong>Forward</strong>. Works from any email app (Gmail, Apple Mail, Outlook).</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 3 &middot; ADDRESS + SEND</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Forwarding</div>
+            <div class="screen-meta">New message</div>
+          </div>
+          <div class="section-label">To</div>
+          <div class="field-input" style="font-family: var(--mono); font-size: 11.5px;">add+8a12d81b@inbox.sportscalapp.com</div>
+          <div class="section-label">Subject</div>
+          <div class="field-input">Fwd: Company all-hands &middot; Friday Sept 27</div>
+          <div style="font-size: 11px; color: var(--muted); line-height: 1.5;">Body + attachment travel along automatically. No message from you required.</div>
+          <div class="tap-cluster end">
+            <button class="btn" type="button">Send</button>
+            <span class="tap-hint">Tap</span>
+          </div>
+        </div>
+        <div>
+          <h3>Paste your address, hit Send</h3>
+          <p>Paste the SportsCal address into the To field. You don't need to type anything else &mdash; the original email body and any attached <code>.ics</code> file go along automatically.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 4 &middot; SPORTSCAL READS IT</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Message sent</div>
+            <div class="screen-meta">SportsCal is reading it now</div>
+          </div>
+          <div class="sync-block">
+            <div style="width: 62px; height: 62px; border-radius: 50%; background: var(--sky); color: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 30px;">&#128229;</div>
+            <div class="sync-headline">SportsCal has your email</div>
+            <div class="sync-sub">Confirmation coming back in a few seconds</div>
+          </div>
+        </div>
+        <div>
+          <h3>Nothing to do &mdash; SportsCal handles it</h3>
+          <p>Behind the scenes: SportsCal pulls any <code>webcal://</code> or <code>.ics</code> URL out of the email body, or reads the attached invite file if there's one. Then it drops the event on your Dashboard and sends you a confirmation email.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 5 &middot; CONFIRMATION</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Your inbox &middot; 4 seconds later</div>
+            <div class="screen-meta">Confirmation from SportsCal</div>
+          </div>
+          <div class="email">
+            <div class="email-meta">
+              From: <strong>SportsCal</strong><br>
+              Subject: <strong>1 event added to your family calendar</strong>
+            </div>
+            <div class="email-brand-bar">SportsCal</div>
+            <div class="email-body">
+              <div style="font-weight: 700; font-size: 13px;">Added</div>
+              <div class="event-card" style="border-left-color: var(--success);">
+                <div class="event-title">Company all-hands</div>
+                <div class="event-meta">Fri Sep 27 &middot; 2:00 &ndash; 3:00 PM &middot; Conference room</div>
+              </div>
+              <div style="font-size: 12px; color: var(--muted); line-height: 1.5;">Want to assign it to a specific kid? <a href="#" onclick="return false;" style="color: var(--blue); font-weight: 600;">Tap here to route it &rarr;</a></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3>SportsCal emails you back to confirm</h3>
+          <p>You get a confirmation email within a few seconds &mdash; every event that was added, with a link to change how it's routed if the automatic pick isn't right. Silence means nothing was found in the email; SportsCal doesn't add empty entries.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="step">STEP 6 &middot; RESULT</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Dashboard</div>
+            <div class="screen-meta">This week + one more</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="event-card" style="border-left-color: var(--blue);">
+              <div class="event-title">Baseball practice</div>
+              <div class="event-meta">Wed 4:30 PM &middot; Riley</div>
+            </div>
+            <div class="event-card" style="border-left-color: var(--success);">
+              <div class="event-title">Company all-hands</div>
+              <div class="event-meta">Fri 2:00 PM &middot; Parents only</div>
+            </div>
+            <div class="event-card" style="border-left-color: var(--amber);">
+              <div class="event-title">Basketball game</div>
+              <div class="event-meta">Fri 6:00 PM &middot; Sam</div>
+            </div>
+          </div>
+          <div class="banner good">
+            <span>&#10003;</span>
+            <span>Work event lands next to kids' schedules &mdash; clashes visible at a glance</span>
+          </div>
+        </div>
+        <div>
+          <h3>Everyone's schedule in one place</h3>
+          <p>Your work meeting sits next to Riley's practice and Sam's game on the Dashboard. Spot the conflict? The <a href="/rides/direct" style="color: var(--blue); font-weight: 600; text-decoration: none;">Ask a contact for a ride</a> flow is right there when you need it.</p>
+        </div>
+      </div>
+    </div>
+    <div class="section-title">What SportsCal can pull from an email</div>
+    <div class="apps-grid">
+      <div class="app-card">
+        <div class="app-icon">&#128231;</div>
+        <div class="app-name">iCal / webcal links</div>
+        <div class="app-hint">Any <code>webcal://</code> or <code>.ics</code> URL in the email body &mdash; typed, hyperlinked, or in a signature. SportsCal follows the link and pulls every event on it.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">&#128206;</div>
+        <div class="app-name">Meeting invites (.ics)</div>
+        <div class="app-hint">A calendar invite attached to a meeting notification. Read directly &mdash; no separate subscription needed for one-off events.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">&#127891;</div>
+        <div class="app-name">School district emails</div>
+        <div class="app-hint">Field trip dates, early dismissal, teacher planning days. Most district newsletters carry a subscribe link at the bottom.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">&#127943;</div>
+        <div class="app-name">Coach's group email</div>
+        <div class="app-hint">The Sunday email with the practice schedule for the week &mdash; forward it and SportsCal grabs anything schedule-shaped.</div>
+      </div>
+    </div>
+    <div class="section-title">One-way and private to you</div>
+    <div class="apps-grid" style="grid-template-columns: repeat(2, 1fr);">
+      <div class="app-card">
+        <div class="app-icon">&#128274;</div>
+        <div class="app-name">Address is unique to your account</div>
+        <div class="app-hint">Every account gets a different token. Even if someone else emails your address, only your calendar sees the events. Rotate the address anytime from Settings.</div>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">&#128231;</div>
+        <div class="app-name">Forward from any email you own</div>
+        <div class="app-hint">Home Gmail, work Outlook, school district webmail &mdash; SportsCal doesn't care which sender you forward from, only which address you forward to.</div>
+      </div>
+    </div>
+    <div class="footer">For a printed schedule with no email attached, use <a href="/how/snap-photo" style="color: var(--blue); font-weight: 600; text-decoration: none;">Snap a schedule photo</a> instead &mdash; it uses the same forwarding address for the file.</div>
+  </div>
+</body>
+</html>
