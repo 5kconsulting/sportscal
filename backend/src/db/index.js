@@ -240,7 +240,12 @@ export async function rotateFeedToken(userId) {
 
 // --- Kids ---
 
-export async function getKidsByUser(userId) {
+// Accepts either a single user_id or an array of user_ids. When called
+// with an array (e.g. req.user.householdMemberIds) returns every kid
+// belonging to any member of the household. String callers get the
+// same single-user behavior as before via an implicit wrap.
+export async function getKidsByUser(userIdOrIds) {
+  const userIds = Array.isArray(userIdOrIds) ? userIdOrIds : [userIdOrIds];
   // calendar_count = connected calendars assigned to the kid (via kid_sources),
   // excluding the synthetic __manual__ container. Additive column; existing
   // callers that ignore it are unaffected.
@@ -251,9 +256,9 @@ export async function getKidsByUser(userId) {
           JOIN sources s ON s.id = ks.source_id
          WHERE ks.kid_id = k.id AND s.name <> '__manual__') AS calendar_count
      FROM kids k
-     WHERE k.user_id = $1
+     WHERE k.user_id = ANY($1::uuid[])
      ORDER BY k.sort_order, k.name`,
-    [userId]
+    [userIds]
   );
 }
 
@@ -319,16 +324,20 @@ const KIDS_AGG = `
   ) FILTER (WHERE k.id IS NOT NULL) AS kids
 `;
 
-export async function getSourcesByUser(userId) {
+// Accepts either a single user_id or an array. See getKidsByUser for the
+// same pattern; both are called with req.user.householdMemberIds from the
+// GET-list routes so both parents see the full family's calendars.
+export async function getSourcesByUser(userIdOrIds) {
+  const userIds = Array.isArray(userIdOrIds) ? userIdOrIds : [userIdOrIds];
   return query(
     `SELECT s.*, ${KIDS_AGG}
      FROM sources s
      LEFT JOIN kid_sources ks ON ks.source_id = s.id
      LEFT JOIN kids k ON k.id = ks.kid_id
-     WHERE s.user_id = $1
+     WHERE s.user_id = ANY($1::uuid[])
      GROUP BY s.id
      ORDER BY s.created_at`,
-    [userId]
+    [userIds]
   );
 }
 

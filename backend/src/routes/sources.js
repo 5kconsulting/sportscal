@@ -30,7 +30,8 @@ const VALID_FETCH_TYPES = ['ical', 'scrape', 'ical_with_scrape_fallback'];
 // GET /api/sources
 // ============================================================
 router.get('/', async (req, res) => {
-  const sources = await getSourcesByUser(req.user.id);
+  // Household-scoped read: both parents see every family calendar.
+  const sources = await getSourcesByUser(req.user.householdMemberIds);
   res.json({ sources });
 });
 

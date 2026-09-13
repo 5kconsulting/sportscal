@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { getUserById } from '../db/index.js';
+import { getUserById, getHouseholdMemberIds } from '../db/index.js';
 
 // ============================================================
 // requireAuth middleware
@@ -20,6 +20,12 @@ export async function requireAuth(req, res, next) {
     const user    = await getUserById(payload.sub);
 
     if (!user) return res.status(401).json({ error: 'User not found' });
+
+    // Populate the household member array so downstream handlers can
+    // scope their queries by household with `WHERE user_id = ANY($N)`
+    // instead of a single user_id. Falls back to [user.id] if the
+    // household backfill hasn't run yet (shouldn't happen post-deploy).
+    user.householdMemberIds = await getHouseholdMemberIds(user.id);
 
     req.user = user;
     next();

@@ -19,7 +19,8 @@ router.use(requireAuth);
 // GET /api/kids
 // ============================================================
 router.get('/', async (req, res) => {
-  const kids = await getKidsByUser(req.user.id);
+  // Household-scoped: both parents see every kid in the family.
+  const kids = await getKidsByUser(req.user.householdMemberIds);
   res.json({ kids });
 });
 

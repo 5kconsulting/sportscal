@@ -68,7 +68,7 @@ router.get('/', async (req, res) => {
   const kidId    = req.query.kid_id    || null;
   const sourceId = req.query.source_id || null;
 
-  const params  = [req.user.id, days];
+  const params  = [req.user.householdMemberIds, days];
   const filters = [];
 
   if (kidId) {
@@ -137,7 +137,7 @@ router.get('/', async (req, res) => {
        ON he.user_id    = e.user_id
       AND he.source_id  = e.source_id
       AND he.source_uid = e.source_uid
-     WHERE e.user_id = $1
+     WHERE e.user_id = ANY($1::uuid[])
        AND he.id IS NULL
        -- Keep events visible through their effective end. ends_at if set,
        -- or starts_at+24h for all-day, or starts_at+2h for untimed events.
@@ -194,11 +194,11 @@ router.get('/today', async (req, res) => {
        ON he.user_id    = e.user_id
       AND he.source_id  = e.source_id
       AND he.source_uid = e.source_uid
-     WHERE e.user_id = $1
+     WHERE e.user_id = ANY($1::uuid[])
        AND he.id IS NULL
        AND e.starts_at::date = NOW()::date
      ORDER BY e.starts_at`,
-    [req.user.id]
+    [req.user.householdMemberIds]
   );
 
   const withConflicts = annotateConflicts(events);
@@ -273,8 +273,8 @@ router.get('/:id', async (req, res) => {
        ) AS kids
      FROM events e
      JOIN sources s ON s.id = e.source_id
-     WHERE e.id = $1 AND e.user_id = $2`,
-    [req.params.id, req.user.id]
+     WHERE e.id = $1 AND e.user_id = ANY($2::uuid[])`,
+    [req.params.id, req.user.householdMemberIds]
   );
 
   if (!event) return res.status(404).json({ error: 'Event not found' });
