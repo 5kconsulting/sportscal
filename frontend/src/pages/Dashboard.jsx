@@ -1058,6 +1058,21 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogist
               ⚠ {event.conflicts.length} conflict{event.conflicts.length !== 1 ? 's' : ''}
             </span>
           )}
+          {event.weather && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 11.5, fontWeight: 600,
+              color: 'var(--slate)',
+              background: 'var(--off-white)',
+              border: '1px solid var(--border)',
+              padding: '2px 8px', borderRadius: 999,
+              whiteSpace: 'nowrap',
+            }}
+            title={`${event.weather.condition} · ${event.weather.temp_low_f}°–${event.weather.temp_high_f}° · ${event.weather.precip_pct}% rain · ${event.weather.wind_mph} mph wind`}>
+              {event.weather.icon || '•'} {event.weather.temp_high_f}°
+              {event.weather.precip_pct >= 30 ? ` · ${event.weather.precip_pct}%` : ''}
+            </span>
+          )}
           {event.location && (
             <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}`}
                target="_blank" rel="noopener noreferrer"

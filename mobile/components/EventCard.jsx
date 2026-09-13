@@ -139,6 +139,15 @@ export function EventCard({ event, overrides = {} }) {
                   {[primaryKid?.name, event.source_name].filter(Boolean).join('  ·  ')}
                 </Text>
               ) : null}
+              {event.weather ? (
+                <View style={s.bWeather}>
+                  <Text style={s.bWeatherIcon}>{event.weather.icon || '•'}</Text>
+                  <Text style={s.bWeatherText}>
+                    {event.weather.temp_high_f}°
+                    {event.weather.precip_pct >= 30 ? ` · ${event.weather.precip_pct}%` : ''}
+                  </Text>
+                </View>
+              ) : null}
               {event.location ? (
                 <View style={s.bLoc}>
                   <Ionicons name="location-outline" size={11} color={t.slate} />
@@ -184,6 +193,15 @@ export function EventCard({ event, overrides = {} }) {
             <>
               <Text style={s.dotSep}>·</Text>
               <Text style={s.location} numberOfLines={1}>{event.location}</Text>
+            </>
+          ) : null}
+          {event.weather ? (
+            <>
+              <Text style={s.dotSep}>·</Text>
+              <Text style={s.location} numberOfLines={1}>
+                {event.weather.icon || '•'} {event.weather.temp_high_f}°
+                {event.weather.precip_pct >= 30 ? ` · ${event.weather.precip_pct}%` : ''}
+              </Text>
             </>
           ) : null}
         </View>
@@ -251,6 +269,13 @@ function makeStyles(t) {
       backgroundColor: t.bg, borderWidth: 1, borderColor: t.border,
       borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, maxWidth: 180,
     },
+    bWeather: {
+      flexDirection: 'row', alignItems: 'center', gap: 3,
+      backgroundColor: t.bg, borderWidth: 1, borderColor: t.border,
+      borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2,
+    },
+    bWeatherIcon: { fontSize: 11 },
+    bWeatherText: { fontSize: 11, fontWeight: '600', color: t.slate },
     bLocText: { fontSize: 11.5, fontWeight: '600', color: t.navy, flexShrink: 1 },
   });
 }
