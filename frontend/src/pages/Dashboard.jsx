@@ -295,6 +295,7 @@ export default function Dashboard() {
         <EmptyState hasSources={sources.filter(s => s.name !== '__manual__').length > 0} />
       ) : (
         <div className="fade-up">
+          <ConflictBanner events={filteredEvents} />
           {Object.entries(grouped).map(([day, dayEvents]) => (
             <DayGroup key={day} day={day} events={dayEvents}
               onEdit={setEditingEvent} onDelete={handleEventDeleted}
@@ -302,6 +303,31 @@ export default function Dashboard() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Red banner shown above the day-groups when any event in the current
+// filtered view has conflicts. Small, non-modal, actionable — nudges the
+// reader to look for the matching red chips further down.
+function ConflictBanner({ events }) {
+  const withConflicts = events.filter(e => e.conflicts?.length > 0);
+  if (withConflicts.length === 0) return null;
+  const count = withConflicts.length;
+  return (
+    <div style={{
+      background: '#FEE2E2',
+      border: '1px solid #FCA5A5',
+      borderRadius: 10,
+      padding: '12px 14px',
+      marginBottom: 16,
+      display: 'flex', alignItems: 'center', gap: 10,
+    }}>
+      <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
+      <div style={{ flex: 1, fontSize: 13.5, color: '#991B1B', lineHeight: 1.5 }}>
+        <strong>{count} conflict{count !== 1 ? 's' : ''} this week</strong>
+        {' — '}two kids expected in two places at the same time. Look for the red badges below.
+      </div>
     </div>
   );
 }
@@ -1019,6 +1045,19 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogist
           <span style={{ fontSize: 12.5, color: 'var(--slate)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
             {[kidNames || null, isManual ? 'Manual' : event.source_app].filter(Boolean).join(' · ')}
           </span>
+          {event.conflicts?.length > 0 && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 11, fontWeight: 700,
+              color: '#DC2626',
+              background: '#FEE2E2',
+              padding: '2px 8px', borderRadius: 999,
+              whiteSpace: 'nowrap',
+            }}
+            title={event.conflicts.map(c => `${c.title} (${c.kid_names.join(', ')})`).join('; ')}>
+              ⚠ {event.conflicts.length} conflict{event.conflicts.length !== 1 ? 's' : ''}
+            </span>
+          )}
           {event.location && (
             <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}`}
                target="_blank" rel="noopener noreferrer"

@@ -124,6 +124,11 @@ export function EventCard({ event, overrides = {} }) {
           >
             <Text style={[s.bTitle, allNotGoing && s.titleOff]} numberOfLines={1}>{title}</Text>
             <View style={s.bMetaRow}>
+              {event.conflicts?.length > 0 ? (
+                <View style={[s.bChip, { backgroundColor: '#FEE2E2' }]}>
+                  <Text style={[s.bChipText, { color: '#DC2626' }]}>⚠ {event.conflicts.length}</Text>
+                </View>
+              ) : null}
               {sport ? (
                 <View style={[s.bChip, { backgroundColor: sport.color + '22' }]}>
                   <Text style={[s.bChipText, { color: sport.color }]}>{sport.label}</Text>
@@ -166,6 +171,11 @@ export function EventCard({ event, overrides = {} }) {
         {someNotGoing && (
           <Text style={s.someNotGoing} numberOfLines={1}>
             Not going: {notGoingKids.map(k => k.name).join(', ')}
+          </Text>
+        )}
+        {event.conflicts?.length > 0 && (
+          <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '700', marginTop: 2, letterSpacing: 0.3 }}>
+            ⚠ {event.conflicts.length} conflict{event.conflicts.length !== 1 ? 's' : ''}
           </Text>
         )}
         <View style={s.meta}>

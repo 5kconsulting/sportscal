@@ -220,6 +220,7 @@ export default function Calendar() {
         data={grouped}
         keyExtractor={i => i.key}
         contentContainerStyle={{ paddingBottom: 24 }}
+        ListHeaderComponent={<ConflictBanner events={events} />}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accent} />
         }
@@ -273,6 +274,37 @@ function utcDateKey(d) {
 function displayDateKey(startsAt, allDay) {
   const d = new Date(startsAt);
   return allDay ? utcDateKey(d) : localDateKey(d);
+}
+
+// Red banner shown above the day-groups when any event in the current
+// list has conflicts. Compact so it doesn't dominate the small screen.
+function ConflictBanner({ events }) {
+  const count = events.filter(e => e.conflicts?.length > 0).length;
+  if (count === 0) return null;
+  return (
+    <View style={{
+      backgroundColor: '#FEE2E2',
+      borderColor: '#FCA5A5',
+      borderWidth: 1,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      marginHorizontal: 16,
+      marginTop: 6,
+      marginBottom: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    }}>
+      <Text style={{ fontSize: 16 }}>⚠️</Text>
+      <Text style={{ flex: 1, fontSize: 12.5, color: '#991B1B', lineHeight: 17 }}>
+        <Text style={{ fontWeight: '700' }}>
+          {count} conflict{count !== 1 ? 's' : ''} this week
+        </Text>
+        {' — '}two kids in two places at once. Look for the red badges below.
+      </Text>
+    </View>
+  );
 }
 
 function DayHeader({ dateKey }) {
