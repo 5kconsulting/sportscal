@@ -5,6 +5,7 @@ import './pdfWorker.js';
 import './pushWorker.js';
 import { startScheduler } from './scheduler.js';
 import { icalQueue, scrapeQueue } from './queue.js';
+import { refreshAllWeather } from '../lib/weather.js';
 
 // One-time cleanup: legacy completed/failed jobs from before the switch to
 // removeOnComplete/removeOnFail=true would otherwise sit forever blocking
@@ -18,6 +19,19 @@ await Promise.all([
 ]).catch((err) => console.error('[runner] queue cleanup error:', err.message));
 
 startScheduler();
+
+// Kick off an immediate weather cache warm-up so the Dashboard isn't
+// stuck waiting up to 3 hours for the scheduler's first tick. Non-
+// blocking so the server keeps booting; result logged when it lands.
+refreshAllWeather()
+  .then(r => {
+    if (r.skipped) {
+      console.log(`[runner] initial weather refresh skipped (${r.reason})`);
+    } else {
+      console.log(`[runner] initial weather refresh: ${r.locationsRefreshed}/${r.totalLocations} locations, ${r.daysCached} day(s) cached`);
+    }
+  })
+  .catch(err => console.error('[runner] initial weather refresh error:', err.message));
 
 console.log('[runner] all workers started');
 
