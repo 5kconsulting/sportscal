@@ -890,4 +890,72 @@ export async function setUserPushEnabled(userId, enabled) {
   return query('UPDATE users SET push_enabled = $2 WHERE id = $1', [userId, enabled]);
 }
 
+// ============================================================
+// Households (multi-parent support)
+// Called by the routes that need to scope resources by household
+// membership instead of a single user_id. Backfill in schema.sql
+// guarantees every existing user is a member of exactly one
+// household, so callers can rely on getHouseholdMemberIds()
+// always returning at least [userId].
+// ============================================================
+
+// Return every user_id that shares a household with the given
+// user, including the user themselves. Used to expand a
+// `WHERE user_id = $1` query into `WHERE user_id = ANY($1)` so
+// both parents see the same kids, events, and calendars.
+export async function getHouseholdMemberIds(userId) {
+  const rows = await query(
+    `SELECT DISTINCT hm2.user_id
+       FROM household_members hm1
+       JOIN household_members hm2 ON hm2.household_id = hm1.household_id
+      WHERE hm1.user_id = $1`,
+    [userId],
+  );
+  if (rows.length === 0) return [userId];   // shouldn't happen post-backfill, but safe
+  return rows.map(r => r.user_id);
+}
+
+// Return the household row for a user, or null if they somehow
+// don't have one (again, shouldn't happen post-backfill).
+export async function getHouseholdForUser(userId) {
+  return queryOne(
+    `SELECT h.*
+       FROM households h
+       JOIN household_members hm ON hm.household_id = h.id
+      WHERE hm.user_id = $1`,
+    [userId],
+  );
+}
+
+// List everyone in the current user's household (name + email so
+// the Settings UI can show "Managed by Jane and John"). The user
+// themselves is always included; orders by role (owner first)
+// then join date so the ordering is stable across refreshes.
+export async function getHouseholdMembers(userId) {
+  return query(
+    `SELECT u.id, u.name, u.email, hm.role, hm.joined_at
+       FROM household_members hm
+       JOIN users u ON u.id = hm.user_id
+      WHERE hm.household_id = (
+        SELECT household_id FROM household_members WHERE user_id = $1
+      )
+      ORDER BY (hm.role = 'owner') DESC, hm.joined_at ASC`,
+    [userId],
+  );
+}
+
+// Add an existing user to an existing household. Enforces the
+// one-user-one-household invariant at the DB level via the
+// UNIQUE index — this call throws if the user is already a
+// member of any household, which the caller should catch and
+// surface as "already in a household" back to the UI.
+export async function addUserToHousehold(householdId, userId, role = 'member') {
+  return queryOne(
+    `INSERT INTO household_members (household_id, user_id, role)
+     VALUES ($1, $2, $3)
+     RETURNING *`,
+    [householdId, userId, role],
+  );
+}
+
 export default pool;

@@ -790,3 +790,73 @@ CREATE TABLE IF NOT EXISTS weather_forecast (
 );
 
 CREATE INDEX IF NOT EXISTS weather_forecast_fetched_at_idx ON weather_forecast (fetched_at);
+
+-- ============================================================
+-- Households (multi-parent support)
+--
+-- A household groups one or more users so they can share the
+-- same family calendar: kids, sources, events, contacts, ride
+-- coordination — anything the "one parent per account" model
+-- was previously scoping to a single user_id.
+--
+-- Every user is a member of exactly one household (enforced by
+-- the UNIQUE index on household_members.user_id). Existing users
+-- are backfilled as owner of their own household-of-one so the
+-- invariant holds from day one.
+--
+-- Query scope changes to use household membership land in a
+-- follow-up commit — this file just adds the tables and the
+-- backfill so the schema is in place.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS households (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name         TEXT,                                        -- optional "Smith family"
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_by   UUID REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS household_members (
+  household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+  user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role         TEXT NOT NULL DEFAULT 'member',              -- 'owner' | 'member'
+  joined_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (household_id, user_id)
+);
+
+-- One user, one household. Enforced at the DB level so no invite
+-- flow can accidentally add a user to a second household without
+-- an explicit removal first.
+CREATE UNIQUE INDEX IF NOT EXISTS household_members_user_id_uk ON household_members(user_id);
+
+CREATE TABLE IF NOT EXISTS household_invites (
+  token          TEXT PRIMARY KEY,                          -- 32-hex opaque
+  household_id   UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+  invited_by     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  invited_email  TEXT,                                      -- optional pre-fill for signup
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at     TIMESTAMPTZ NOT NULL,
+  redeemed_at    TIMESTAMPTZ,
+  redeemed_by    UUID REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS household_invites_household_id_idx ON household_invites(household_id);
+
+-- Backfill: every existing user without a household gets one, of one.
+-- Idempotent via the NOT EXISTS guards, so this survives every restart.
+INSERT INTO households (id, created_by, created_at, name)
+SELECT uuid_generate_v4(),
+       u.id,
+       u.created_at,
+       CONCAT(COALESCE(NULLIF(SPLIT_PART(u.name, ' ', 1), ''), 'My'), '''s family')
+  FROM users u
+ WHERE NOT EXISTS (
+   SELECT 1 FROM household_members hm WHERE hm.user_id = u.id
+ );
+
+INSERT INTO household_members (household_id, user_id, role, joined_at)
+SELECT h.id, h.created_by, 'owner', h.created_at
+  FROM households h
+ WHERE h.created_by IS NOT NULL
+   AND NOT EXISTS (
+     SELECT 1 FROM household_members hm WHERE hm.user_id = h.created_by
+   );
