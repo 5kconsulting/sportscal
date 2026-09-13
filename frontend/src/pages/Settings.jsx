@@ -456,6 +456,10 @@ export default function Settings() {
           Have a question, idea, or found a bug? We'd love to hear from you.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <a href="/how" target="_blank" rel="noopener" className="btn btn-ghost btn-sm"
+            style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            🎓 Guides — step-by-step walkthroughs
+          </a>
           <a href="/help" target="_blank" rel="noopener" className="btn btn-ghost btn-sm"
             style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             📖 How do I… — common parent questions

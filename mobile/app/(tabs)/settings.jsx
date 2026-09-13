@@ -438,6 +438,20 @@ export default function Settings() {
         )}
       </View>
 
+      <TouchableOpacity
+        style={s.manageBtn}
+        onPress={() => Linking.openURL('https://www.sportscalapp.com/how')}
+        activeOpacity={0.7}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={s.manageTitle}>📖 Guides</Text>
+          <Text style={s.manageSub}>
+            Step-by-step walkthroughs for every SportsCal feature. Opens in Safari.
+          </Text>
+        </View>
+        <Text style={s.manageChevron}>›</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
         <Text style={s.logoutText}>Sign out</Text>
       </TouchableOpacity>

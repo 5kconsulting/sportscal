@@ -145,6 +145,18 @@ export default function Layout() {
               </div>
             </div>
           </div>
+          <a href="/how" target="_blank" rel="noopener noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              width: '100%', padding: '8px 12px', borderRadius: 8, marginBottom: 2,
+              fontSize: 13, color: 'var(--slate)', textDecoration: 'none',
+              background: 'transparent', transition: 'color 0.15s',
+            }}
+            onMouseOver={e => e.currentTarget.style.color = 'var(--white)'}
+            onMouseOut={e => e.currentTarget.style.color = 'var(--slate)'}
+          >
+            📖 Guides
+          </a>
           <a href="https://linear.app/sportscal/new?template=fe41dd70-719e-4ffb-b054-86a35515f038"
              target="_blank" rel="noopener noreferrer"
             style={{
