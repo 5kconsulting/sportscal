@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { getSourcesDueForRefresh, query, getUsersDueForPushDigest } from '../db/index.js';
 import { enqueueIcalFetch, enqueueScrapeFetch, enqueueDigest, enqueueReminder, enqueuePushDigest } from './queue.js';
 import { checkSourceHealth } from './healthWorker.js';
+import { refreshAllWeather } from '../lib/weather.js';
 
 export function startScheduler() {
   // Source refresh every 5 minutes
@@ -63,5 +64,22 @@ export function startScheduler() {
     }
   });
 
-  console.log('[scheduler] started — source refresh, digests, reminders, push, health checks active');
+  // Weather cache refresh every 3 hours. Cheap: only fetches
+  // (venue, day) tuples not already in cache from earlier runs, and
+  // only for venues on upcoming events. Free-tier OpenWeatherMap
+  // allows 60 calls/min — well under any realistic user's footprint.
+  cron.schedule('0 */3 * * *', async () => {
+    try {
+      const r = await refreshAllWeather();
+      if (r.skipped) {
+        console.log(`[scheduler] weather: skipped (${r.reason})`);
+      } else if (r.locationsRefreshed > 0) {
+        console.log(`[scheduler] weather: refreshed ${r.locationsRefreshed}/${r.totalLocations} locations, ${r.daysCached} day(s) cached`);
+      }
+    } catch (err) {
+      console.error('[scheduler] weather error:', err.message);
+    }
+  });
+
+  console.log('[scheduler] started — source refresh, digests, reminders, push, health checks, weather active');
 }

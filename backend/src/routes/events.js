@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query as dbQuery, queryOne, hideEvent, unhideEvent, getHiddenEvents } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
+import { attachWeather } from '../lib/weather.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -151,7 +152,8 @@ router.get('/', async (req, res) => {
     params
   );
 
-  const annotated = annotateConflicts(events);
+  const withConflicts = annotateConflicts(events);
+  const annotated = await attachWeather(withConflicts);
   res.json({ events: annotated, count: annotated.length });
 });
 
@@ -199,7 +201,8 @@ router.get('/today', async (req, res) => {
     [req.user.id]
   );
 
-  const annotated = annotateConflicts(events);
+  const withConflicts = annotateConflicts(events);
+  const annotated = await attachWeather(withConflicts);
   res.json({ events: annotated, count: annotated.length });
 });
 

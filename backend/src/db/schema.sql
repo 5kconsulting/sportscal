@@ -759,3 +759,34 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS push_enabled BOOLEAN NOT NULL DEFAULT
 -- both channels at once because RC's product detection routes through
 -- the single users.id.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS apple_product_id TEXT;
+
+-- ============================================================
+-- Weather cache
+-- Populated by a periodic cron job that walks upcoming events with
+-- locations and fetches from OpenWeatherMap. Read by /api/events at
+-- render time — no API call in the request path. Two-table split so
+-- the geocode result (which never changes) doesn't get re-cached
+-- when the forecast refreshes.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS geocoded_locations (
+  location        TEXT PRIMARY KEY,
+  lat             NUMERIC(9, 6),
+  lon             NUMERIC(9, 6),
+  formatted_name  TEXT,
+  geocoded_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS weather_forecast (
+  location        TEXT NOT NULL,
+  forecast_date   DATE NOT NULL,
+  temp_high_f     INT,
+  temp_low_f      INT,
+  condition       TEXT,        -- 'Clear' | 'Clouds' | 'Rain' | 'Drizzle' | 'Thunderstorm' | 'Snow' | 'Mist' | 'Fog'
+  condition_icon  TEXT,        -- OpenWeatherMap icon code (e.g. '01d')
+  precip_pct      INT,         -- 0-100
+  wind_mph        INT,
+  fetched_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (location, forecast_date)
+);
+
+CREATE INDEX IF NOT EXISTS weather_forecast_fetched_at_idx ON weather_forecast (fetched_at);
