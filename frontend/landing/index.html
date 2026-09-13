@@ -176,6 +176,22 @@
       pointer-events: none;
     }
 
+    /* Product-native calendar motif: outlined mini calendar cards with
+       kid-color dots inside, scattered across the hero at low opacity.
+       Sits below content, above the ::before glow. */
+    .hero-motif {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .hero-inner {
+      position: relative;
+      z-index: 2;
+    }
+
     .hero-eyebrow {
       display: inline-flex;
       align-items: center;
@@ -911,22 +927,97 @@
 
   <!-- HERO -->
   <div class="hero">
-    <div class="hero-eyebrow">
-      ⚽ Built for sports families
+    <svg class="hero-motif" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <g fill="none" stroke="#ffffff" stroke-opacity="0.11" stroke-width="1">
+        <rect x="50" y="40" width="60" height="50" rx="6"/>
+        <rect x="180" y="55" width="60" height="50" rx="6"/>
+        <rect x="320" y="35" width="60" height="50" rx="6"/>
+        <rect x="460" y="50" width="60" height="50" rx="6"/>
+        <rect x="600" y="40" width="60" height="50" rx="6"/>
+        <rect x="740" y="55" width="60" height="50" rx="6"/>
+        <rect x="880" y="45" width="60" height="50" rx="6"/>
+        <rect x="1020" y="50" width="60" height="50" rx="6"/>
+        <rect x="1130" y="40" width="60" height="50" rx="6"/>
+        <rect x="110" y="175" width="60" height="50" rx="6"/>
+        <rect x="250" y="185" width="60" height="50" rx="6"/>
+        <rect x="390" y="170" width="60" height="50" rx="6"/>
+        <rect x="530" y="180" width="60" height="50" rx="6"/>
+        <rect x="670" y="175" width="60" height="50" rx="6"/>
+        <rect x="810" y="185" width="60" height="50" rx="6"/>
+        <rect x="950" y="175" width="60" height="50" rx="6"/>
+        <rect x="1090" y="180" width="60" height="50" rx="6"/>
+        <rect x="40" y="300" width="60" height="50" rx="6"/>
+        <rect x="180" y="310" width="60" height="50" rx="6"/>
+        <rect x="320" y="295" width="60" height="50" rx="6"/>
+        <rect x="460" y="310" width="60" height="50" rx="6"/>
+        <rect x="600" y="300" width="60" height="50" rx="6"/>
+        <rect x="740" y="310" width="60" height="50" rx="6"/>
+        <rect x="880" y="295" width="60" height="50" rx="6"/>
+        <rect x="1020" y="305" width="60" height="50" rx="6"/>
+        <rect x="1130" y="300" width="60" height="50" rx="6"/>
+        <rect x="110" y="430" width="60" height="50" rx="6"/>
+        <rect x="250" y="445" width="60" height="50" rx="6"/>
+        <rect x="390" y="430" width="60" height="50" rx="6"/>
+        <rect x="530" y="440" width="60" height="50" rx="6"/>
+        <rect x="670" y="430" width="60" height="50" rx="6"/>
+        <rect x="810" y="440" width="60" height="50" rx="6"/>
+        <rect x="950" y="430" width="60" height="50" rx="6"/>
+        <rect x="1090" y="445" width="60" height="50" rx="6"/>
+      </g>
+      <g>
+        <circle cx="68" cy="58" r="4" fill="#2563EB" opacity="0.55"/>
+        <circle cx="198" cy="73" r="4" fill="#D97706" opacity="0.55"/>
+        <circle cx="338" cy="53" r="4" fill="#059669" opacity="0.55"/>
+        <circle cx="478" cy="68" r="4" fill="#A78BFA" opacity="0.55"/>
+        <circle cx="618" cy="58" r="4" fill="#2563EB" opacity="0.55"/>
+        <circle cx="758" cy="73" r="4" fill="#D97706" opacity="0.55"/>
+        <circle cx="898" cy="63" r="4" fill="#059669" opacity="0.55"/>
+        <circle cx="1038" cy="68" r="4" fill="#A78BFA" opacity="0.55"/>
+        <circle cx="1148" cy="58" r="4" fill="#2563EB" opacity="0.55"/>
+        <circle cx="128" cy="193" r="4" fill="#D97706" opacity="0.55"/>
+        <circle cx="268" cy="203" r="4" fill="#059669" opacity="0.55"/>
+        <circle cx="408" cy="188" r="4" fill="#A78BFA" opacity="0.55"/>
+        <circle cx="548" cy="198" r="4" fill="#2563EB" opacity="0.55"/>
+        <circle cx="688" cy="193" r="4" fill="#D97706" opacity="0.55"/>
+        <circle cx="828" cy="203" r="4" fill="#059669" opacity="0.55"/>
+        <circle cx="968" cy="193" r="4" fill="#A78BFA" opacity="0.55"/>
+        <circle cx="1108" cy="198" r="4" fill="#2563EB" opacity="0.55"/>
+        <circle cx="58" cy="318" r="4" fill="#D97706" opacity="0.55"/>
+        <circle cx="198" cy="328" r="4" fill="#059669" opacity="0.55"/>
+        <circle cx="338" cy="313" r="4" fill="#A78BFA" opacity="0.55"/>
+        <circle cx="478" cy="328" r="4" fill="#2563EB" opacity="0.55"/>
+        <circle cx="618" cy="318" r="4" fill="#D97706" opacity="0.55"/>
+        <circle cx="758" cy="328" r="4" fill="#059669" opacity="0.55"/>
+        <circle cx="898" cy="313" r="4" fill="#A78BFA" opacity="0.55"/>
+        <circle cx="1038" cy="323" r="4" fill="#2563EB" opacity="0.55"/>
+        <circle cx="1148" cy="318" r="4" fill="#D97706" opacity="0.55"/>
+        <circle cx="128" cy="448" r="4" fill="#059669" opacity="0.55"/>
+        <circle cx="268" cy="463" r="4" fill="#A78BFA" opacity="0.55"/>
+        <circle cx="408" cy="448" r="4" fill="#2563EB" opacity="0.55"/>
+        <circle cx="548" cy="458" r="4" fill="#D97706" opacity="0.55"/>
+        <circle cx="688" cy="448" r="4" fill="#059669" opacity="0.55"/>
+        <circle cx="828" cy="458" r="4" fill="#A78BFA" opacity="0.55"/>
+        <circle cx="968" cy="448" r="4" fill="#2563EB" opacity="0.55"/>
+        <circle cx="1108" cy="463" r="4" fill="#D97706" opacity="0.55"/>
+      </g>
+    </svg>
+    <div class="hero-inner">
+      <div class="hero-eyebrow">
+        ⚽ Built for sports families
+      </div>
+      <h1>All your kids' sports schedules,<br /><span>one calendar.</span></h1>
+      <p class="hero-sub">
+        SportsCal pulls every practice, game, and event from all your youth sports apps into one calendar feed your whole family can subscribe to.
+      </p>
+      <div class="hero-cta-group">
+        <a href="https://www.sportscalapp.com/signup" class="btn-primary">
+          Get started free →
+        </a>
+        <a href="https://www.sportscalapp.com/signup?next=/setup" class="btn-ghost">
+          Try with sample data →
+        </a>
+      </div>
     </div>
-    <h1>All your kids' sports schedules,<br /><span>one calendar.</span></h1>
-    <p class="hero-sub">
-      SportsCal pulls every practice, game, and event from all your youth sports apps into one calendar feed your whole family can subscribe to.
-    </p>
-    <div class="hero-cta-group">
-      <a href="https://www.sportscalapp.com/signup" class="btn-primary">
-      Get started free →
-      </a>
-    <a href="https://www.sportscalapp.com/signup?next=/setup" class="btn-ghost">
-      Try with sample data →
-    </a>
-</div>
-
   </div>
 
   <!-- APPS STRIP (scrolling) -->
