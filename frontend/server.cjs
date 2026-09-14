@@ -46,6 +46,7 @@ app.get('/how/weekly-digest',     (_req, res) => res.sendFile(path.join(__dirnam
 app.get('/how/bedtime-reminder',  (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how-bedtime-reminder.html')));
 app.get('/how/manual-event',      (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how-manual-event.html')));
 app.get('/how/route-to-kid',      (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how-route-to-kid.html')));
+app.get('/how/add-a-head-of-household', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'how-add-a-head-of-household.html')));
 app.get('/rides/group',  (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'rides-group.html')));
 app.get('/rides/direct', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'rides-direct.html')));
 
