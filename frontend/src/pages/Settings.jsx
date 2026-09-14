@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { api } from '../lib/api.js';
+import HouseholdSection from '../components/HouseholdSection.jsx';
 
 const TIMEZONES = [
   'America/Los_Angeles','America/Denver','America/Chicago','America/New_York',
@@ -445,6 +446,9 @@ export default function Settings() {
           <Toggle checked={betaSkin} onChange={toggleSkin} />
         </div>
       </div>
+
+      {/* Household */}
+      <HouseholdSection currentUserId={user?.id} />
 
       {/* Support */}
       <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border)' }}>

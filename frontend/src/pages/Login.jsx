@@ -1,14 +1,22 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { LogoMark } from '../components/LogoMark.jsx';
 
 export default function Login() {
   const { login }     = useAuth();
   const navigate      = useNavigate();
+  const [searchParams] = useSearchParams();
   const [form, setForm]   = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Support ?next=/path bounces (e.g. from the household invite
+  // join page). Only accept same-origin relative paths — never
+  // follow an off-site absolute URL, since ?next comes from
+  // whatever page linked here.
+  const rawNext = searchParams.get('next') || '';
+  const safeNext = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/dashboard';
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -16,7 +24,7 @@ export default function Login() {
     setLoading(true);
     try {
       await login(form.email, form.password);
-      navigate('/dashboard');
+      navigate(safeNext);
     } catch (err) {
       setError(err.message);
     } finally {

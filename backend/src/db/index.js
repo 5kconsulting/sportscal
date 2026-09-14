@@ -967,4 +967,188 @@ export async function addUserToHousehold(householdId, userId, role = 'member') {
   );
 }
 
+// ============================================================
+// Household invites
+// ============================================================
+
+// Create a new invite token. Caller has already verified the
+// inviter belongs to householdId and that the household isn't
+// already full. Token is 32-char hex, unguessable by any
+// practical attacker.
+export async function createHouseholdInvite({ householdId, invitedBy, invitedEmail, expiresInDays = 7 }) {
+  const { randomBytes } = await import('crypto');
+  const token = randomBytes(16).toString('hex');
+  return queryOne(
+    `INSERT INTO household_invites (token, household_id, invited_by, invited_email, expires_at)
+     VALUES ($1, $2, $3, $4, NOW() + ($5 || ' days')::INTERVAL)
+     RETURNING *`,
+    [token, householdId, invitedBy, invitedEmail || null, String(expiresInDays)],
+  );
+}
+
+// Public lookup for the /household/join page — no auth. Returns
+// enough info to render "Jane invited you to the Smith family"
+// without exposing anything sensitive.
+export async function getHouseholdInviteByToken(token) {
+  return queryOne(
+    `SELECT hi.token, hi.household_id, hi.invited_email,
+            hi.expires_at, hi.redeemed_at,
+            u.name  AS invited_by_name,
+            u.email AS invited_by_email,
+            h.name  AS household_name
+       FROM household_invites hi
+       JOIN users u       ON u.id = hi.invited_by
+       JOIN households h  ON h.id = hi.household_id
+      WHERE hi.token = $1`,
+    [token],
+  );
+}
+
+// List every outstanding (unredeemed, unexpired) invite for a
+// household so the Settings UI can show pending invites and
+// offer a "cancel" button.
+export async function listHouseholdInvites(householdId) {
+  return query(
+    `SELECT token, invited_email, created_at, expires_at
+       FROM household_invites
+      WHERE household_id = $1
+        AND redeemed_at IS NULL
+        AND expires_at > NOW()
+      ORDER BY created_at DESC`,
+    [householdId],
+  );
+}
+
+export async function revokeHouseholdInvite(token, householdId) {
+  return queryOne(
+    `DELETE FROM household_invites
+      WHERE token = $1 AND household_id = $2
+      RETURNING token`,
+    [token, householdId],
+  );
+}
+
+// Redeem an invite. Runs the whole "move user between households"
+// dance in a transaction so a mid-flight failure can't leave a
+// user in two households (or none). Household size cap is 2 for
+// v1 — the cap check is inside the transaction and uses a fresh
+// count so two near-simultaneous redeems can't both squeak past.
+//
+// Returns { ok: true, householdId } on success, or
+// { error: 'not_found' | 'already_redeemed' | 'expired' | 'household_full' }
+// on any validation failure.
+export async function redeemHouseholdInvite(token, redeemingUserId) {
+  return withTransaction(async (tx) => {
+    const inviteRes = await tx.query(
+      `SELECT * FROM household_invites WHERE token = $1 FOR UPDATE`,
+      [token],
+    );
+    const invite = inviteRes.rows[0];
+    if (!invite)                                    return { error: 'not_found' };
+    if (invite.redeemed_at)                         return { error: 'already_redeemed' };
+    if (new Date(invite.expires_at) < new Date())   return { error: 'expired' };
+
+    // Cap check — 2 for v1
+    const cntRes = await tx.query(
+      `SELECT count(*)::int AS n FROM household_members WHERE household_id = $1`,
+      [invite.household_id],
+    );
+    if (cntRes.rows[0].n >= 2) return { error: 'household_full' };
+
+    // Refuse a no-op join (user already in the target household)
+    const alreadyRes = await tx.query(
+      `SELECT 1 FROM household_members
+        WHERE household_id = $1 AND user_id = $2`,
+      [invite.household_id, redeemingUserId],
+    );
+    if (alreadyRes.rows[0]) return { error: 'already_member' };
+
+    // Remove redeeming user from their current household. Their
+    // solo household from backfill becomes empty and gets deleted
+    // below — kids/sources reference user_id, not household_id, so
+    // the user's data comes along with them.
+    const oldRes = await tx.query(
+      `DELETE FROM household_members WHERE user_id = $1
+       RETURNING household_id`,
+      [redeemingUserId],
+    );
+    const oldHouseholdId = oldRes.rows[0]?.household_id;
+    if (oldHouseholdId) {
+      await tx.query(
+        `DELETE FROM households
+          WHERE id = $1
+            AND NOT EXISTS (SELECT 1 FROM household_members WHERE household_id = $1)`,
+        [oldHouseholdId],
+      );
+    }
+
+    // Add to target household
+    await tx.query(
+      `INSERT INTO household_members (household_id, user_id, role)
+       VALUES ($1, $2, 'member')`,
+      [invite.household_id, redeemingUserId],
+    );
+
+    // Mark invite spent
+    await tx.query(
+      `UPDATE household_invites
+          SET redeemed_at = NOW(), redeemed_by = $1
+        WHERE token = $2`,
+      [redeemingUserId, token],
+    );
+
+    return { ok: true, householdId: invite.household_id };
+  });
+}
+
+// Remove a member from a household. Caller must have already
+// verified the actor is in the same household as the target;
+// this helper enforces it again in-transaction to close any TOCTOU
+// gap between the check and the mutation.
+//
+// The removed user gets a fresh solo household so the
+// one-user-one-household invariant holds.
+export async function removeHouseholdMember(actorUserId, targetUserId) {
+  return withTransaction(async (tx) => {
+    const actorRes  = await tx.query(
+      `SELECT household_id FROM household_members WHERE user_id = $1`,
+      [actorUserId],
+    );
+    const targetRes = await tx.query(
+      `SELECT household_id FROM household_members WHERE user_id = $1`,
+      [targetUserId],
+    );
+    const actorHH  = actorRes.rows[0]?.household_id;
+    const targetHH = targetRes.rows[0]?.household_id;
+    if (!actorHH || !targetHH || actorHH !== targetHH) {
+      return { error: 'not_in_same_household' };
+    }
+
+    await tx.query(
+      `DELETE FROM household_members WHERE user_id = $1`,
+      [targetUserId],
+    );
+
+    const userRes = await tx.query(
+      `SELECT name FROM users WHERE id = $1`,
+      [targetUserId],
+    );
+    const firstName = (userRes.rows[0]?.name || 'My').split(' ')[0] || 'My';
+
+    const newHHRes = await tx.query(
+      `INSERT INTO households (created_by, name)
+       VALUES ($1, $2)
+       RETURNING id`,
+      [targetUserId, `${firstName}'s family`],
+    );
+    await tx.query(
+      `INSERT INTO household_members (household_id, user_id, role)
+       VALUES ($1, $2, 'owner')`,
+      [newHHRes.rows[0].id, targetUserId],
+    );
+
+    return { ok: true };
+  });
+}
+
 export default pool;

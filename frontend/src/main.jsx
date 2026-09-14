@@ -42,6 +42,7 @@ import ResetPassword   from './pages/ResetPassword.jsx';
 import SetupAgent      from './pages/SetupAgent.jsx';
 import Admin           from './pages/Admin.jsx';
 import LogisticsResponse from './pages/LogisticsResponse.jsx';
+import HouseholdJoin    from './pages/HouseholdJoin.jsx';
 
 function RequireGuest({ children }) {
   const { user, loading } = useAuth();
@@ -80,6 +81,7 @@ createRoot(document.getElementById('root')).render(
         <Routes>
           <Route path="/"               element={<LandingRedirect />} />
           <Route path="/logistics-response" element={<LogisticsResponse />} />
+          <Route path="/household/join"     element={<HouseholdJoin />} />
           <Route path="/login"          element={<RequireGuest><Login /></RequireGuest>} />
           <Route path="/signup"         element={<RequireGuest><Signup /></RequireGuest>} />
           <Route path="/forgot-password" element={<RequireGuest><ForgotPassword /></RequireGuest>} />

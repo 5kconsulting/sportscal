@@ -39,6 +39,7 @@ import joinTeamRoutes         from './routes/joinTeam.js';
 import setupAgentRoutes      from './routes/setupAgent.js';
 import inboundRoutes         from './routes/inbound.js';
 import pushTokensRoutes      from './routes/pushTokens.js';
+import householdRoutes       from './routes/household.js';
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -114,6 +115,7 @@ app.use('/api/ingestions',  ingestionsRoutes);
 app.use('/api/teams',       teamsRoutes);
 app.use('/api/setup-agent', setupAgentRoutes);
 app.use('/api/push-tokens', pushTokensRoutes);
+app.use('/api/household',   householdRoutes);
 app.use('/api/inbound',     inboundRoutes);  // public: Cloudflare Email Worker -> JSON envelope (shared-secret protected)
 app.use('/api/twilio',      twilioRoutes);   // public: Twilio inbound webhook (signature-verified)
 app.use('/feed',            calendarRoutes); // public: /feed/:token.ics

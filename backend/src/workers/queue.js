@@ -65,11 +65,12 @@ export const pushQueue = new Queue('push-send', {
 });
 
 export const JobType = {
-  FETCH_ICAL:    'fetch-ical',
-  FETCH_SCRAPE:  'fetch-scrape',
-  SEND_DIGEST:   'send-digest',
-  SEND_REMINDER: 'send-reminder',
-  PUSH_DIGEST:   'push-digest',
+  FETCH_ICAL:       'fetch-ical',
+  FETCH_SCRAPE:     'fetch-scrape',
+  SEND_DIGEST:      'send-digest',
+  SEND_REMINDER:    'send-reminder',
+  PUSH_DIGEST:      'push-digest',
+  SEND_HOUSEHOLD_INVITE: 'send-household-invite',
 };
 
 export async function enqueueIcalFetch(source, opts = {}) {
@@ -104,6 +105,16 @@ export async function enqueueDigest(userId, opts = {}) {
 
 export async function enqueueReminder(userId, eventId, opts = {}) {
   return emailQueue.add(JobType.SEND_REMINDER, { userId, eventId }, opts);
+}
+
+// Household invite email. jobId keyed on the token so a retried
+// POST /api/household/invites can't fire the same email twice.
+export async function enqueueHouseholdInvite({ inviteToken, inviterUserId, invitedEmail }, opts = {}) {
+  return emailQueue.add(
+    JobType.SEND_HOUSEHOLD_INVITE,
+    { inviteToken, inviterUserId, invitedEmail },
+    { jobId: `household-invite-${inviteToken}`, ...opts },
+  );
 }
 
 // jobId scoped to userId + the "local date" so the scheduler can fire

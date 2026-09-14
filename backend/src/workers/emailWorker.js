@@ -1,8 +1,17 @@
 import { Worker } from 'bullmq';
 import { Resend } from 'resend';
-import { getUserById, getUpcomingEvents, getKidsByUser } from '../db/index.js';
+import {
+  getUserById,
+  getUpcomingEvents,
+  getKidsByUser,
+  getHouseholdInviteByToken,
+} from '../db/index.js';
 import { connection, JobType } from './queue.js';
-import { digestEmail, reminderEmail } from '../emails/templates.js';
+import {
+  digestEmail,
+  reminderEmail,
+  householdInviteEmail,
+} from '../emails/templates.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -37,6 +46,30 @@ const worker = new Worker('email-send', async (job) => {
     const result = await resend.emails.send({ from: FROM, to: user.email, subject, html, text });
 
     console.log(`[email-worker] reminder sent to ${user.email}`);
+    return { emailId: result.id };
+  }
+
+  if (job.name === JobType.SEND_HOUSEHOLD_INVITE) {
+    const { inviteToken, invitedEmail } = job.data;
+    // Re-fetch the invite so a race between enqueue and send (e.g.
+    // the invite got revoked in the meantime) doesn't email a
+    // stale/cancelled link.
+    const invite = await getHouseholdInviteByToken(inviteToken);
+    if (!invite)               return { skipped: true, reason: 'invite not found' };
+    if (invite.redeemed_at)    return { skipped: true, reason: 'already redeemed' };
+
+    const to = invitedEmail || invite.invited_email;
+    if (!to) return { skipped: true, reason: 'no recipient' };
+
+    const { subject, html, text } = householdInviteEmail({
+      inviterName:   invite.invited_by_name,
+      householdName: invite.household_name,
+      token:         invite.token,
+      expiresAt:     invite.expires_at,
+    });
+    const result = await resend.emails.send({ from: FROM, to, subject, html, text });
+
+    console.log(`[email-worker] household invite sent to ${to}`);
     return { emailId: result.id };
   }
 }, { connection, concurrency: 5 });

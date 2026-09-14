@@ -226,6 +226,70 @@ export function reminderEmail(user, event) {
 }
 
 // ============================================================
+// Household invite email
+// Sent when a parent invites their co-parent to join their
+// SportsCal household. The magic link lands on
+// /household/join?token=… where the recipient signs in (or
+// creates an account) and joins.
+// ============================================================
+export function householdInviteEmail({ inviterName, householdName, token, expiresAt }) {
+  const firstName = inviterName ? inviterName.split(' ')[0] : 'Someone';
+  const joinUrl   = `${BASE_URL}/household/join?token=${token}`;
+
+  const content = `
+    <h2 style="${styles.h2}">${escapeHtml(firstName)} invited you to their SportsCal family</h2>
+    <p style="${styles.p}">
+      SportsCal keeps every kid's practices, games, and school events in one place.
+      Accept this invite and you'll both see the same family calendar — pickups,
+      dropoffs, and all.
+    </p>
+
+    <p style="text-align:center;margin:28px 0 8px;">
+      <a href="${joinUrl}" style="${styles.btn}">Accept invite →</a>
+    </p>
+    <p style="text-align:center;margin:0 0 24px;">
+      <span style="font-size:13px;color:#64748B;">
+        Expires ${new Date(expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+      </span>
+    </p>
+
+    <div style="margin-top:8px;padding:16px;background:#F8FAFC;border-radius:8px;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:500;color:#0F172A;">
+        What happens when you accept
+      </p>
+      <p style="${styles.muted}">
+        You and ${escapeHtml(firstName)} will share the same view of your family's
+        calendar. Anything you add — a kid, a team feed, a manual event — the
+        other sees too. Your existing account and any calendars you've already
+        connected come with you.
+      </p>
+    </div>
+
+    <p style="${styles.muted};margin-top:20px;">
+      If you weren't expecting this, you can ignore this email — nothing changes
+      until you click accept.
+    </p>
+  `;
+
+  return {
+    subject: `${firstName} invited you to their SportsCal family`,
+    html: layout(content, `${firstName} wants to share their family calendar with you.`),
+    text: [
+      `${firstName} invited you to their SportsCal family.`,
+      '',
+      `Accept the invite: ${joinUrl}`,
+      '',
+      `Expires ${new Date(expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`,
+      '',
+      'What happens when you accept: you and ' + firstName + ' share the same family calendar.',
+      "Your existing account and calendars come with you.",
+      '',
+      "If you weren't expecting this, ignore this email.",
+    ].join('\n'),
+  };
+}
+
+// ============================================================
 // Helpers
 // ============================================================
 function groupByDay(events, timezone = DEFAULT_TZ) {

@@ -140,4 +140,13 @@ export const api = {
     set:    (eventId, data)      => post(`/overrides/${eventId}`, data),
     remove: (eventId, kidId)     => del(`/overrides/${eventId}/${kidId}`),
   },
+  household: {
+    members:      ()             => get('/household/members'),
+    invite:       (email)        => post('/household/invites', { email }),
+    // Public — no auth. Used by the /household/join page before sign-in.
+    inviteInfo:   (token)        => get(`/household/invites/${token}`),
+    redeem:       (token)        => post(`/household/invites/${token}/redeem`),
+    revokeInvite: (token)        => del(`/household/invites/${token}`),
+    removeMember: (userId)       => del(`/household/members/${userId}`),
+  },
 };

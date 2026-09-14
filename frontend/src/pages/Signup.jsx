@@ -36,8 +36,12 @@ export default function Signup() {
       if (intendedInterval === 'month' || intendedInterval === 'year') {
         localStorage.setItem('sc_intended_interval', intendedInterval);
       }
-      const params = new URLSearchParams(window.location.search);
-      navigate(params.get('next') || '/dashboard');
+      // Only accept same-origin relative paths for ?next — never
+      // follow an off-site absolute URL, since the query string is
+      // whatever page linked the user here.
+      const rawNext = searchParams.get('next') || '';
+      const safeNext = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/dashboard';
+      navigate(safeNext);
     } catch (err) {
       setError(err.message);
     } finally {
