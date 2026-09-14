@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add a head-of-household</title>
+  <meta name="description" content="How to invite your co-parent to your SportsCal household — they see every kid, every calendar, every event. About 90 seconds from send to shared view." />
+  <link rel="canonical" href="https://www.sportscalapp.com/how/add-a-head-of-household" />
+  <meta name="robots" content="index, follow" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" />
+  <style>
+    :root {
+      --ink: #0F172A;
+      --ink-2: #1E293B;
+      --ground: #F5F7FB;
+      --card: #FFFFFF;
+      --muted: #64748B;
+      --muted-2: #94A3B8;
+      --border: #E4ECFC;
+      --border-strong: #CBD5E1;
+      --blue: #2563EB;
+      --blue-tint: #DBEAFE;
+      --sky: #EFF6FF;
+      --amber: #D97706;
+      --amber-tint: #FEF3C7;
+      --success: #059669;
+      --success-tint: #D1FAE5;
+      --warning: #DC2626;
+      --warning-tint: #FEE2E2;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+      --font: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --ink: #E2E8F0; --ink-2: #CBD5E1; --ground: #0A1224; --card: #111A2F;
+        --muted: #94A3B8; --muted-2: #64748B; --border: #1E293B; --border-strong: #334155;
+        --blue: #60A5FA; --blue-tint: #1E3A8A; --sky: #172554;
+        --amber: #FBBF24; --amber-tint: #78350F;
+        --success: #34D399; --success-tint: #064E3B;
+        --warning: #F87171; --warning-tint: #7F1D1D;
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.4); --shadow: 0 6px 20px rgba(0,0,0,0.5);
+      }
+    }
+    :root[data-theme="dark"] {
+      --ink: #E2E8F0; --ink-2: #CBD5E1; --ground: #0A1224; --card: #111A2F;
+      --muted: #94A3B8; --muted-2: #64748B; --border: #1E293B; --border-strong: #334155;
+      --blue: #60A5FA; --blue-tint: #1E3A8A; --sky: #172554;
+      --amber: #FBBF24; --amber-tint: #78350F;
+      --success: #34D399; --success-tint: #064E3B;
+      --warning: #F87171; --warning-tint: #7F1D1D;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.4); --shadow: 0 6px 20px rgba(0,0,0,0.5);
+    }
+
+    * { box-sizing: border-box; }
+    body { background: var(--ground); color: var(--ink); font-family: var(--font); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+    .home-link { display: block; font-size: 12px; font-weight: 600; color: var(--blue); text-decoration: none; padding: 20px 24px 0; max-width: 960px; margin: 0 auto; }
+    .page { max-width: 960px; margin: 0 auto; padding: 32px 24px 72px; }
+    .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); }
+    h1 { font-size: 40px; font-weight: 700; letter-spacing: -0.025em; margin: 10px 0 14px; text-wrap: balance; color: var(--ink); line-height: 1.1; }
+    .subtitle { font-size: 16px; color: var(--muted); max-width: 62ch; line-height: 1.6; margin: 0; }
+    .subtitle strong { color: var(--ink-2); font-weight: 600; }
+    .section-title { font-size: 22px; font-weight: 700; letter-spacing: -0.018em; margin: 56px 0 20px; color: var(--ink); }
+
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .page { padding: 24px 20px 64px; } h1 { font-size: 32px; } }
+
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 18px; box-shadow: var(--shadow-sm); }
+    .step { font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; color: var(--muted-2); }
+    .panel h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); margin: 0 0 6px; }
+    .panel p { font-size: 14px; color: var(--muted); line-height: 1.6; margin: 0; }
+    .panel p strong { color: var(--ink-2); font-weight: 600; }
+
+    .screen { background: var(--sky); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 240px; }
+    .screen-header { padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .screen-title { font-size: 14px; font-weight: 600; color: var(--ink); letter-spacing: -0.005em; }
+    .screen-meta { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+
+    .member-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
+    .member-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .member-email { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+    .member-tag { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-left: 6px; }
+    .avatar { width: 28px; height: 28px; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0; }
+
+    .invite-input { background: var(--card); border: 1.5px solid var(--blue); border-radius: 10px; padding: 11px 14px; font-family: var(--mono); font-size: 12px; color: var(--ink); }
+
+    .btn { font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px; background: var(--amber); color: #fff; border: 0; cursor: default; }
+    .btn-block { display: block; text-align: center; padding: 12px; font-size: 13px; }
+
+    /* Email preview */
+    .email-frame { background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    .email-header { background: #2563EB; padding: 14px 18px; display: flex; align-items: center; gap: 8px; }
+    .email-mark { width: 22px; height: 22px; background: #D97706; border-radius: 5px; flex-shrink: 0; }
+    .email-brand { font-size: 13px; font-weight: 600; color: #fff; letter-spacing: -0.02em; }
+    .email-body { padding: 18px; }
+    .email-title { font-size: 15px; font-weight: 700; color: #0F172A; margin: 0 0 6px; letter-spacing: -0.01em; }
+    .email-copy { font-size: 12px; color: #64748B; line-height: 1.55; margin: 0 0 14px; }
+    .email-btn { display: block; text-align: center; background: #D97706; color: #fff; font-size: 12px; font-weight: 700; padding: 10px; border-radius: 8px; }
+    .email-expires { font-size: 10.5px; color: #94A3B8; text-align: center; margin: 6px 0 0; }
+
+    /* Join page mock */
+    .join-page { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: left; }
+    .join-eyebrow { font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em; color: var(--amber); text-transform: uppercase; margin-bottom: 8px; }
+    .join-title { font-size: 15px; font-weight: 700; color: var(--ink); margin: 0 0 10px; letter-spacing: -0.01em; }
+    .join-body { font-size: 12px; color: var(--muted); line-height: 1.55; margin: 0 0 14px; }
+
+    .banner { padding: 10px 12px; border-radius: 10px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .banner.good { background: var(--success-tint); color: var(--success); }
+
+    .tap-cluster { display: flex; align-items: center; gap: 10px; }
+    .tap-cluster.end { justify-content: flex-end; align-self: flex-end; margin-top: auto; }
+    .tap-cluster.center { justify-content: center; margin-top: auto; }
+    .tap-hint { display: inline-flex; align-items: center; background: var(--amber); color: #fff; font-size: 9.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px; letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap; box-shadow: 0 2px 6px rgba(217,119,6,0.35); line-height: 1.2; }
+
+    /* Event cards (Panel 6) */
+    .event-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; border-left-width: 3px; border-left-style: solid; }
+    .event-card .event-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .event-card .event-meta { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+    /* FAQ */
+    .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 20px; }
+    @media (max-width: 720px) { .faq-grid { grid-template-columns: 1fr; } }
+    .faq-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: var(--shadow-sm); }
+    .faq-q { font-size: 13.5px; font-weight: 700; color: var(--ink); margin: 0 0 6px; letter-spacing: -0.005em; }
+    .faq-a { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin: 0; }
+
+    .footer { font-size: 12.5px; color: var(--muted); text-align: center; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .footer a { color: var(--blue); font-weight: 600; text-decoration: none; border-bottom: 1px solid var(--blue-tint); }
+    .footer a:hover { border-bottom-color: var(--blue); }
+  </style>
+</head>
+<body>
+  <a class="home-link" href="/how">&larr; All guides</a>
+  <div class="page">
+
+    <div class="eyebrow">SportsCal · Guides</div>
+    <h1>Add a head-of-household</h1>
+    <p class="subtitle">
+      Invite your co-parent to your SportsCal household so <strong>both of you see the same kids, calendars, and events</strong>. Whoever taps a ride ask or a manual event is the sender — but everything shows up on both dashboards. Takes about 90 seconds from send to shared view.
+    </p>
+
+    <div class="section-title">The flow</div>
+
+    <div class="grid">
+
+      <!-- Panel 1 -->
+      <div class="panel">
+        <span class="step">STEP 1 · IN SPORTSCAL</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Household</div>
+            <div class="screen-meta">Share the family calendar with a co-parent</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="member-row">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="avatar" style="background: var(--blue);">J</div>
+                <div>
+                  <div class="member-name">John Patton <span class="member-tag">you</span></div>
+                  <div class="member-email">john@example.com</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="font-size: 11.5px; color: var(--muted); line-height: 1.5; margin-top: 4px;">
+            You're the only member right now. Add your co-parent and you'll both see the same family view.
+          </div>
+        </div>
+        <div>
+          <h3>Open Settings &rarr; Household</h3>
+          <p>Sign in on the web and go to <strong>Settings</strong>. Scroll to the <strong>Household</strong> section — right now it shows just you. Everything you add lives under your account until you invite someone.</p>
+        </div>
+      </div>
+
+      <!-- Panel 2 -->
+      <div class="panel">
+        <span class="step">STEP 2 · SEND THE INVITE</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Household</div>
+            <div class="screen-meta">Invite your co-parent by email</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="member-row">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="avatar" style="background: var(--blue);">J</div>
+                <div>
+                  <div class="member-name">John Patton <span class="member-tag">you</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="font-size: 10.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 6px;">
+            Invite a co-parent
+          </div>
+          <div class="invite-input">theresa@example.com</div>
+          <div class="tap-cluster end">
+            <button class="btn" type="button">Send invite</button>
+            <span class="tap-hint">Tap</span>
+          </div>
+        </div>
+        <div>
+          <h3>Type their email &rarr; Send invite</h3>
+          <p>Enter your co-parent's email and tap <strong>Send invite</strong>. SportsCal generates a magic link and emails it right away. The invite expires in 7 days if they don't act.</p>
+        </div>
+      </div>
+
+      <!-- Panel 3 -->
+      <div class="panel">
+        <span class="step">STEP 3 · THEY GET AN EMAIL</span>
+        <div class="screen">
+          <div class="email-frame">
+            <div class="email-header">
+              <div class="email-mark"></div>
+              <div class="email-brand">SportsCal</div>
+            </div>
+            <div class="email-body">
+              <p class="email-title">John invited you to their SportsCal family</p>
+              <p class="email-copy">SportsCal keeps every kid's practices, games, and school events in one place. Accept and you'll both see the same family calendar.</p>
+              <div class="email-btn">Accept invite &rarr;</div>
+              <div class="email-expires">Expires Sep 21</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3>Landed in their inbox</h3>
+          <p>Your co-parent gets an email from <strong>SportsCal</strong> with a big <strong>Accept invite</strong> button. If they don't see it in a couple of minutes, tell them to check the promotions or spam folder — sender is <strong>noreply@mail.sportscalapp.com</strong>.</p>
+        </div>
+      </div>
+
+      <!-- Panel 4 -->
+      <div class="panel">
+        <span class="step">STEP 4 · THEY CLICK ACCEPT</span>
+        <div class="screen">
+          <div class="join-page">
+            <div class="join-eyebrow">Household invite</div>
+            <p class="join-title">John invited you to their SportsCal family</p>
+            <p class="join-body">
+              Accept and you'll share the same family calendar — kids, team feeds, pickups and dropoffs. Your existing account and calendars come with you.
+            </p>
+            <div class="btn btn-block" style="background: var(--amber); color: #fff;">Accept invite</div>
+            <div style="font-size: 11px; color: var(--muted); text-align: center; margin-top: 10px;">Signed in as theresa@example.com</div>
+          </div>
+          <div class="tap-cluster end">
+            <span class="tap-hint">Tap accept</span>
+          </div>
+        </div>
+        <div>
+          <h3>The magic link opens a join page</h3>
+          <p>The button lands on <strong>sportscalapp.com/household/join</strong>. If they don't have a SportsCal account yet, they'll sign up first — the invite waits for them and picks right back up. If they already have one, they just sign in and tap <strong>Accept</strong>.</p>
+        </div>
+      </div>
+
+      <!-- Panel 5 -->
+      <div class="panel">
+        <span class="step">STEP 5 · BOTH IN THE HOUSEHOLD</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">Household</div>
+            <div class="screen-meta">2 members · 1 shared family view</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="member-row">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="avatar" style="background: var(--blue);">J</div>
+                <div>
+                  <div class="member-name">John Patton <span class="member-tag">you</span></div>
+                  <div class="member-email">john@example.com</div>
+                </div>
+              </div>
+            </div>
+            <div class="member-row">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="avatar" style="background: var(--amber);">T</div>
+                <div>
+                  <div class="member-name">Theresa Patton</div>
+                  <div class="member-email">theresa@example.com</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="banner good" style="margin-top: auto;">
+            <span>✓</span>
+            <span>Household ready — you both see everything</span>
+          </div>
+        </div>
+        <div>
+          <h3>Now you're a household of two</h3>
+          <p>Both names show up in the <strong>Household</strong> section on either account. Whatever calendars either of you added live inside this shared view — kids, team feeds, manual events, ride asks, all of it.</p>
+        </div>
+      </div>
+
+      <!-- Panel 6 -->
+      <div class="panel">
+        <span class="step">STEP 6 · SHARED DASHBOARD</span>
+        <div class="screen">
+          <div class="screen-header">
+            <div class="screen-title">This week</div>
+            <div class="screen-meta">Same view on both parents' phones</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="event-card" style="border-left-color: var(--blue);">
+              <div class="event-title">Baseball practice · Riley</div>
+              <div class="event-meta">Wed · 4:30 PM · Field 3 · John added this feed</div>
+            </div>
+            <div class="event-card" style="border-left-color: var(--amber);">
+              <div class="event-title">Ballet · Jordan</div>
+              <div class="event-meta">Thu · 5:15 PM · Studio B · Theresa added this feed</div>
+            </div>
+            <div class="event-card" style="border-left-color: var(--success);">
+              <div class="event-title">Dentist · Sam</div>
+              <div class="event-meta">Fri · 3:00 PM · Manual event · John</div>
+            </div>
+          </div>
+          <div style="font-size: 11.5px; color: var(--muted); line-height: 1.5; margin-top: 6px;">
+            Every event on either phone. Ride ask? Whoever taps is the sender.
+          </div>
+        </div>
+        <div>
+          <h3>Every event, either phone</h3>
+          <p>The family Dashboard is now identical on both accounts. When someone offers a ride from your household, whoever tapped is the one the reply lands with — no confusion about who's coordinating.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="section-title">Good to know</div>
+
+    <div class="faq-grid">
+      <div class="faq-card">
+        <p class="faq-q">Do their existing calendars come with them?</p>
+        <p class="faq-a">Yes. If your co-parent already had a SportsCal account with kids or feeds set up, everything they had comes along when they accept — and you'll both see it right after.</p>
+      </div>
+      <div class="faq-card">
+        <p class="faq-q">Can I invite more than one person?</p>
+        <p class="faq-a">Household size is capped at two for now — the common co-parent case. If you'd use a third seat (grandparent, nanny), <a href="mailto:hello@sportscalapp.com" style="color: var(--blue); font-weight: 600; text-decoration: none;">tell us</a> — that's the fastest way to move it up the list.</p>
+      </div>
+      <div class="faq-card">
+        <p class="faq-q">What if they never respond?</p>
+        <p class="faq-a">The invite expires after 7 days. You can also cancel it any time from the Household section — the magic link stops working immediately when you do.</p>
+      </div>
+      <div class="faq-card">
+        <p class="faq-q">Can we un-join later?</p>
+        <p class="faq-a">Either of you can leave from the Household section. The one who leaves keeps their own kids and calendars — they just go back to their own solo view.</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      Once you're a household of two, the next step is <a href="/how/route-to-kid">routing events to the right kid</a> so each parent's dashboard stays tidy.
+    </div>
+
+  </div>
+</body>
+</html>
