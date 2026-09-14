@@ -22,9 +22,7 @@ const styles = {
   eventRow:'padding:10px 0;border-bottom:1px solid #F1F5FD;',
   eventTitle:'margin:0 0 3px;font-size:15px;font-weight:500;color:#0F172A;',
   eventMeta:'margin:0;font-size:13px;color:#64748B;',
-  logo:    'display:inline-flex;align-items:center;gap:8px;text-decoration:none;',
-  logoMark:'display:inline-block;width:28px;height:28px;background:#D97706;border-radius:6px;',
-  logoText:'font-size:16px;font-weight:600;color:#ffffff;letter-spacing:-0.02em;',
+  logoText:'font-size:16px;font-weight:600;color:#ffffff;letter-spacing:-0.02em;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;',
 };
 
 function layout(content, preheader = '') {
@@ -43,10 +41,19 @@ function layout(content, preheader = '') {
       <table width="600" cellpadding="0" cellspacing="0" style="${styles.card}">
         <!-- Header -->
         <tr><td style="${styles.header}">
-          <a href="${BASE_URL}" style="${styles.logo}">
-            <span style="${styles.logoMark}"></span>
-            <span style="${styles.logoText}">SportsCal</span>
-          </a>
+          <table cellpadding="0" cellspacing="0" border="0" role="presentation">
+            <tr>
+              <td style="padding-right:10px;vertical-align:middle;">
+                <a href="${BASE_URL}" style="display:inline-block;text-decoration:none;">
+                  <img src="${BASE_URL}/favicon-192.png" alt="SportsCal" width="28" height="28"
+                       style="display:block;border:0;border-radius:6px;" />
+                </a>
+              </td>
+              <td style="vertical-align:middle;">
+                <a href="${BASE_URL}" style="${styles.logoText}">SportsCal</a>
+              </td>
+            </tr>
+          </table>
         </td></tr>
         <!-- Content -->
         <tr><td style="${styles.body_pad}">
