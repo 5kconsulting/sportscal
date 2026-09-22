@@ -143,9 +143,12 @@ export default function EventDetail() {
     const kid = (event.display_title || '').split('—')[0].trim();
     const startsAt = new Date(event.starts_at);
     const dateStr = startsAt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    // Pick-up happens at the END of the event; drop-off at the start.
+    // Falls back to starts_at when a feed has no DTEND (rare).
+    const timeAnchor = role === 'pickup' && event.ends_at ? new Date(event.ends_at) : startsAt;
     const timeStr = event.all_day
       ? ''
-      : ' at ' + startsAt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      : ' at ' + timeAnchor.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
     const baseUrl = 'https://www.sportscalapp.com/api/logistics/respond';
     const confirmUrl = token ? `${baseUrl}/${token}/confirmed` : null;
     const declineUrl = token ? `${baseUrl}/${token}/declined` : null;
@@ -508,20 +511,20 @@ export default function EventDetail() {
           <Text style={s.clab}>Ride coordination</Text>
           <View style={s.rides}>
             <LogisticsSlot
-              role="pickup"
-              label="Pick-up"
-              logistics={findLogistics('pickup')}
-              saving={savingRole === 'pickup'}
-              onAssign={() => openPicker('pickup')}
-              onClear={() => clearRole('pickup')}
-            />
-            <LogisticsSlot
               role="dropoff"
               label="Drop-off"
               logistics={findLogistics('dropoff')}
               saving={savingRole === 'dropoff'}
               onAssign={() => openPicker('dropoff')}
               onClear={() => clearRole('dropoff')}
+            />
+            <LogisticsSlot
+              role="pickup"
+              label="Pick-up"
+              logistics={findLogistics('pickup')}
+              saving={savingRole === 'pickup'}
+              onAssign={() => openPicker('pickup')}
+              onClear={() => clearRole('pickup')}
             />
           </View>
         </View>

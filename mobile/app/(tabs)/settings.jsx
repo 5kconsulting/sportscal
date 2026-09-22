@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
 import { useTheme, useSkin } from '../../lib/theme';
+import HouseholdSection from '../../components/HouseholdSection';
 
 const FEED_HOST = 'www.sportscalapp.com';
 
@@ -437,6 +438,8 @@ export default function Settings() {
           </View>
         )}
       </View>
+
+      <HouseholdSection currentUserId={user?.id} />
 
       <TouchableOpacity
         style={s.manageBtn}
