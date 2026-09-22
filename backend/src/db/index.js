@@ -808,14 +808,50 @@ export async function finishRefreshJob(jobId, { status, added, updated, removed,
 
 // --- Plan enforcement ---
 
+// Plan limits are HOUSEHOLD-effective: if any member of the caller's
+// household is premium, everyone in the household gets premium quotas.
+// The reads-are-shared model (Commit B) means Theresa can see all of
+// John's kids and calendars; the plan gate must respect that or her
+// (free-by-default) account sees "Upgrade" banners for content John
+// paid for. Billing (routes/billing.js) still uses the raw per-user
+// plan since only the subscription holder can manage their own Stripe.
 export async function getUserPlanLimits(userId) {
   return queryOne(
-    `SELECT u.plan, pl.max_kids, pl.max_sources, pl.email_digest
-     FROM users u
-     JOIN plan_limits pl ON pl.plan = u.plan
-     WHERE u.id = $1`,
+    `WITH household_plan AS (
+       SELECT CASE
+                WHEN bool_or(u.plan = 'premium') THEN 'premium'
+                ELSE 'free'
+              END AS plan
+         FROM household_members hm
+         JOIN users u ON u.id = hm.user_id
+        WHERE hm.household_id = (
+          SELECT household_id FROM household_members WHERE user_id = $1
+        )
+     )
+     SELECT hp.plan, pl.max_kids, pl.max_sources, pl.email_digest
+       FROM household_plan hp
+       JOIN plan_limits pl ON pl.plan = hp.plan`,
     [userId]
   );
+}
+
+// Returns 'premium' if any household member is premium, else 'free'.
+// Used by the auth middleware to attach an effective-plan field so
+// frontend gates and requirePlan checks respect the household model.
+export async function getEffectivePlanForUser(userId) {
+  const row = await queryOne(
+    `SELECT CASE
+              WHEN bool_or(u.plan = 'premium') THEN 'premium'
+              ELSE 'free'
+            END AS plan
+       FROM household_members hm
+       JOIN users u ON u.id = hm.user_id
+      WHERE hm.household_id = (
+        SELECT household_id FROM household_members WHERE user_id = $1
+      )`,
+    [userId],
+  );
+  return row?.plan || 'free';
 }
 
 export async function countUserKids(userId) {

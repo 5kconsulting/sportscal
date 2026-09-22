@@ -43,11 +43,15 @@ async function fireOptIn(contact, parentName) {
 }
 
 // GET /api/contacts
+// Household-scoped read: both parents see the same carpool drivers,
+// coaches, and other named contacts. Writes still scope to req.user.id
+// so each parent only edits contacts they themselves created (matches
+// the current pattern for kids and sources — deferred harmonization).
 router.get('/', async (req, res) => {
   try {
     const contacts = await query(
-      `SELECT * FROM contacts WHERE user_id = $1 ORDER BY name`,
-      [req.user.id]
+      `SELECT * FROM contacts WHERE user_id = ANY($1::uuid[]) ORDER BY name`,
+      [req.user.householdMemberIds]
     );
     res.json({ contacts });
   } catch (err) {

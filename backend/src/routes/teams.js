@@ -38,9 +38,9 @@ router.get('/', async (req, res) => {
            '[]'::json
          ) AS members
        FROM teams t
-       WHERE t.user_id = $1
+       WHERE t.user_id = ANY($1::uuid[])
        ORDER BY t.name`,
-      [req.user.id]
+      [req.user.householdMemberIds]
     );
     res.json({ teams });
   } catch (err) {

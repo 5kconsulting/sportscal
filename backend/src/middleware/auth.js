@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { getUserById, getHouseholdMemberIds } from '../db/index.js';
+import { getUserById, getHouseholdMemberIds, getEffectivePlanForUser } from '../db/index.js';
 
 // ============================================================
 // requireAuth middleware
@@ -25,7 +25,19 @@ export async function requireAuth(req, res, next) {
     // scope their queries by household with `WHERE user_id = ANY($N)`
     // instead of a single user_id. Falls back to [user.id] if the
     // household backfill hasn't run yet (shouldn't happen post-deploy).
-    user.householdMemberIds = await getHouseholdMemberIds(user.id);
+    const [memberIds, effectivePlan] = await Promise.all([
+      getHouseholdMemberIds(user.id),
+      getEffectivePlanForUser(user.id),
+    ]);
+    user.householdMemberIds = memberIds;
+
+    // Preserve the raw per-user plan for billing (only the subscription
+    // holder can manage their own Stripe portal), and override the
+    // exposed plan with the household-effective one so feature gates
+    // (UpgradeBanner, Settings copy, /api/kids + /api/sources limits)
+    // see the shared premium when a co-parent is paying.
+    user.own_plan = user.plan;
+    user.plan = effectivePlan;
 
     req.user = user;
     next();
