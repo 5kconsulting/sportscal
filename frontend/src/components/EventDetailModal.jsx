@@ -203,8 +203,8 @@ export function EventDetailModal({
               <button onClick={onManageRides} className="btn btn-ghost btn-sm">Manage</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-              <RideSlot label="Pick-up" row={pickup} fg={fg} />
               <RideSlot label="Drop-off" row={dropoff} fg={fg} />
+              <RideSlot label="Pick-up" row={pickup} fg={fg} />
             </div>
           </div>
 

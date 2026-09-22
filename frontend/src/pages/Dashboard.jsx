@@ -1245,7 +1245,9 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
           const action_word = form.role === 'pickup' ? 'pick up' : 'drop off';
           const kid = (event.display_title || '').split('—')[0].trim();
           const eventDate = new Date(event.starts_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-          const eventTime = new Date(event.starts_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          // Pick-up happens at the END of the event; drop-off at the start.
+          const timeAnchor = form.role === 'pickup' && event.ends_at ? event.ends_at : event.starts_at;
+          const eventTime = new Date(timeAnchor).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
           const baseUrl = `${window.location.origin}/api/logistics/respond`;
           const token = updated?.token;
           const lines = [
@@ -1390,8 +1392,8 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
                   <select className="input" value={teamForm.role}
                     onChange={e => setTeamForm(f => ({ ...f, role: e.target.value }))}
                     style={{ flex: 1 }}>
-                    <option value="pickup">🏠 Pick-up</option>
                     <option value="dropoff">🚗 Drop-off</option>
+                    <option value="pickup">🏠 Pick-up</option>
                   </select>
                   <select className="input" value={teamForm.team_id}
                     onChange={e => setTeamForm(f => ({ ...f, team_id: e.target.value }))}

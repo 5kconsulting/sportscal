@@ -278,9 +278,15 @@ router.post('/:eventId/team-request', requireAuth, async (req, res) => {
     const eventDate = new Date(event.starts_at).toLocaleDateString('en-US', {
       weekday: 'short', month: 'short', day: 'numeric',
     });
+    // Pick-up happens at the END of the event; drop-off at the start.
+    // Fall back to starts_at if ends_at isn't in the feed (rare — most
+    // iCal feeds have DTEND — but shows a sensible time either way).
+    const timeAnchor = role === 'pickup' && event.ends_at
+      ? event.ends_at
+      : event.starts_at;
     const eventTime = event.all_day
       ? ''
-      : ' at ' + new Date(event.starts_at).toLocaleTimeString('en-US', {
+      : ' at ' + new Date(timeAnchor).toLocaleTimeString('en-US', {
           hour: 'numeric', minute: '2-digit',
         });
     // Single short URL → landing page that lists every pending parent
