@@ -18,6 +18,15 @@ export default function Login() {
   const rawNext = searchParams.get('next') || '';
   const safeNext = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/dashboard';
 
+  // Friendly hint shown when the verify-email endpoint bounces someone
+  // here — usually because Gmail's link scanner ate the click and the
+  // magic link doesn't match a user any more. Not scary red — just a
+  // gentle nudge to sign in and check.
+  const verifyHint =
+    searchParams.get('verify') === 'used'    ? "It looks like that verification link was already used. Sign in below — you may already be verified."
+    : searchParams.get('verify') === 'missing' ? "That link was missing its token. Sign in and use the banner to resend if you still need to verify."
+    : '';
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -89,6 +98,15 @@ export default function Login() {
                 </Link>
               </p>
 
+              {verifyHint && !error && (
+                <div style={{
+                  marginBottom: 20, padding: '10px 12px',
+                  background: '#EFF6FF', border: '1px solid #DBEAFE',
+                  borderRadius: 8, fontSize: 13, color: '#1E40AF', lineHeight: 1.5,
+                }}>
+                  {verifyHint}
+                </div>
+              )}
               {error && <div className="error-msg" style={{ marginBottom: 20 }}>{error}</div>}
 
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

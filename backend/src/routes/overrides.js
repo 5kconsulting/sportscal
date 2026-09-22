@@ -11,9 +11,11 @@ router.use(requireAuth);
 // ============================================================
 router.get('/', async (req, res) => {
   try {
+    // Household-scoped read: per-kid "not attending" flags sync across
+    // both parents' dashboards. Writes stay per-user.
     const rows = await query(
-      `SELECT * FROM event_overrides WHERE user_id = $1`,
-      [req.user.id]
+      `SELECT * FROM event_overrides WHERE user_id = ANY($1::uuid[])`,
+      [req.user.householdMemberIds]
     );
     res.json({ overrides: rows });
   } catch (err) {
@@ -23,7 +25,7 @@ router.get('/', async (req, res) => {
 
 // ============================================================
 // GET /api/overrides/:eventId
-// Get attendance overrides for an event
+// Get attendance overrides for an event (household-scoped).
 // ============================================================
 router.get('/:eventId', async (req, res) => {
   try {
@@ -31,8 +33,8 @@ router.get('/:eventId', async (req, res) => {
       `SELECT eo.*, k.name AS kid_name, k.color AS kid_color
        FROM event_overrides eo
        JOIN kids k ON k.id = eo.kid_id
-       WHERE eo.event_id = $1 AND eo.user_id = $2`,
-      [req.params.eventId, req.user.id]
+       WHERE eo.event_id = $1 AND eo.user_id = ANY($2::uuid[])`,
+      [req.params.eventId, req.user.householdMemberIds]
     );
     res.json({ overrides: rows });
   } catch (err) {

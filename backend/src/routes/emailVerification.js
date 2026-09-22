@@ -17,7 +17,7 @@ router.get('/verify-email', async (req, res) => {
   const { token } = req.query;
 
   if (!token) {
-    return res.redirect(`${APP_URL}/login?error=invalid_token`);
+    return res.redirect(`${APP_URL}/login?verify=missing`);
   }
 
   const user = await queryOne(
@@ -26,13 +26,27 @@ router.get('/verify-email', async (req, res) => {
   );
 
   if (!user) {
-    return res.redirect(`${APP_URL}/login?error=invalid_token`);
+    // Token didn't match any user. Historically we cleared the token on
+    // first successful verify, so a repeat click (Gmail link scanner
+    // consuming it first, user tapping twice, back button, etc.) landed
+    // here as "invalid_token" — indistinguishable to the user from a
+    // truly broken link. Route those to a friendly login page hint
+    // instead of a scary error state.
+    return res.redirect(`${APP_URL}/login?verify=used`);
   }
 
-  await query(
-    `UPDATE users SET email_verified = true, verification_token = NULL WHERE id = $1`,
-    [user.id]
-  );
+  // Mark verified but DON'T clear the token: a re-click of the same
+  // magic link now stays idempotent and lands cleanly on the dashboard.
+  // The token is a bearer secret; keeping it around is harmless because
+  // the endpoint only sets email_verified from true→true on re-verify.
+  // A subsequent /resend-verification call overwrites the column with
+  // a new token, invalidating the old link.
+  if (!user.email_verified) {
+    await query(
+      `UPDATE users SET email_verified = true WHERE id = $1`,
+      [user.id]
+    );
+  }
 
   return res.redirect(`${APP_URL}/dashboard?verified=1`);
 });

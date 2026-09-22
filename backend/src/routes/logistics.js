@@ -11,9 +11,10 @@ const APP_URL = process.env.FRONTEND_URL || 'https://www.sportscalapp.com';
 
 // ============================================================
 // GET /api/logistics
-// Bulk: every logistics row for the current user (Dashboard uses
-// this to render pickup/dropoff inline on each event card without
-// needing to open the modal first).
+// Bulk: every logistics row for the caller's HOUSEHOLD (Dashboard
+// uses this to render pickup/dropoff inline on each event card
+// without needing to open the modal first). Writes stay per-user
+// so each parent only edits assignments they themselves created.
 // ============================================================
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -21,8 +22,8 @@ router.get('/', requireAuth, async (req, res) => {
       `SELECT el.*, c.name AS contact_name, c.email AS contact_email, c.phone AS contact_phone
        FROM event_logistics el
        JOIN contacts c ON c.id = el.contact_id
-       WHERE el.user_id = $1`,
-      [req.user.id]
+       WHERE el.user_id = ANY($1::uuid[])`,
+      [req.user.householdMemberIds]
     );
     res.json({ logistics: rows });
   } catch (err) {
@@ -32,7 +33,7 @@ router.get('/', requireAuth, async (req, res) => {
 
 // ============================================================
 // GET /api/logistics/:eventId
-// Get logistics for a single event
+// Get logistics for a single event (household-scoped).
 // ============================================================
 router.get('/:eventId', requireAuth, async (req, res) => {
   try {
@@ -40,8 +41,8 @@ router.get('/:eventId', requireAuth, async (req, res) => {
       `SELECT el.*, c.name AS contact_name, c.email AS contact_email, c.phone AS contact_phone
        FROM event_logistics el
        JOIN contacts c ON c.id = el.contact_id
-       WHERE el.event_id = $1 AND el.user_id = $2`,
-      [req.params.eventId, req.user.id]
+       WHERE el.event_id = $1 AND el.user_id = ANY($2::uuid[])`,
+      [req.params.eventId, req.user.householdMemberIds]
     );
     res.json({ logistics: rows });
   } catch (err) {
