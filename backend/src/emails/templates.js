@@ -75,69 +75,202 @@ function layout(content, preheader = '') {
 
 // ============================================================
 // Welcome email
+//
+// Structure:
+//   1. Warm greeting.
+//   2. Primary CTA card — "Add your first calendar" — the one
+//      action that unlocks every downstream feature. Two links:
+//      the app's setup agent (for people who want to do it right
+//      now) and the walkthrough (for people who want to read first).
+//   3. Six feature cards linking to /how walkthroughs. Chosen for
+//      breadth ("oh, it also does that?") and growth-loop leverage
+//      (co-parent invite is one of the six, deliberately).
+//   4. "See all 12 walkthroughs →" for the completionists.
+//   5. Founder signoff — reinforces the parent-to-parent voice.
 // ============================================================
 export function welcomeEmail(user) {
+  const firstName = user.name.split(' ')[0];
+
+  // Feature card cell — kept as a helper because emails render this
+  // pattern in a table, not with CSS grid, so the markup is verbose.
+  // Passing linkStyles for the outer <a> keeps the tap-target as the
+  // entire card in clients that respect display:block on anchors.
+  const cardCell = (href, emoji, title, sub) => `
+    <a href="${href}" style="display:block;padding:14px;border:1px solid #E4ECFC;border-radius:10px;text-decoration:none;background:#FFFFFF;">
+      <span style="font-size:22px;line-height:1;">${emoji}</span>
+      <p style="margin:8px 0 4px;font-size:14px;font-weight:600;color:#0F172A;">${title}</p>
+      <p style="margin:0;font-size:12.5px;color:#64748B;line-height:1.5;">${sub}</p>
+    </a>`;
+
   const content = `
-    <h2 style="${styles.h2}">Welcome to SportsCal, ${user.name.split(' ')[0]}! 🎉</h2>
+    <h2 style="${styles.h2}">Welcome to SportsCal, ${firstName}!</h2>
     <p style="${styles.p}">
-      You're all set to pull all your kids' sports schedules into one place.
-      Here's how to get started in 3 steps:
+      You're in. SportsCal pulls every kid's practices, games, and school events
+      from every team app into one family calendar the whole household sees.
+      Here's the fastest way to feel that.
     </p>
 
+    <!-- Primary CTA card -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 28px;">
+      <tr><td style="background:#EFF6FF;border:1px solid #DBEAFE;border-radius:10px;padding:20px;">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:0.08em;">Start here</p>
+        <p style="margin:0 0 8px;font-size:17px;font-weight:600;color:#0F172A;letter-spacing:-0.01em;">Add your first calendar</p>
+        <p style="margin:0 0 16px;font-size:14px;color:#64748B;line-height:1.55;">
+          Paste an iCal URL from TeamSnap, GameChanger, PlayMetrics, or a dozen more sports apps.
+          Events land on your dashboard in seconds.
+        </p>
+        <p style="margin:0;">
+          <a href="${BASE_URL}/setup" style="${styles.btn}">Add a calendar →</a>
+          &nbsp;&nbsp;<a href="${BASE_URL}/how/add-calendar" style="font-size:13px;color:#2563EB;text-decoration:none;font-weight:600;">See the walkthrough</a>
+        </p>
+      </td></tr>
+    </table>
+
+    <p style="${styles.p};margin-bottom:12px;">
+      Once you have a calendar or two connected, here's what SportsCal does next:
+    </p>
+
+    <!-- Feature grid: 2-col, 3-row -->
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
       <tr>
-        <td style="padding:12px 0;border-bottom:1px solid #F8FAFC;">
-          <table cellpadding="0" cellspacing="0">
-            <tr>
-              <td style="width:32px;height:32px;background:#DBEAFE;border-radius:50%;text-align:center;vertical-align:middle;font-size:14px;font-weight:600;color:#2563EB;">1</td>
-              <td style="padding-left:12px;">
-                <p style="margin:0;font-size:14px;font-weight:500;color:#0F172A;">Add your family members</p>
-                <p style="margin:0;font-size:13px;color:#64748B;">Give each kid a name and color</p>
-              </td>
-            </tr>
-          </table>
+        <td width="50%" style="padding:6px 6px 6px 0;vertical-align:top;">
+          ${cardCell(`${BASE_URL}/how/share-kid-calendar`, '📤', "Share a kid's calendar",
+            "Each kid gets their own subscribable URL for their phone.")}
+        </td>
+        <td width="50%" style="padding:6px 0 6px 6px;vertical-align:top;">
+          ${cardCell(`${BASE_URL}/how/add-a-head-of-household`, '🏠', 'Add a co-parent',
+            "Both parents see the same kids, calendars, and events.")}
         </td>
       </tr>
       <tr>
-        <td style="padding:12px 0;border-bottom:1px solid #F8FAFC;">
-          <table cellpadding="0" cellspacing="0">
-            <tr>
-              <td style="width:32px;height:32px;background:#DBEAFE;border-radius:50%;text-align:center;vertical-align:middle;font-size:14px;font-weight:600;color:#2563EB;">2</td>
-              <td style="padding-left:12px;">
-                <p style="margin:0;font-size:14px;font-weight:500;color:#0F172A;">Connect your sports apps</p>
-                <p style="margin:0;font-size:13px;color:#64748B;">Paste iCal links from TeamSnap, GameChanger, PlayMetrics & more</p>
-              </td>
-            </tr>
-          </table>
+        <td width="50%" style="padding:6px 6px 6px 0;vertical-align:top;">
+          ${cardCell(`${BASE_URL}/how/route-to-kid`, '🎯', 'Route events to the right kid',
+            "When one team feed covers multiple ages, sort them.")}
+        </td>
+        <td width="50%" style="padding:6px 0 6px 6px;vertical-align:top;">
+          ${cardCell(`${BASE_URL}/rides/group`, '👥', 'Ask a group for a ride',
+            "One iMessage to a whole team of parents. First yes wins.")}
         </td>
       </tr>
       <tr>
-        <td style="padding:12px 0;">
-          <table cellpadding="0" cellspacing="0">
-            <tr>
-              <td style="width:32px;height:32px;background:#DBEAFE;border-radius:50%;text-align:center;vertical-align:middle;font-size:14px;font-weight:600;color:#2563EB;">3</td>
-              <td style="padding-left:12px;">
-                <p style="margin:0;font-size:14px;font-weight:500;color:#0F172A;">Subscribe your calendar feed</p>
-                <p style="margin:0;font-size:13px;color:#64748B;">One URL works in Apple Calendar, Google Calendar & Outlook</p>
-              </td>
-            </tr>
-          </table>
+        <td width="50%" style="padding:6px 6px 6px 0;vertical-align:top;">
+          ${cardCell(`${BASE_URL}/how/weekly-digest`, '✉️', 'Weekly digest email',
+            "Every event for the whole family, every Friday morning.")}
+        </td>
+        <td width="50%" style="padding:6px 0 6px 6px;vertical-align:top;">
+          ${cardCell(`${BASE_URL}/how/bedtime-reminder`, '🌙', 'Bedtime reminder',
+            "8pm push notification with tomorrow's events.")}
         </td>
       </tr>
     </table>
 
-    <p style="text-align:center;margin:0 0 8px;">
-      <a href="${BASE_URL}" style="${styles.btn}">Get started →</a>
+    <p style="text-align:center;margin:0 0 24px;">
+      <a href="${BASE_URL}/how" style="font-size:14px;color:#2563EB;text-decoration:none;font-weight:600;">
+        See all 12 walkthroughs →
+      </a>
     </p>
-    <p style="text-align:center;margin:0;">
-      <span style="font-size:13px;color:#64748B;">Takes about 5 minutes to set up</span>
+
+    <p style="${styles.muted}">
+      Built by a parent of four who was tired of missing pickups.
+      Questions or a feature you wish existed? Reply — I read every email.
     </p>
   `;
 
   return {
-    subject: `Welcome to SportsCal, ${user.name.split(' ')[0]}!`,
-    html: layout(content, 'All your kids\' sports schedules in one place — let\'s get started.'),
-    text: `Welcome to SportsCal, ${user.name.split(' ')[0]}!\n\nGet started at ${BASE_URL}\n\n1. Add your family members\n2. Connect your sports apps\n3. Subscribe your calendar feed`,
+    subject: `Welcome to SportsCal, ${firstName}!`,
+    html: layout(content, "All your kids' sports schedules in one place — let's get started."),
+    text: [
+      `Welcome to SportsCal, ${firstName}!`,
+      '',
+      "Start here: add your first calendar.",
+      `  ${BASE_URL}/setup`,
+      `  Walkthrough: ${BASE_URL}/how/add-calendar`,
+      '',
+      "Once your calendars are in, SportsCal can also:",
+      `  * Share a kid's calendar     ${BASE_URL}/how/share-kid-calendar`,
+      `  * Add a co-parent            ${BASE_URL}/how/add-a-head-of-household`,
+      `  * Route events to the right kid   ${BASE_URL}/how/route-to-kid`,
+      `  * Ask a group for a ride     ${BASE_URL}/rides/group`,
+      `  * Weekly digest email        ${BASE_URL}/how/weekly-digest`,
+      `  * Bedtime reminder           ${BASE_URL}/how/bedtime-reminder`,
+      '',
+      `See all 12 walkthroughs: ${BASE_URL}/how`,
+      '',
+      "Questions? Reply to this email — I read every one.",
+    ].join('\n'),
+  };
+}
+
+// ============================================================
+// Email verification email
+//
+// Sent right after signup and on demand from the in-app "resend
+// verification" banner. Kept focused: the verify button is the
+// only action that should compete for attention. A small "what
+// comes next" line appears BELOW the button — deliberately light
+// so the transactional intent stays clear, but present enough to
+// route new users into the /how guides once they land back in
+// the app.
+// ============================================================
+export function verifyEmail(user, verifyUrl) {
+  const firstName = (user.name || 'there').split(' ')[0];
+
+  const content = `
+    <h2 style="${styles.h2}">Confirm your SportsCal email</h2>
+    <p style="${styles.p}">
+      Hi ${escapeHtml(firstName)}, thanks for joining. Tap below to confirm your email —
+      takes 2 seconds and unlocks push notifications, the weekly digest, and calendar sharing.
+    </p>
+
+    <p style="text-align:center;margin:24px 0 12px;">
+      <a href="${verifyUrl}" style="display:inline-block;background:#D97706;color:#ffffff;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;text-decoration:none;">
+        Verify my email
+      </a>
+    </p>
+
+    <p style="text-align:center;font-size:12px;color:#94A3B8;margin:0 0 28px;line-height:1.55;">
+      Or copy this link:<br>
+      <span style="word-break:break-all;">${verifyUrl}</span>
+    </p>
+
+    <div style="margin-top:8px;padding-top:20px;border-top:1px solid #F1F5FD;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#0F172A;">Once you're back inside</p>
+      <p style="margin:0;font-size:13.5px;color:#64748B;line-height:1.6;">
+        Every SportsCal feature has a short walkthrough at
+        <a href="${BASE_URL}/how" style="color:#2563EB;text-decoration:none;font-weight:600;">sportscalapp.com/how</a>.
+        Start with
+        <a href="${BASE_URL}/how/add-calendar" style="color:#2563EB;text-decoration:none;">adding a calendar</a>,
+        then try
+        <a href="${BASE_URL}/how/add-a-head-of-household" style="color:#2563EB;text-decoration:none;">adding a co-parent</a>
+        or
+        <a href="${BASE_URL}/rides/group" style="color:#2563EB;text-decoration:none;">asking for a ride</a> —
+        90 seconds each.
+      </p>
+    </div>
+
+    <p style="${styles.muted};margin-top:24px;">
+      If you didn't create a SportsCal account, you can safely ignore this email.
+    </p>
+  `;
+
+  return {
+    subject: 'Verify your SportsCal email',
+    html: layout(content, "Confirm your email to unlock push, digests, and calendar sharing."),
+    text: [
+      `Hi ${firstName},`,
+      '',
+      "Thanks for joining SportsCal. Confirm your email so we can send you push,",
+      "the weekly digest, and calendar sharing:",
+      '',
+      `  ${verifyUrl}`,
+      '',
+      "Once you're back inside, every SportsCal feature has a short walkthrough:",
+      `  ${BASE_URL}/how`,
+      '',
+      "Start with add-a-calendar, then try add-a-co-parent or ask-a-group-for-a-ride.",
+      '',
+      "If you didn't create a SportsCal account, you can safely ignore this email.",
+    ].join('\n'),
   };
 }
 
