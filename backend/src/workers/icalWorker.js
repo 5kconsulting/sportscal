@@ -121,7 +121,16 @@ async function fetchWithTimeout(url, timeoutMs) {
       throw new Error(`Response is not an iCal feed (got: "${preview}...")`);
     }
 
-    return ical.sync.parseICS(text);
+    // Normalize line endings before parse. TeamSnap One (and some other
+    // feeds) emit bare CR characters (0x0D without 0x0A) between the last
+    // VEVENT and END:VCALENDAR. node-ical treats bare CR as mid-line, so
+    // `END:VEVENT\rEND:VCALENDAR` becomes one malformed line, the last
+    // event fails to terminate, and the parser silently returns the wrong
+    // events (or none). Discovered 2026-11-04 debugging a paying user whose
+    // 14-event feed was returning 0 events to the DB. Any CR not already
+    // paired with LF gets promoted to CRLF.
+    const normalized = text.replace(/\r(?!\n)/g, '\r\n');
+    return ical.sync.parseICS(normalized);
   } finally {
     clearTimeout(timer);
   }
