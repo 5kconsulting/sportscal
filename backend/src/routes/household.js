@@ -86,7 +86,11 @@ router.get('/members', async (req, res) => {
 router.post('/invites',
   requireInvitesEnabled,
   [
-    body('email').isEmail().normalizeEmail(),
+    // Only lowercase — never strip dots or +suffixes. `normalizeEmail()`
+    // rewrites `first.last@gmail.com` to `firstlast@gmail.com`, which
+    // is technically the same Gmail inbox but reads as a bug to the
+    // inviter ("who's firstlast?"). Preserve exactly what they typed.
+    body('email').isEmail().customSanitizer(v => String(v || '').trim().toLowerCase()),
   ],
   async (req, res) => {
     if (!validationResult(req).isEmpty()) {
