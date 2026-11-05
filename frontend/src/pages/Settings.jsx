@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { api } from '../lib/api.js';
 import HouseholdSection from '../components/HouseholdSection.jsx';
@@ -12,6 +13,8 @@ const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Satur
 
 export default function Settings() {
   const { user, updateUser, logout } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [upgradedFlash, setUpgradedFlash] = useState(searchParams.get('upgraded') === '1');
   const [saving, setSaving]   = useState(false);
   const [saved, setSaved]     = useState(false);
   const [error, setError]     = useState('');
@@ -150,6 +153,29 @@ export default function Settings() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Stripe redirects back to /settings?upgraded=1 after a successful
+  // checkout. The user object on this page was loaded BEFORE the Stripe
+  // webhook fired, so it still says plan='free'. Without this handler
+  // the Upgrade CTAs stay visible, kid/source gates stay at free limits,
+  // and the user has to sign out+in to see their Premium take effect.
+  // We flip the cached plan to 'premium' optimistically, then re-fetch
+  // /me a few seconds later so whatever the webhook settled on wins.
+  // Mirrors the mobile upgrade flow fix (2026-11-05).
+  useEffect(() => {
+    if (!upgradedFlash) return;
+    updateUser({ plan: 'premium' });
+    setSearchParams({}, { replace: true });
+    // Give the Stripe webhook a moment, then reconcile with the server.
+    const t = setTimeout(() => {
+      api.auth.me()
+        .then(({ user: fresh }) => { if (fresh) updateUser(fresh); })
+        .catch(() => {});
+    }, 2500);
+    const flashOff = setTimeout(() => setUpgradedFlash(false), 6000);
+    return () => { clearTimeout(t); clearTimeout(flashOff); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upgradedFlash]);
 
   async function handlePortal() {
     setBilling(true);

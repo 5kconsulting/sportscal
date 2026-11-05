@@ -21,6 +21,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../lib/theme';
+import { useAuth } from '../lib/auth';
+import { api } from '../lib/api';
 import {
   getOfferings, purchasePackage, restorePurchases,
   PREMIUM_ENTITLEMENT,
@@ -38,9 +40,25 @@ export default function UpgradeScreen() {
   const router = useRouter();
   const t = useTheme();
   const s = useMemo(() => makeStyles(t), [t]);
+  const { updateUser } = useAuth();
   const [offering, setOffering] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [busy, setBusy]         = useState(false);
+
+  // Post-purchase cache flip. Without this, the local `user` object (and
+  // the Upgrade banner, feature gates, limit-of-N errors) stays on the
+  // pre-purchase plan until the next cold app launch — because the RC
+  // webhook only updates the server, not our cached /me response. We
+  // optimistically bump the local plan the moment entitlement is live,
+  // then re-fetch /me in the background to converge with whatever the
+  // server/webhook settled on. Introduced 2026-11-05 after a paying user
+  // (Micah) hit "limit of 2 kids" immediately after upgrading to Premium.
+  function markPremiumLocally() {
+    updateUser({ plan: 'premium' });
+    api.get('/api/auth/me')
+      .then(({ user }) => { if (user) updateUser(user); })
+      .catch(() => {});
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,6 +76,7 @@ export default function UpgradeScreen() {
       const { customerInfo } = await purchasePackage(pkg);
       const ok = !!customerInfo?.entitlements?.active?.[PREMIUM_ENTITLEMENT];
       if (ok) {
+        markPremiumLocally();
         Alert.alert('Welcome to Premium!', 'You\'re all set. Thanks for supporting SportsCal.', [
           { text: 'OK', onPress: () => router.back() },
         ]);
@@ -85,6 +104,7 @@ export default function UpgradeScreen() {
       const info = await restorePurchases();
       const ok = !!info?.entitlements?.active?.[PREMIUM_ENTITLEMENT];
       if (ok) {
+        markPremiumLocally();
         Alert.alert('Restored', 'Your Premium subscription is active again.', [
           { text: 'OK', onPress: () => router.back() },
         ]);
