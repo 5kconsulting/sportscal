@@ -9,7 +9,10 @@ import {
   deleteKid,
   getUserPlanLimits,
   countUserKids,
+  renameKidInDisplayTitles,
+  invalidateFeedCache,
 } from '../db/index.js';
+import { renameKidInTitle } from '../normalizer.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
@@ -88,6 +91,19 @@ router.patch('/:id',
     if (!kid) return res.status(404).json({ error: 'Kid not found' });
 
     const updated = await updateKid(req.params.id, req.user.id, req.body);
+
+    // Event titles carry the kid's name ("Bobby - Practice"), stored at
+    // ingest. Rewrite them now so a rename shows up everywhere, including
+    // events that never re-sync (manual, PDF, email).
+    if (updated && kid.name.trim() !== updated.name.trim()) {
+      const changed = await renameKidInDisplayTitles(kid.id, kid.name, updated.name, renameKidInTitle);
+      if (changed > 0) {
+        for (const memberId of req.user.householdMemberIds || [req.user.id]) {
+          await invalidateFeedCache(memberId);
+        }
+      }
+    }
+
     res.json({ kid: updated });
   }
 );

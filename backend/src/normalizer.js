@@ -44,6 +44,31 @@ export function buildDisplayTitle(rawTitle, location, kids = []) {
 }
 
 /**
+ * Swap one kid's name inside the "Bob & Emma - " prefix of a display title.
+ * Used when a kid is renamed: display_title is stored at ingest, and manual
+ * and PDF/email events never re-sync, so without this the old name stays.
+ * Matches whole names only (case-insensitive), so renaming "Ann" leaves
+ * "Anna" alone. Returns the title unchanged when the name isn't in the prefix.
+ */
+export function renameKidInTitle(displayTitle, oldName, newName) {
+  if (!displayTitle) return displayTitle;
+  const cut = displayTitle.indexOf(' - ');
+  if (cut <= 0) return displayTitle;
+
+  const from = oldName.trim().toLowerCase();
+  let hit = false;
+  const prefix = displayTitle.slice(0, cut)
+    .split(/(, | & )/)
+    .map((part) => {
+      if (part.trim().toLowerCase() !== from) return part;
+      hit = true;
+      return newName.trim();
+    })
+    .join('');
+  return hit ? prefix + displayTitle.slice(cut) : displayTitle;
+}
+
+/**
  * Build the kid name prefix: "Bob", "Bob & Emma", "Bob, Emma & Jake"
  */
 function buildKidPrefix(kids) {

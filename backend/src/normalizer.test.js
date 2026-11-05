@@ -8,6 +8,7 @@
 import assert from 'assert';
 import {
   buildDisplayTitle,
+  renameKidInTitle,
   normalizeIcalFeed,
   normalizeScrapedFeed,
   hashEventContent,
@@ -305,6 +306,42 @@ test('filters out events with unparseable date string', () => {
   const bad = [{ title: 'Bad date', startsAt: 'not a date' }];
   const events = normalizeScrapedFeed(bad, 'src-2', 'user-1', []);
   assert.strictEqual(events.length, 0);
+});
+
+
+// ------------------------------------------------------------
+// renameKidInTitle
+// ------------------------------------------------------------
+
+test('rename: fixes capitalization of a single kid', () => {
+  assert.strictEqual(
+    renameKidInTitle('bobby - Practice at Cook Park', 'bobby', 'Bobby'),
+    'Bobby - Practice at Cook Park');
+});
+
+test('rename: swaps one name in a multi-kid prefix', () => {
+  assert.strictEqual(
+    renameKidInTitle('Bob, Emma & Jake - Swim Meet', 'Emma', 'Em'),
+    'Bob, Em & Jake - Swim Meet');
+  assert.strictEqual(
+    renameKidInTitle('Bob & Emma - Game', 'Emma', 'Emily'),
+    'Bob & Emily - Game');
+});
+
+test('rename: whole-name match only', () => {
+  assert.strictEqual(renameKidInTitle('Anna - Game', 'Ann', 'Annie'), 'Anna - Game');
+});
+
+test('rename: never touches text after the prefix', () => {
+  assert.strictEqual(
+    renameKidInTitle('Bob - Bob vs Lincoln - Final', 'Bob', 'Rob'),
+    'Rob - Bob vs Lincoln - Final');
+});
+
+test('rename: leaves titles without a kid prefix alone', () => {
+  assert.strictEqual(renameKidInTitle('Team Picture Day', 'Bob', 'Rob'), 'Team Picture Day');
+  assert.strictEqual(renameKidInTitle('U12 - Game', 'Bob', 'Rob'), 'U12 - Game');
+  assert.strictEqual(renameKidInTitle(null, 'Bob', 'Rob'), null);
 });
 
 

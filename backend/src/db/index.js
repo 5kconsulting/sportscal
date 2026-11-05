@@ -751,6 +751,28 @@ export async function rebuildDisplayTitles(sourceId, displayTitleFn) {
   }
 }
 
+// Rewrite a renamed kid's name in the display titles of their events.
+// Same kid→event mapping the events route uses: assigned_kid_ids wins for
+// manual events, kid_sources covers everything else. Returns rows changed.
+export async function renameKidInDisplayTitles(kidId, oldName, newName, renameFn) {
+  const events = await query(
+    `SELECT e.id, e.display_title FROM events e
+      WHERE (e.assigned_kid_ids IS NOT NULL AND $1 = ANY(e.assigned_kid_ids))
+         OR (e.assigned_kid_ids IS NULL AND e.source_id IN (
+               SELECT source_id FROM kid_sources WHERE kid_id = $1))`,
+    [kidId]
+  );
+
+  let changed = 0;
+  for (const event of events) {
+    const next = renameFn(event.display_title, oldName, newName);
+    if (next === event.display_title) continue;
+    await query('UPDATE events SET display_title = $1 WHERE id = $2', [next, event.id]);
+    changed++;
+  }
+  return changed;
+}
+
 // --- Feed cache ---
 
 export async function getFeedCache(userId) {
