@@ -7,7 +7,7 @@ import { record } from '../lib/recorder.js';
 // 8 PM local). Keep the event in step with what the demo dashboard shows for
 // tomorrow when re-recording.
 const title = 'Tomorrow on SportsCal';
-const body = '7:00 PM · bobby - Practice @ Tigard HS Soccer Turf 11v11';
+const body = '7:00 PM · Bobby - Practice @ Tigard HS Soccer Turf 11v11';
 
 async function pushBanner(page, show) {
   await page.evaluate((show, title, body) => {
