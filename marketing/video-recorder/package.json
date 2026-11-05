@@ -1,0 +1,8 @@
+{
+  "name": "sportscal-video-recorder",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Records real-app + mock walkthrough videos via Puppeteer screencast. See README.md.",
+  "dependencies": { "puppeteer": "^24.0.0" }
+}

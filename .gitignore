@@ -17,3 +17,6 @@ mobile/screenshots/
 
 # Personal ASC/API debugging scripts — contain hardcoded local paths + auth IDs
 backend/scripts/asc-app-state.mjs
+
+# Video recorder output (regenerable; carousel clips are copied into mobile/assets)
+marketing/video-recorder/out/

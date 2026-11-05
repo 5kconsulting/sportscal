@@ -1,9 +1,27 @@
-import { Tabs } from 'expo-router';
+import { useEffect } from 'react';
+import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../lib/theme';
+import { useAuth } from '../../lib/auth';
+import { hasSeenTutorial } from '../../lib/tutorialSeen';
 
 export default function TabsLayout() {
   const t = useTheme();
+  const router = useRouter();
+  const { user } = useAuth();
+
+  // Show the welcome carousel once per device. The short delay lets the
+  // tab navigator finish mounting; expo-router throws if you navigate
+  // during the first render.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      if (!cancelled && !(await hasSeenTutorial('welcome'))) router.push('/welcome');
+    }, 600);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [user?.id]);
+
   return (
     <Tabs
       screenOptions={{

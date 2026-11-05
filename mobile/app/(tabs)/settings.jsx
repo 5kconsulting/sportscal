@@ -443,6 +443,20 @@ export default function Settings() {
 
       <TouchableOpacity
         style={s.manageBtn}
+        onPress={() => router.push('/welcome')}
+        activeOpacity={0.7}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={s.manageTitle}>▶️ Watch the intro</Text>
+          <Text style={s.manageSub}>
+            A one-minute tour of what SportsCal can do.
+          </Text>
+        </View>
+        <Text style={s.manageChevron}>›</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={s.manageBtn}
         onPress={() => Linking.openURL('https://www.sportscalapp.com/how')}
         activeOpacity={0.7}
       >

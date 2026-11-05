@@ -183,6 +183,11 @@ function AuthGate() {
         name="tutorial/[key]"
         options={{ presentation: 'fullScreenModal', headerShown: false, animation: 'fade' }}
       />
+      {/* First-launch welcome carousel; also opened from Settings. */}
+      <Stack.Screen
+        name="welcome"
+        options={{ presentation: 'fullScreenModal', headerShown: false, animation: 'fade' }}
+      />
     </Stack>
   );
 }
