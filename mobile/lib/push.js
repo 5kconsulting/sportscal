@@ -8,9 +8,9 @@
 //   3. POST it to /api/push-tokens (which also flips push_enabled=true)
 //
 // The "Default ON post-permission" design means the iOS permission ask
-// IS the opt-in — no separate in-app toggle. Backend's push_enabled
-// goes true automatically when a token registers, false only if the
-// user explicitly toggles it off in a future settings screen.
+// IS the opt-in. Backend's push_enabled goes true automatically when a
+// token registers, unless the user turned off "Nightly heads-up" in
+// Settings (components/NightlyPushRow.jsx), which sets push_opted_out.
 //
 // On Android, Expo's setNotificationChannelAsync needs to run before
 // any push is delivered or the notification falls through silently.
@@ -53,17 +53,31 @@ if (Notifications) {
 
 let _registered = false; // process-local debounce so re-renders don't spam the backend
 
+// iOS notification permission for the Settings switch: 'granted',
+// 'denied', 'undetermined', or 'unavailable' (simulator, or an old client
+// without the native module).
+export async function getPushPermission() {
+  if (!Notifications || !Device || !Device.isDevice) return 'unavailable';
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    return status;
+  } catch {
+    return 'unavailable';
+  }
+}
+
+// Returns true once this device's token is registered with the backend.
 export async function registerForPush() {
-  if (_registered) return;
+  if (_registered) return true;
   if (!Notifications || !Device) {
     console.log('[push] native modules missing — skipping registration');
-    return;
+    return false;
   }
   // Expo push tokens only mint on real devices — simulators get nothing
   // back, which would otherwise turn into a stuck Promise on iOS.
   if (!Device.isDevice) {
     console.log('[push] skipping registration: not a physical device');
-    return;
+    return false;
   }
 
   try {
@@ -85,7 +99,7 @@ export async function registerForPush() {
     }
     if (status !== 'granted') {
       console.log('[push] permission denied — skipping token registration');
-      return;
+      return false;
     }
 
     // EAS projectId is required when using EAS Build; pulling it from
@@ -106,10 +120,12 @@ export async function registerForPush() {
 
     _registered = true;
     console.log('[push] registered token');
+    return true;
   } catch (err) {
     // Non-fatal: a push registration failure shouldn't break app launch.
     // Common causes: simulator, network blip, permission dialog dismissed.
     console.warn('[push] registration failed:', err.message);
+    return false;
   }
 }
 

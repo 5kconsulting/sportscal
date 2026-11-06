@@ -1018,6 +1018,25 @@ export async function setUserPushEnabled(userId, enabled) {
   return query('UPDATE users SET push_enabled = $2 WHERE id = $1', [userId, enabled]);
 }
 
+// Token registration path: turn push on unless the user switched it off
+// in Settings (registration runs on every app launch).
+export async function enablePushUnlessOptedOut(userId) {
+  return query(
+    'UPDATE users SET push_enabled = true WHERE id = $1 AND NOT push_opted_out',
+    [userId]
+  );
+}
+
+// The Settings switch. Records the choice so token registration respects it.
+export async function setPushPreference(userId, enabled) {
+  return queryOne(
+    `UPDATE users SET push_enabled = $2::boolean, push_opted_out = NOT $2::boolean
+      WHERE id = $1
+      RETURNING push_enabled, push_opted_out`,
+    [userId, enabled]
+  );
+}
+
 // ============================================================
 // Households (multi-parent support)
 // Called by the routes that need to scope resources by household

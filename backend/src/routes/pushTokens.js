@@ -5,7 +5,8 @@ import { Expo } from 'expo-server-sdk';
 import {
   upsertPushToken,
   deletePushToken,
-  setUserPushEnabled,
+  enablePushUnlessOptedOut,
+  setPushPreference,
 } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 
@@ -21,7 +22,7 @@ router.use(requireAuth);
 // We upsert because the same token may bounce between users on a
 // shared device. Flips push_enabled=true on the user — that's the
 // "Default ON post-permission" design: the iOS permission ask IS the
-// opt-in, no second toggle.
+// opt-in — unless they turned it off with the Settings switch below.
 // ============================================================
 router.post('/',
   body('token').isString().notEmpty().custom((v) => {
@@ -35,8 +36,25 @@ router.post('/',
 
     const { token, platform } = req.body;
     await upsertPushToken({ userId: req.user.id, token, platform });
-    await setUserPushEnabled(req.user.id, true);
+    await enablePushUnlessOptedOut(req.user.id);
     res.json({ ok: true });
+  }
+);
+
+// ============================================================
+// PATCH /api/push-tokens/preference
+// Body: { enabled }
+// The "Nightly heads-up" switch in the app's Settings. Turning it off
+// sticks across launches; turning it on clears the opt-out.
+// ============================================================
+router.patch('/preference',
+  body('enabled').isBoolean().toBoolean(),
+  async (req, res) => {
+    const errs = validationResult(req);
+    if (!errs.isEmpty()) return res.status(400).json({ errors: errs.array() });
+
+    const prefs = await setPushPreference(req.user.id, req.body.enabled);
+    res.json(prefs);
   }
 );
 

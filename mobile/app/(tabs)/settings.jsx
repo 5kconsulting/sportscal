@@ -6,6 +6,7 @@ import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
 import { useTheme, useSkin } from '../../lib/theme';
 import HouseholdSection from '../../components/HouseholdSection';
+import NightlyPushRow from '../../components/NightlyPushRow';
 
 const FEED_HOST = 'www.sportscalapp.com';
 
@@ -217,6 +218,8 @@ export default function Settings() {
           accessibilityLabel="Use the new look (beta)"
         />
       </View>
+
+      <NightlyPushRow />
 
       {/* SportsCal Premium — opens the StoreKit-backed IAP screen.
           After 3.1.1 rejection round 2 (2026-06-10) the only compliant
