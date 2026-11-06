@@ -563,6 +563,51 @@ export function filterKidsByEventTitle(kids, rawTitle) {
   return kids;
 }
 
+/**
+ * The kids on one event, ordered like the display-title prefix
+ * (sort_order, then name). Same precedence as the `kids` column built
+ * in routes/events.js:
+ *   1. assigned_kid_ids (manual events)
+ *   2. kid_sources rows whose title_contains matches raw_title (or is NULL)
+ *   3. every kid on the source, if no pattern matched
+ * Returns [] for events with no kids at all.
+ */
+export async function getEventKids(eventId) {
+  return query(
+    `WITH ev AS (
+       SELECT source_id, raw_title, assigned_kid_ids FROM events WHERE id = $1
+     ),
+     assigned AS (
+       SELECT k.id, k.name, k.sort_order
+         FROM ev JOIN kids k ON k.id = ANY(ev.assigned_kid_ids)
+     ),
+     matched AS (
+       SELECT k.id, k.name, k.sort_order
+         FROM ev
+         JOIN kid_sources ks ON ks.source_id = ev.source_id
+         JOIN kids k ON k.id = ks.kid_id
+        WHERE ks.title_contains IS NULL
+           OR ev.raw_title ILIKE '%' || ks.title_contains || '%'
+     ),
+     on_source AS (
+       SELECT k.id, k.name, k.sort_order
+         FROM ev
+         JOIN kid_sources ks ON ks.source_id = ev.source_id
+         JOIN kids k ON k.id = ks.kid_id
+     )
+     SELECT DISTINCT id, name, sort_order FROM (
+       SELECT * FROM assigned
+       UNION ALL
+       SELECT * FROM matched   WHERE NOT EXISTS (SELECT 1 FROM assigned)
+       UNION ALL
+       SELECT * FROM on_source WHERE NOT EXISTS (SELECT 1 FROM assigned)
+                                 AND NOT EXISTS (SELECT 1 FROM matched)
+     ) picked
+     ORDER BY sort_order, name`,
+    [eventId]
+  );
+}
+
 // --- Events ---
 
 // "Currently visible" events: those that haven't ended yet and start within

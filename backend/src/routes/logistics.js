@@ -2,7 +2,8 @@ import { Router } from 'express';
 import crypto from 'crypto';
 import { Resend } from 'resend';
 import { requireAuth } from '../middleware/auth.js';
-import { query, queryOne, withTransaction } from '../db/index.js';
+import { query, queryOne, withTransaction, getEventKids } from '../db/index.js';
+import { rideKidLabel, rideEventName } from '../normalizer.js';
 
 const router = Router();
 const resend  = new Resend(process.env.RESEND_API_KEY);
@@ -71,6 +72,7 @@ router.post('/:eventId', requireAuth, async (req, res) => {
       [req.params.eventId, req.user.id]
     );
     if (!event) return res.status(404).json({ error: 'Event not found' });
+    const kidName = rideKidLabel(await getEventKids(event.id), event.display_title);
 
     const contact = await queryOne(
       `SELECT * FROM contacts WHERE id=$1 AND user_id=$2`,
@@ -132,13 +134,13 @@ router.post('/:eventId', requireAuth, async (req, res) => {
       await resend.emails.send({
         from: FROM,
         to: contact.email,
-        subject: `Can you ${role === 'pickup' ? 'pick up' : 'drop off'} ${event.display_title.split('—')[0].trim()} on ${eventDate}?`,
+        subject: `Can you ${role === 'pickup' ? 'pick up' : 'drop off'} ${kidName} on ${eventDate}?`,
         html: buildRequestEmail({
-          contact, event, role, eventDate, eventTime,
+          contact, event, kidName, role, eventDate, eventTime,
           confirmUrl, declineUrl, parentName: event.user_name, note,
         }),
         text: buildRequestText({
-          contact, event, role, eventDate, eventTime,
+          contact, event, kidName, role, eventDate, eventTime,
           confirmUrl, declineUrl, parentName: event.user_name, note,
         }),
       }).catch(err => console.error('[logistics] email error:', err.message));
@@ -153,7 +155,6 @@ router.post('/:eventId', requireAuth, async (req, res) => {
         hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles'
       });
       const action = role === 'pickup' ? 'pick up' : 'drop off';
-      const kidName = event.display_title.split('—')[0].trim();
       const confirmUrl = `${APP_URL}/api/logistics/respond/${token}/confirmed`;
       const declineUrl = `${APP_URL}/api/logistics/respond/${token}/declined`;
 
@@ -275,7 +276,7 @@ router.post('/:eventId/team-request', requireAuth, async (req, res) => {
     // blank line between parents prevents the URLs visually
     // running together.
     const action_word = role === 'pickup' ? 'pick up' : 'drop off';
-    const kid = (event.display_title || '').split('—')[0].trim();
+    const kid = rideKidLabel(await getEventKids(event.id), event.display_title);
     const eventDate = new Date(event.starts_at).toLocaleDateString('en-US', {
       weekday: 'short', month: 'short', day: 'numeric',
     });
@@ -541,7 +542,6 @@ router.get('/respond/:token/:action', async (req, res) => {
     // If confirmed, send contact a calendar invite
     if (action === 'confirmed' && logistics.contact_email) {
       const icsContent = buildIcs({ logistics, eventDate, eventTime });
-      const eventName = logistics.display_title.split('—')[1]?.trim() || logistics.display_title;
       const action_label = logistics.role === 'pickup' ? 'Pick up' : 'Drop off';
 
       await resend.emails.send({
@@ -571,10 +571,9 @@ router.get('/respond/:token/:action', async (req, res) => {
 // ============================================================
 // Email templates
 // ============================================================
-function buildRequestEmail({ contact, event, role, eventDate, eventTime, confirmUrl, declineUrl, parentName, note }) {
+function buildRequestEmail({ contact, event, kidName, role, eventDate, eventTime, confirmUrl, declineUrl, parentName, note }) {
   const action = role === 'pickup' ? 'pick up' : 'drop off';
-  const kidName = event.display_title.split('—')[0].replace(/,/g, ' &').trim();
-  const eventName = event.display_title.split('—')[1]?.trim() || event.display_title;
+  const eventName = rideEventName(event.raw_title, event.display_title);
 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -628,10 +627,9 @@ function buildRequestEmail({ contact, event, role, eventDate, eventTime, confirm
 </body></html>`;
 }
 
-function buildRequestText({ contact, event, role, eventDate, eventTime, confirmUrl, declineUrl, parentName, note }) {
+function buildRequestText({ contact, event, kidName, role, eventDate, eventTime, confirmUrl, declineUrl, parentName, note }) {
   const action = role === 'pickup' ? 'pick up' : 'drop off';
-  const kidName = event.display_title.split('—')[0].trim();
-  const eventName = event.display_title.split('—')[1]?.trim() || event.display_title;
+  const eventName = rideEventName(event.raw_title, event.display_title);
   return `Hi ${contact.name.split(' ')[0]},
 
 ${parentName} is asking if you can ${action} ${kidName} from:
@@ -649,7 +647,7 @@ SportsCal`;
 
 function buildResponseEmail({ logistics, action, eventDate, eventTime }) {
   const confirmed = action === 'confirmed';
-  const eventName = logistics.display_title.split('—')[1]?.trim() || logistics.display_title;
+  const eventName = logistics.display_title;
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
@@ -691,7 +689,7 @@ function buildIcs({ logistics, eventDate, eventTime }) {
   // Format as YYYYMMDDTHHMMSSZ
   const fmt = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
 
-  const eventName = logistics.display_title.split('—')[1]?.trim() || logistics.display_title;
+  const eventName = logistics.display_title;
   const action_label = logistics.role === 'pickup' ? 'Pick up' : 'Drop off';
   const uid = `sportscal-${logistics.id}-${Date.now()}@sportscalapp.com`;
   const now = fmt(new Date());
@@ -719,7 +717,7 @@ function buildIcs({ logistics, eventDate, eventTime }) {
 }
 
 function buildConfirmCalendarEmail({ logistics, eventDate, eventTime }) {
-  const eventName = logistics.display_title.split('—')[1]?.trim() || logistics.display_title;
+  const eventName = logistics.display_title;
   const action_label = logistics.role === 'pickup' ? 'Pick up' : 'Drop off';
   const firstName = logistics.contact_name.split(' ')[0];
 

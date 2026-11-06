@@ -57,6 +57,19 @@ function countdownLabel(start) {
   return `${-days} days ago`;
 }
 
+// Who a ride request is for — "Bob", "Bob & Emma", "Bob, Emma & Jake".
+// Uses the event's kids from the API rather than parsing display_title
+// (which is "Bob - Practice at Park": a hyphen, and free text). Falls back
+// to the title's "Bob - " prefix, then "the kids".
+function rideKidLabel(event) {
+  const names = (event?.kids || []).map(k => k?.name?.trim()).filter(Boolean);
+  if (names.length === 1) return names[0];
+  if (names.length > 1) return `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`;
+  const title = event?.display_title || '';
+  const cut = title.indexOf(' - ');
+  return cut > 0 ? title.slice(0, cut).trim() : 'the kids';
+}
+
 export default function EventDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -140,7 +153,7 @@ export default function EventDetail() {
   function openMessagesFallback(contact, role, token) {
     if (!contact?.phone || !event) return;
     const action_word = role === 'pickup' ? 'pick up' : 'drop off';
-    const kid = (event.display_title || '').split('—')[0].trim();
+    const kid = rideKidLabel(event);
     const startsAt = new Date(event.starts_at);
     const dateStr = startsAt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
     // Pick-up happens at the END of the event; drop-off at the start.

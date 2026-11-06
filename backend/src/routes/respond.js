@@ -12,7 +12,8 @@
 // group thread — no React boot, no JS required to claim.
 
 import { Router } from 'express';
-import { query, queryOne } from '../db/index.js';
+import { query, queryOne, getEventKids } from '../db/index.js';
+import { rideKidLabel, rideEventName } from '../normalizer.js';
 
 const router = Router();
 
@@ -46,7 +47,7 @@ router.get('/:token', async (req, res) => {
       [seed.event_id, seed.role]
     );
     const event = await queryOne(
-      `SELECT e.id, e.display_title, e.starts_at, e.ends_at, e.location, e.all_day,
+      `SELECT e.id, e.raw_title, e.display_title, e.starts_at, e.ends_at, e.location, e.all_day,
               u.name AS parent_name
          FROM events e
          JOIN users u ON u.id = e.user_id
@@ -59,11 +60,12 @@ router.get('/:token', async (req, res) => {
 
     const winner  = offers.find(o => o.status === 'confirmed');
     const pending = offers.filter(o => o.status === 'pending');
+    const kid     = rideKidLabel(await getEventKids(event.id), event.display_title);
 
     return res
       .type('html')
       .set('Cache-Control', 'no-store')   // never cache; status changes per click
-      .send(renderRespondPage({ event, role: seed.role, winner, pending }));
+      .send(renderRespondPage({ event, kid, role: seed.role, winner, pending }));
   } catch (err) {
     console.error('[respond] error:', err.message);
     return res.type('html').status(500).send(errorPage());
@@ -74,12 +76,9 @@ router.get('/:token', async (req, res) => {
 // HTML rendering
 // ------------------------------------------------------------------
 
-function renderRespondPage({ event, role, winner, pending }) {
+function renderRespondPage({ event, kid, role, winner, pending }) {
   const action = role === 'pickup' ? 'pick up' : 'drop off';
-  const kid    = (event.display_title || '').split('—')[0].trim();
-  const eventName = event.display_title.includes('—')
-    ? event.display_title.split('—').slice(1).join('—').trim()
-    : event.display_title;
+  const eventName = rideEventName(event.raw_title, event.display_title);
   const startsAt = new Date(event.starts_at);
   const dateStr  = startsAt.toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',

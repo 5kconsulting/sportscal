@@ -35,7 +35,7 @@ import { filterKidsByEventTitle } from './db/index.js';
 export function buildDisplayTitle(rawTitle, location, kids = []) {
   const title = cleanTitle(rawTitle);
   const prefix = buildKidPrefix(kids);
-  const locationSuffix = buildLocationSuffix(location);
+  const locationSuffix = buildLocationSuffix(location, title);
 
   if (prefix) {
     return `${prefix} - ${title}${locationSuffix}`;
@@ -69,6 +69,35 @@ export function renameKidInTitle(displayTitle, oldName, newName) {
 }
 
 /**
+ * Who a ride request is for: "Bob", "Bob & Emma", "Bob, Emma & Jake".
+ * Built from the event's assigned kids (see getEventKids in db/index.js),
+ * not by parsing the display title — the title is free text and its kid
+ * prefix can be stale or absent. Falls back to the "Bob - " prefix of the
+ * display title only when no kids are attached, then to "the kids".
+ *
+ * @param {Array<{name: string, sort_order?: number}>} kids
+ * @param {string|null} displayTitle
+ */
+export function rideKidLabel(kids, displayTitle) {
+  const fromKids = buildKidPrefix(kids);
+  if (fromKids) return fromKids;
+  const title = displayTitle || '';
+  const cut = title.indexOf(' - ');
+  if (cut > 0) return title.slice(0, cut).trim();
+  return 'the kids';
+}
+
+/**
+ * The event's own name for ride-request copy, without the kid prefix or
+ * the " at <location>" suffix (those surfaces name the kid and show the
+ * location on their own lines). Uses raw_title so nothing is parsed out
+ * of the display title.
+ */
+export function rideEventName(rawTitle, displayTitle) {
+  return rawTitle ? cleanTitle(rawTitle) : (displayTitle || 'Untitled Event');
+}
+
+/**
  * Build the kid name prefix: "Bob", "Bob & Emma", "Bob, Emma & Jake"
  */
 function buildKidPrefix(kids) {
@@ -91,12 +120,16 @@ function buildKidPrefix(kids) {
 }
 
 /**
- * Build location suffix: " at Community Park" or ""
+ * Build location suffix: " at Community Park" or "".
+ * Skipped when the title already names the location — TeamSnap titles
+ * look like "Practice @ Tigard HS Turf" with LOCATION "Tigard HS Turf",
+ * which would otherwise render "... @ Tigard HS Turf at Tigard HS Turf".
  */
-function buildLocationSuffix(location) {
+function buildLocationSuffix(location, title = '') {
   if (!location) return '';
   const cleaned = cleanLocation(location);
   if (!cleaned) return '';
+  if (title.toLowerCase().includes(cleaned.toLowerCase())) return '';
   return ` at ${cleaned}`;
 }
 

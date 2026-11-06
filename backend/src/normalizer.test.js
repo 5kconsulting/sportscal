@@ -9,6 +9,8 @@ import assert from 'assert';
 import {
   buildDisplayTitle,
   renameKidInTitle,
+  rideKidLabel,
+  rideEventName,
   normalizeIcalFeed,
   normalizeScrapedFeed,
   hashEventContent,
@@ -151,6 +153,83 @@ test('TeamSnap bracket prefix stripped from raw title', () => {
     buildDisplayTitle('[Portland FC] Soccer Practice', null, []),
     'Soccer Practice'
   );
+});
+
+test('location already in title — no duplicate suffix (TeamSnap "@ venue")', () => {
+  const kids = [{ name: 'Bobby', sort_order: 0 }];
+  assert.strictEqual(
+    buildDisplayTitle('Practice @ Tigard HS Soccer Turf 11v11', 'Tigard HS Soccer Turf 11v11', kids),
+    'Bobby - Practice @ Tigard HS Soccer Turf 11v11'
+  );
+});
+
+test('location-in-title check is case-insensitive', () => {
+  assert.strictEqual(
+    buildDisplayTitle('Game @ COMMUNITY PARK', 'Community Park', []),
+    'Game @ COMMUNITY PARK'
+  );
+});
+
+test('location-in-title check uses the cleaned venue name', () => {
+  assert.strictEqual(
+    buildDisplayTitle('Practice @ Community Park', 'Community Park, 1234 Main St, Portland, OR', []),
+    'Practice @ Community Park'
+  );
+});
+
+test('different location still appended', () => {
+  assert.strictEqual(
+    buildDisplayTitle('Practice @ Field 2', 'Community Park', []),
+    'Practice @ Field 2 at Community Park'
+  );
+});
+
+
+// ------------------------------------------------------------
+// rideKidLabel / rideEventName — ride request copy
+// ------------------------------------------------------------
+console.log('\nRide request labels:');
+
+const realTitle = 'Bobby - Practice @ Tigard HS Soccer Turf 11v11 at Tigard HS Soccer Turf 11v11';
+
+test('ride kid: one assigned kid, never the whole title', () => {
+  assert.strictEqual(rideKidLabel([{ name: 'Bobby', sort_order: 0 }], realTitle), 'Bobby');
+});
+
+test('ride kid: multiple kids, ordered like the title prefix', () => {
+  const kids = [
+    { name: 'Jake', sort_order: 2 },
+    { name: 'Bob', sort_order: 0 },
+    { name: 'Emma', sort_order: 1 },
+  ];
+  assert.strictEqual(rideKidLabel(kids, 'whatever'), 'Bob, Emma & Jake');
+  assert.strictEqual(rideKidLabel(kids.slice(0, 2), 'whatever'), 'Bob & Jake');
+});
+
+test('ride kid: kids win over a stale title prefix', () => {
+  assert.strictEqual(rideKidLabel([{ name: 'Robert', sort_order: 0 }], 'Bobby - Game'), 'Robert');
+});
+
+test('ride kid: no kids — falls back to the " - " title prefix', () => {
+  assert.strictEqual(rideKidLabel([], realTitle), 'Bobby');
+  assert.strictEqual(rideKidLabel(null, 'Bob & Emma - Bob vs Lincoln - Final'), 'Bob & Emma');
+});
+
+test('ride kid: no kids and no prefix — generic label', () => {
+  assert.strictEqual(rideKidLabel([], 'Team Photo Day'), 'the kids');
+  assert.strictEqual(rideKidLabel([], null), 'the kids');
+});
+
+test('ride event name: cleaned raw title, no kid prefix or location suffix', () => {
+  assert.strictEqual(
+    rideEventName('[Tigard FC] Practice @ Tigard HS Soccer Turf 11v11', realTitle),
+    'Practice @ Tigard HS Soccer Turf 11v11'
+  );
+});
+
+test('ride event name: falls back to display title without raw title', () => {
+  assert.strictEqual(rideEventName(null, 'Bob - Game'), 'Bob - Game');
+  assert.strictEqual(rideEventName(null, null), 'Untitled Event');
 });
 
 
