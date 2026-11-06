@@ -11,6 +11,7 @@ import {
   renameKidInTitle,
   rideKidLabel,
   rideEventName,
+  applyAttendance,
   normalizeIcalFeed,
   normalizeScrapedFeed,
   hashEventContent,
@@ -230,6 +231,68 @@ test('ride event name: cleaned raw title, no kid prefix or location suffix', () 
 test('ride event name: falls back to display title without raw title', () => {
   assert.strictEqual(rideEventName(null, 'Bob - Game'), 'Bob - Game');
   assert.strictEqual(rideEventName(null, null), 'Untitled Event');
+});
+
+
+// ------------------------------------------------------------
+// applyAttendance — "not going" overrides in the family feed
+// ------------------------------------------------------------
+console.log('\nAttendance overrides:');
+
+const bob  = { id: 'k-bob',  name: 'Bob',  sort_order: 0 };
+const emma = { id: 'k-emma', name: 'Emma', sort_order: 1 };
+const jake = { id: 'k-jake', name: 'Jake', sort_order: 2 };
+const swim = {
+  id: 'e1',
+  raw_title: 'Swim Meet',
+  location: 'Aquatic Center',
+  display_title: 'Bob, Emma & Jake - Swim Meet at Aquatic Center',
+};
+
+test('attendance: no overrides — event unchanged, kids attached', () => {
+  const out = applyAttendance(swim, [bob, emma, jake], undefined);
+  assert.strictEqual(out.display_title, swim.display_title);
+  assert.deepStrictEqual(out.kids.map(k => k.name), ['Bob', 'Emma', 'Jake']);
+});
+
+test('attendance: one kid out — removed from kids and title', () => {
+  const out = applyAttendance(swim, [bob, emma, jake], new Set(['k-emma']));
+  assert.strictEqual(out.display_title, 'Bob & Jake - Swim Meet at Aquatic Center');
+  assert.deepStrictEqual(out.kids.map(k => k.id), ['k-bob', 'k-jake']);
+});
+
+test('attendance: down to one kid', () => {
+  const out = applyAttendance(swim, [bob, emma, jake], new Set(['k-bob', 'k-jake']));
+  assert.strictEqual(out.display_title, 'Emma - Swim Meet at Aquatic Center');
+});
+
+test('attendance: everyone out — event dropped', () => {
+  assert.strictEqual(applyAttendance(swim, [bob, emma], new Set(['k-bob', 'k-emma'])), null);
+});
+
+test('attendance: override for a kid not on the event is ignored', () => {
+  const out = applyAttendance(swim, [bob, emma, jake], new Set(['k-someone-else']));
+  assert.strictEqual(out.display_title, swim.display_title);
+});
+
+test('attendance: event with no kids passes through', () => {
+  const ev = { ...swim, display_title: 'Team Photo Day' };
+  assert.strictEqual(applyAttendance(ev, [], new Set(['k-bob'])).display_title, 'Team Photo Day');
+});
+
+test('attendance: keeps an AI-written title body (PDF events)', () => {
+  const pdf = { raw_title: 'Volleyball', location: null,
+                display_title: 'Bob & Emma - JV Volleyball vs Lincoln HS' };
+  assert.strictEqual(
+    applyAttendance(pdf, [bob, emma], new Set(['k-emma'])).display_title,
+    'Bob - JV Volleyball vs Lincoln HS');
+});
+
+test('attendance: stale prefix — rebuilt from raw_title', () => {
+  const stale = { ...swim, display_title: 'Bobby & Em - Swim Meet' };
+  assert.strictEqual(
+    applyAttendance(stale, [bob, emma, jake], new Set(['k-jake'])).display_title,
+    'Bob & Emma - Swim Meet at Aquatic Center');
 });
 
 

@@ -564,25 +564,29 @@ export function filterKidsByEventTitle(kids, rawTitle) {
 }
 
 /**
- * The kids on one event, ordered like the display-title prefix
- * (sort_order, then name). Same precedence as the `kids` column built
- * in routes/events.js:
+ * The kids on each of the given events, ordered like the display-title
+ * prefix (sort_order, then name). Same precedence as the `kids` column
+ * built in routes/events.js:
  *   1. assigned_kid_ids (manual events)
  *   2. kid_sources rows whose title_contains matches raw_title (or is NULL)
  *   3. every kid on the source, if no pattern matched
- * Returns [] for events with no kids at all.
+ * Returns Map<eventId, [{id, name, color, sort_order}]>; events with no
+ * kids at all are absent from the map.
  */
-export async function getEventKids(eventId) {
-  return query(
+export async function getKidsForEvents(eventIds) {
+  const byEvent = new Map();
+  if (!eventIds?.length) return byEvent;
+  const rows = await query(
     `WITH ev AS (
-       SELECT source_id, raw_title, assigned_kid_ids FROM events WHERE id = $1
+       SELECT id, source_id, raw_title, assigned_kid_ids
+         FROM events WHERE id = ANY($1::uuid[])
      ),
      assigned AS (
-       SELECT k.id, k.name, k.sort_order
+       SELECT ev.id AS event_id, k.id, k.name, k.color, k.sort_order
          FROM ev JOIN kids k ON k.id = ANY(ev.assigned_kid_ids)
      ),
      matched AS (
-       SELECT k.id, k.name, k.sort_order
+       SELECT ev.id AS event_id, k.id, k.name, k.color, k.sort_order
          FROM ev
          JOIN kid_sources ks ON ks.source_id = ev.source_id
          JOIN kids k ON k.id = ks.kid_id
@@ -590,22 +594,34 @@ export async function getEventKids(eventId) {
            OR ev.raw_title ILIKE '%' || ks.title_contains || '%'
      ),
      on_source AS (
-       SELECT k.id, k.name, k.sort_order
+       SELECT ev.id AS event_id, k.id, k.name, k.color, k.sort_order
          FROM ev
          JOIN kid_sources ks ON ks.source_id = ev.source_id
          JOIN kids k ON k.id = ks.kid_id
      )
-     SELECT DISTINCT id, name, sort_order FROM (
+     SELECT DISTINCT event_id, id, name, color, sort_order FROM (
        SELECT * FROM assigned
        UNION ALL
-       SELECT * FROM matched   WHERE NOT EXISTS (SELECT 1 FROM assigned)
+       SELECT m.* FROM matched m
+        WHERE NOT EXISTS (SELECT 1 FROM assigned a WHERE a.event_id = m.event_id)
        UNION ALL
-       SELECT * FROM on_source WHERE NOT EXISTS (SELECT 1 FROM assigned)
-                                 AND NOT EXISTS (SELECT 1 FROM matched)
+       SELECT s.* FROM on_source s
+        WHERE NOT EXISTS (SELECT 1 FROM assigned a WHERE a.event_id = s.event_id)
+          AND NOT EXISTS (SELECT 1 FROM matched  m WHERE m.event_id = s.event_id)
      ) picked
-     ORDER BY sort_order, name`,
-    [eventId]
+     ORDER BY event_id, sort_order, name`,
+    [eventIds]
   );
+  for (const { event_id, ...kid } of rows) {
+    if (!byEvent.has(event_id)) byEvent.set(event_id, []);
+    byEvent.get(event_id).push(kid);
+  }
+  return byEvent;
+}
+
+/** The kids on one event — see getKidsForEvents. [] when it has none. */
+export async function getEventKids(eventId) {
+  return (await getKidsForEvents([eventId])).get(eventId) || [];
 }
 
 // --- Events ---

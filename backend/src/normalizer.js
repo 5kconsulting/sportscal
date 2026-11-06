@@ -98,6 +98,35 @@ export function rideEventName(rawTitle, displayTitle) {
 }
 
 /**
+ * Apply "not going" attendance overrides to one event for the family feed.
+ *   - nobody marked out        → event unchanged, with `kids` attached
+ *   - every kid marked out     → null (drop the event from the feed)
+ *   - some kids marked out     → `kids` narrowed and the title's kid prefix
+ *                                rebuilt for the kids still going
+ * The title keeps everything after the prefix (PDF/email events have
+ * AI-written titles that raw_title can't reproduce); it is only rebuilt
+ * from raw_title when the stored prefix doesn't match the event's kids.
+ *
+ * @param {object} event   - events row (display_title, raw_title, location)
+ * @param {Array<{id: string, name: string, sort_order: number}>} kids
+ * @param {Set<string>} notGoingKidIds
+ * @returns {object|null}
+ */
+export function applyAttendance(event, kids, notGoingKidIds) {
+  const all = kids || [];
+  const going = all.filter(k => !notGoingKidIds?.has(k.id));
+  if (going.length === all.length) return { ...event, kids: all };
+  if (going.length === 0) return null;
+
+  const title = event.display_title || '';
+  const oldPrefix = `${buildKidPrefix(all)} - `;
+  const displayTitle = title.startsWith(oldPrefix)
+    ? `${buildKidPrefix(going)} - ${title.slice(oldPrefix.length)}`
+    : buildDisplayTitle(event.raw_title, event.location, going);
+  return { ...event, kids: going, display_title: displayTitle };
+}
+
+/**
  * Build the kid name prefix: "Bob", "Bob & Emma", "Bob, Emma & Jake"
  */
 function buildKidPrefix(kids) {
