@@ -2,59 +2,10 @@ import { Router } from 'express';
 import { query as dbQuery, queryOne, hideEvent, unhideEvent, getHiddenEvents } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { attachWeather } from '../lib/weather.js';
+import { annotateConflicts } from '../lib/conflicts.js';
 
 const router = Router();
 router.use(requireAuth);
-
-// ============================================================
-// Conflict detection
-// Two events "conflict" when they overlap in time AND involve
-// different kid sets — the classic "two kids, two places, same
-// hour" problem parents actually care about.
-//
-// Same-kid-set overlaps (both events cover the same combo of
-// kids — e.g. a family birthday party across all three kids)
-// are NOT conflicts; they're the same gathering seen from
-// different sources.
-//
-// Missing ends_at → assume 24h for all-day, 1h otherwise.
-// ============================================================
-function annotateConflicts(events) {
-  const bounds = events.map(e => {
-    const start = new Date(e.starts_at).getTime();
-    const end = e.ends_at
-      ? new Date(e.ends_at).getTime()
-      : start + (e.all_day ? 86_400_000 : 3_600_000);
-    const kidIds = new Set((e.kids || []).map(k => k.id));
-    return { start, end, kidIds };
-  });
-
-  return events.map((e, i) => {
-    const conflicts = [];
-    const a = bounds[i];
-    for (let j = 0; j < events.length; j++) {
-      if (i === j) continue;
-      const b = bounds[j];
-      if (a.start >= b.end || b.start >= a.end) continue;      // no time overlap
-      if (kidSetsEqual(a.kidIds, b.kidIds)) continue;          // same-family gathering
-      const other = events[j];
-      conflicts.push({
-        id: other.id,
-        title: other.display_title || other.raw_title,
-        starts_at: other.starts_at,
-        location: other.location,
-        kid_names: (other.kids || []).map(k => k.name),
-      });
-    }
-    return { ...e, conflicts };
-  });
-}
-
-function kidSetsEqual(a, b) {
-  if (a.size !== b.size) return false;
-  for (const id of a) if (!b.has(id)) return false;
-  return true;
-}
 
 // ============================================================
 // GET /api/events

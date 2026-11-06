@@ -9,7 +9,7 @@
     "start": "node src/server.js",
     "worker": "node --watch src/workers/runner.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run worker\"",
-    "test": "node src/normalizer.test.js"
+    "test": "node src/normalizer.test.js && node src/conflicts.test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
