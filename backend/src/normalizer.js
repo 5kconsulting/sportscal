@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { filterKidsByEventTitle } from './db/index.js';
+import { samePlace } from './lib/conflicts.js';
 
 // ============================================================
 // SportsCal Event Normalizer
@@ -291,9 +292,142 @@ export function normalizeIcalFeed(icalData, sourceId, userId, kids = []) {
     events.push(event);
   }
 
+  const collapsed = collapseDuplicateEvents(events, kids);
+
   // Sort ascending by start time
-  events.sort((a, b) => a.startsAt - b.startsAt);
-  return events;
+  collapsed.sort((a, b) => a.startsAt - b.startsAt);
+  return collapsed;
+}
+
+// ------------------------------------------------------------
+// SAME GAME LISTED TWICE
+//
+// Some club feeds list one game twice under different UIDs. Albion's
+// (BYGA) feed carries the State Cup game imported from the league next
+// to the team's own entry for it:
+//   "BU13 EA2 vs Bend FC 13B Gold"  Sat 3:00–4:30  Tigard HS Turf
+//   "BU13 EA2 vs Bend FC EA"        Sat 3:00–4:20  Tigard HS Soccer Turf 11v11
+// Events from one feed are one event when they have the same start, the
+// same kids, the same place, about the same length, and titles that read
+// the same up to the last word or so ("BU13 EA2 vs Bend FC …"). Keeps the
+// one with the most specific location and folds the other's notes into
+// its description.
+//
+// Not collapsed (all seen in real feeds): team pictures during practice,
+// tryouts next to a practice, a club's A and B teams playing at once in
+// one gym ("Spartans White (A) vs …" / "Spartans Black (B) vs …").
+// Also never: all-day or 12h+ blocks, different lengths, different kids,
+// or vague/missing locations.
+// ------------------------------------------------------------
+const DUP_LONG_EVENT_MS = 12 * 3_600_000;
+const DUP_LENGTH_SLACK_MS = 30 * 60_000;
+
+function titleWords(title) {
+  return (title || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+}
+
+// The shorter title's first ¾ of words (at least 3) match the other's.
+function sameTitleStem(a, b) {
+  const wa = titleWords(a), wb = titleWords(b);
+  const n = Math.min(wa.length, wb.length);
+  let common = 0;
+  while (common < n && wa[common] === wb[common]) common++;
+  return common >= 3 && common >= 0.75 * n;
+}
+
+export function collapseDuplicateEvents(events, kids = []) {
+  const kidKey = (e) => filterKidsByEventTitle(kids, e.rawTitle).map(k => k.id).sort().join(',');
+  const length = (e) => (e.endsAt ? e.endsAt - e.startsAt : null);
+  const sameLength = (a, b) => {
+    const la = length(a), lb = length(b);
+    return la === null || lb === null || Math.abs(la - lb) <= DUP_LENGTH_SLACK_MS;
+  };
+  const isDuplicate = (a, b) =>
+    samePlace(a.location, b.location) && sameLength(a, b) && sameTitleStem(a.rawTitle, b.rawTitle);
+
+  const clusters = new Map(); // start|kids → [[event, ...], ...]
+  const dropped = new Set();
+
+  for (const e of events) {
+    if (e.allDay || (length(e) ?? 0) >= DUP_LONG_EVENT_MS) continue;
+    const key = `${e.startsAt.getTime()}|${kidKey(e)}`;
+    if (!clusters.has(key)) clusters.set(key, []);
+    const list = clusters.get(key);
+    const match = list.find(c => isDuplicate(c[0], e));
+    if (match) match.push(e); else list.push([e]);
+  }
+
+  for (const list of clusters.values()) {
+    for (const cluster of list) {
+      if (cluster.length < 2) continue;
+      const [keep, ...rest] = [...cluster].sort((a, b) =>
+        (b.location || '').length - (a.location || '').length
+        || (b.description || '').length - (a.description || '').length
+        || a.rawTitle.localeCompare(b.rawTitle));
+      const notes = [keep.description, ...rest.map(e => e.description)]
+        .filter(Boolean)
+        .filter((d, i, all) => !all.slice(0, i).some(prev => prev.includes(d)));
+      keep.description = truncate(notes.join('\n\n'), 2000);
+      for (const e of rest) dropped.add(e);
+    }
+  }
+
+  return dropped.size ? events.filter(e => !dropped.has(e)) : events;
+}
+
+// ------------------------------------------------------------
+// KEEP EVENT IDS STABLE WHEN A FEED ROTATES ITS UIDS
+//
+// BYGA (Albion) mints a fresh UID for every event on every request, and
+// at least one custom feed does too. Matching on UID alone, every refresh
+// inserted every event as new and deleted the old rows, which cascades
+// to rides, "not going" marks and ride offers, un-hides hidden events,
+// and churns the family-feed UIDs that phone calendars subscribe to.
+//
+// Before upserting, an incoming event whose UID we've never stored takes
+// over the UID of an existing row from this source that the feed no
+// longer lists, so the upsert updates that row in place:
+//   1. same title and start time;
+//   2. else same start and place, when it's the only unmatched event at
+//      that start on both sides (a score added to the title, an opponent
+//      named).
+// Mutates incoming[].sourceUid. Returns how many were carried over.
+// ------------------------------------------------------------
+export function carryOverUids(incoming, existing) {
+  const known = new Set(existing.map(r => r.source_uid));
+  const fresh = incoming.filter(e => !known.has(e.sourceUid));
+  if (!fresh.length) return 0;
+
+  const listed = new Set(incoming.map(e => e.sourceUid));
+  let free = existing.filter(r => !listed.has(r.source_uid));
+  if (!free.length) return 0;
+
+  const ms = (d) => new Date(d).getTime();
+  let carried = 0;
+  const claim = (e, row) => {
+    e.sourceUid = row.source_uid;
+    free = free.filter(r => r !== row);
+    carried++;
+  };
+
+  const unmatched = [];
+  for (const e of fresh) {
+    const row = free.find(r => r.raw_title === e.rawTitle && ms(r.starts_at) === e.startsAt.getTime());
+    if (row) claim(e, row); else unmatched.push(e);
+  }
+
+  const countBy = (items, startOf) => items.reduce((m, x) => m.set(startOf(x), (m.get(startOf(x)) || 0) + 1), new Map());
+  const incomingAt = countBy(unmatched, e => e.startsAt.getTime());
+  const existingAt = countBy(free, r => ms(r.starts_at));
+  const sameLoc = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase() || samePlace(a, b);
+  for (const e of unmatched) {
+    const t = e.startsAt.getTime();
+    if (incomingAt.get(t) !== 1 || existingAt.get(t) !== 1) continue;
+    const row = free.find(r => ms(r.starts_at) === t);
+    if (row && sameLoc(row.location, e.location)) claim(e, row);
+  }
+
+  return carried;
 }
 
 

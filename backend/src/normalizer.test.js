@@ -13,6 +13,7 @@ import {
   rideEventName,
   applyAttendance,
   normalizeIcalFeed,
+  carryOverUids,
   normalizeScrapedFeed,
   hashEventContent,
 } from './normalizer.js';
@@ -397,6 +398,142 @@ test('deduplicates events with same uid in one batch', () => {
   };
   const events = normalizeIcalFeed(dupeData, 'src-1', 'user-1', []);
   assert.strictEqual(events.length, 2); // not 3
+});
+
+
+// ------------------------------------------------------------
+// collapseDuplicateEvents — one game listed twice in a feed
+// ------------------------------------------------------------
+console.log('\nSame game listed twice:');
+
+const BOYS_BU = [
+  { id: 'levi', name: 'Levi', sort_order: 0, title_contains: 'BU' },
+  { id: 'evie', name: 'Evie', sort_order: 1, title_contains: 'GU' },
+];
+function vevent(uid, summary, start, end, location, description) {
+  return { type: 'VEVENT', uid, summary, start: new Date(start), end: end && new Date(end), location, description };
+}
+// The real Albion pair from Sat Nov 7, 2026 (times in UTC).
+const stateCup = vevent('u1', 'BU13 EA2 vs Bend FC 13B Gold', '2099-11-07T23:00:00Z', '2099-11-08T00:30:00Z',
+  'Tigard HS Turf', 'This is a home game.\n\n26-27 State Cup (OR) home game vs. Bend FC 13B Gold');
+const teamEntry = vevent('u2', 'BU13 EA2 vs Bend FC EA', '2099-11-07T23:00:00Z', '2099-11-08T00:20:00Z',
+  'Tigard HS Soccer Turf 11v11', 'This is a home game.\nArrive @ 2:15pm (PST) (45 minutes early).');
+
+test('Albion State Cup + team entry collapse to one event', () => {
+  const events = normalizeIcalFeed({ a: stateCup, b: teamEntry }, 's', 'u', BOYS_BU);
+  assert.strictEqual(events.length, 1);
+  assert.strictEqual(events[0].rawTitle, 'BU13 EA2 vs Bend FC EA');           // more specific field
+  assert.strictEqual(events[0].location, 'Tigard HS Soccer Turf 11v11');
+  assert.ok(events[0].description.includes('Arrive @ 2:15pm'));
+  assert.ok(events[0].description.includes('State Cup'));                      // other entry's notes kept
+});
+
+test('same choice regardless of feed order', () => {
+  const events = normalizeIcalFeed({ b: teamEntry, a: stateCup }, 's', 'u', BOYS_BU);
+  assert.strictEqual(events[0].rawTitle, 'BU13 EA2 vs Bend FC EA');
+});
+
+test('different kids at the same field and time stay separate', () => {
+  const girls = vevent('u3', 'GU13 vs Bend FC', '2099-11-07T23:00:00Z', '2099-11-08T00:20:00Z', 'Tigard HS Soccer Turf 11v11');
+  assert.strictEqual(normalizeIcalFeed({ a: teamEntry, b: girls }, 's', 'u', BOYS_BU).length, 2);
+});
+
+test('different places stay separate', () => {
+  const away = vevent('u3', 'BU13 EA2 vs Bend FC EA', '2099-11-07T23:00:00Z', '2099-11-08T00:20:00Z', 'Delta Park Field 4');
+  assert.strictEqual(normalizeIcalFeed({ a: teamEntry, b: away }, 's', 'u', BOYS_BU).length, 2);
+});
+
+test('different lengths stay separate', () => {
+  const long  = vevent('p1', 'BU13 EA2 Practice', '2099-11-10T01:00:00Z', '2099-11-10T02:30:00Z', 'Cook Park Field 3');
+  const short = vevent('p2', 'BU13 EA2 Practice', '2099-11-10T01:00:00Z', '2099-11-10T01:15:00Z', 'Cook Park Field 3');
+  assert.strictEqual(normalizeIcalFeed({ a: long, b: short }, 's', 'u', BOYS_BU).length, 2);
+});
+
+test('12h+ blocks never collapse', () => {
+  const a = vevent('t1', 'BU13 EA2 Tournament', '2099-11-14T16:00:00Z', '2099-11-15T04:00:00Z', 'Cook Park Field 3');
+  const b = vevent('t2', 'BU13 EA2 Tournament', '2099-11-14T16:00:00Z', '2099-11-15T04:10:00Z', 'Cook Park Field 3');
+  assert.strictEqual(normalizeIcalFeed({ a, b }, 's', 'u', BOYS_BU).length, 2);
+});
+
+test('vague or missing locations stay separate', () => {
+  const a = vevent('v1', 'BU13 EA2 vs Bend FC', '2099-11-21T18:00:00Z', '2099-11-21T19:30:00Z', 'TBD');
+  const b = vevent('v2', 'BU13 EA2 vs Bend FC', '2099-11-21T18:00:00Z', '2099-11-21T19:30:00Z', 'TBD');
+  const c = vevent('v3', 'BU13 EA2 vs Bend FC', '2099-11-21T18:00:00Z', '2099-11-21T19:30:00Z', null);
+  assert.strictEqual(normalizeIcalFeed({ a, b, c }, 's', 'u', BOYS_BU).length, 3);
+});
+
+// Pairs from real feeds that share a time and place but are different events.
+const gym = 'West Hills Christian School - Main Gym';
+for (const [label, t1, t2] of [
+  ['team pictures during practice',
+    '7th & 8th Grade (A Team) Team Pictures (Arrive 5 minutes early)', 'Practice: 7th & 8th Grade (A Team) (Arrive 5 minutes early)'],
+  ['tryouts next to a practice',
+    'Practice: GU15 Academy (Tigard HS Soccer Turf 11v11)', 'Supplemental tryouts HS Age teams (GU15, 16, &17 Academy teams) (GU15 Academy)'],
+  ["a club's A and B teams in one gym",
+    '@MTZ: Spartans White (A) vs Unity Maroon', '@MTZ: Spartans Black (B) vs Sherman'],
+]) {
+  test(`different titles stay separate: ${label}`, () => {
+    const a = vevent('r1', t1, '2099-10-15T22:30:00Z', '2099-10-16T00:00:00Z', gym);
+    const b = vevent('r2', t2, '2099-10-15T22:30:00Z', '2099-10-16T00:00:00Z', gym);
+    assert.strictEqual(normalizeIcalFeed({ a, b }, 's', 'u', []).length, 2);
+  });
+}
+
+test('a team-less feed ("vs Bend FC …") still collapses', () => {
+  const a = { ...stateCup, summary: 'vs Bend FC 13B Gold' };
+  const b = { ...teamEntry, summary: 'vs Bend FC EA' };
+  assert.strictEqual(normalizeIcalFeed({ a, b }, 's', 'u', []).length, 1);
+});
+
+
+// ------------------------------------------------------------
+// carryOverUids — feeds that mint new UIDs on every request
+// ------------------------------------------------------------
+console.log('\nRotated UIDs:');
+
+const row = (source_uid, raw_title, starts_at, location = 'Tigard HS Soccer Turf 11v11') =>
+  ({ source_uid, raw_title, starts_at: new Date(starts_at), location });
+const inc = (sourceUid, rawTitle, startsAt, location = 'Tigard HS Soccer Turf 11v11') =>
+  ({ sourceUid, rawTitle, startsAt: new Date(startsAt), location });
+
+test('rotated UIDs reuse the stored ones', () => {
+  const existing = [row('old-1', 'BU13 Practice', '2099-11-10T01:00:00Z'), row('old-2', 'BU13 vs Bend FC EA', '2099-11-07T23:00:00Z')];
+  const incoming = [inc('new-1', 'BU13 Practice', '2099-11-10T01:00:00Z'), inc('new-2', 'BU13 vs Bend FC EA', '2099-11-07T23:00:00Z')];
+  assert.strictEqual(carryOverUids(incoming, existing), 2);
+  assert.deepStrictEqual(incoming.map(e => e.sourceUid), ['old-1', 'old-2']);
+});
+
+test('stable feeds are untouched', () => {
+  const existing = [row('a', 'BU13 Practice', '2099-11-10T01:00:00Z')];
+  const incoming = [inc('a', 'BU13 Practice', '2099-11-10T01:00:00Z'), inc('b', 'BU13 Game', '2099-11-12T01:00:00Z')];
+  assert.strictEqual(carryOverUids(incoming, existing), 0);
+  assert.deepStrictEqual(incoming.map(e => e.sourceUid), ['a', 'b']);
+});
+
+test('title edited (score added) at the same start and place keeps its row', () => {
+  const existing = [row('old', 'BU13 vs Bend FC', '2099-09-13T19:00:00Z')];
+  const incoming = [inc('new', 'BU13 vs Bend FC (L 0-2)', '2099-09-13T19:00:00Z')];
+  assert.strictEqual(carryOverUids(incoming, existing), 1);
+  assert.strictEqual(incoming[0].sourceUid, 'old');
+});
+
+test('ambiguous title edits are left as new events', () => {
+  const existing = [row('o1', 'GU13 vs X', '2099-09-13T19:00:00Z'), row('o2', 'BU13 vs Y', '2099-09-13T19:00:00Z')];
+  const incoming = [inc('n1', 'GU13 vs X (W 2-0)', '2099-09-13T19:00:00Z'), inc('n2', 'BU13 vs Y (L 0-1)', '2099-09-13T19:00:00Z')];
+  assert.strictEqual(carryOverUids(incoming, existing), 0);
+});
+
+test('a moved venue with a new title is a new event', () => {
+  const existing = [row('old', 'BU13 vs Bend FC', '2099-09-13T19:00:00Z', 'Tigard HS Soccer Turf 11v11')];
+  const incoming = [inc('new', 'BU13 vs Eastside', '2099-09-13T19:00:00Z', 'Delta Park Field 4')];
+  assert.strictEqual(carryOverUids(incoming, existing), 0);
+});
+
+test('each stored row is claimed at most once', () => {
+  const existing = [row('old', 'BU13 Practice', '2099-11-10T01:00:00Z')];
+  const incoming = [inc('n1', 'BU13 Practice', '2099-11-10T01:00:00Z'), inc('n2', 'BU13 Practice', '2099-11-10T01:00:00Z')];
+  assert.strictEqual(carryOverUids(incoming, existing), 1);
+  assert.deepStrictEqual(incoming.map(e => e.sourceUid), ['old', 'n2']);
 });
 
 

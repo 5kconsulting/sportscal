@@ -779,6 +779,15 @@ export async function upsertEvent({
   );
 }
 
+// What carryOverUids() in normalizer.js needs to match a feed's events
+// to the rows already stored for it.
+export async function getEventKeysForSource(sourceId) {
+  return query(
+    `SELECT source_uid, raw_title, starts_at, location FROM events WHERE source_id = $1`,
+    [sourceId]
+  );
+}
+
 // Remove events from a source that weren't seen in the latest fetch
 // (i.e., they were deleted from the source app)
 export async function removeStaleEvents(sourceId, fetchStartedAt) {

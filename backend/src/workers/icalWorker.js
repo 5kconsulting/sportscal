@@ -3,9 +3,9 @@ import ical from 'node-ical';
 import {
   getSourceById, getKidsForSource, markSourceFetched,
   upsertEvent, removeStaleEvents, invalidateFeedCache,
-  createRefreshJob, finishRefreshJob,
+  createRefreshJob, finishRefreshJob, getEventKeysForSource,
 } from '../db/index.js';
-import { normalizeIcalFeed } from '../normalizer.js';
+import { normalizeIcalFeed, carryOverUids } from '../normalizer.js';
 import { connection, JobType, enqueueScrapeFetch } from './queue.js';
 
 // Guardrail: if the previous fetch had at least this many events and the
@@ -54,6 +54,11 @@ const worker = new Worker('ical-fetch', async (job) => {
         `Refusing to wipe existing events. Upstream may be down or URL may be stale.`
       );
     }
+
+    // Feeds that mint new UIDs on every request (BYGA) would otherwise
+    // replace every row each refresh and cascade-delete rides/overrides.
+    const carried = carryOverUids(events, await getEventKeysForSource(sourceId));
+    if (carried) { try { job.log(`Carried over ${carried} rotated UIDs`); } catch {} }
 
     let added = 0, updated = 0;
     for (const event of events) {
