@@ -24,7 +24,7 @@ not yet built.
 │       │                   calendar, billing, admin, passwordReset,
 │       │                   emailVerification
 │       ├── middleware/auth.js       requireAuth — sets req.user (full obj)
-│       ├── emails/templates.js      welcome / digest / reminder, TZ-aware
+│       ├── emails/templates.js      welcome / digest / invites, TZ-aware
 │       ├── normalizer.js            buildDisplayTitle()
 │       └── workers/
 │           ├── queue.js    shared BullMQ connection + enqueue helpers
@@ -137,11 +137,16 @@ Cloudflare Email Routing → the Worker in `cloudflare/inbound-mail/` → POST
 
 ## Ride-request texting
 
-Twilio has been removed. Ride-request texts are native only: the web app
-opens an `sms:` deep link so the parent sends the pre-filled message from
-their own phone. `backend/src/lib/sms.js` and `routes/twilio.js` are dormant
-(no `TWILIO_*` env vars) — don't build on them, and don't describe SportsCal
-as sending texts in marketing or legal copy.
+Twilio has been removed. Ride-request texts are native only: web and iOS
+open an `sms:` deep link so the parent sends the pre-filled message from
+their own phone. `POST /api/logistics/:eventId` returns `open_messages: true`
+when a text was requested (plus legacy `sms_skipped_reason: 'consent_pending'`
+for older iOS builds). Phone normalization lives in `backend/src/lib/phone.js`.
+The `sms_consent_*` columns in schema.sql are unused leftovers. Don't describe
+SportsCal as sending texts in marketing or legal copy.
+
+Email event reminders were removed; the 8pm bedtime push (pushWorker) is the
+only reminder. `users.reminder_hours_before` is an unused column.
 
 ---
 
