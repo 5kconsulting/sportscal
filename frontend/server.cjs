@@ -64,7 +64,13 @@ app.use('/demo-feeds', (_req, res, next) => {
   next();
 }, express.static(path.join(__dirname, 'dist', 'demo-feeds')));
 
-// SPA fallback — handles /, /login, /signup, /kids, etc.
-app.use((_req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
+// SPA fallback — handles /login, /signup, /kids, etc. Paths the React app
+// doesn't know still get index.html (it renders the NotFound page) but with a
+// real 404 status so search engines don't index them.
+const SPA_ROUTES = /^\/(login|signup|forgot-password|reset-password|logistics-response|household\/join|admin|dashboard|kids|contacts|sources|settings|setup)(\/.*)?$/;
+app.use((req, res) => {
+  if (!SPA_ROUTES.test(req.path)) res.status(404);
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
 
 app.listen(PORT, () => console.log('[server] listening on port ' + PORT));
