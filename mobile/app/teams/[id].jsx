@@ -148,7 +148,7 @@ export default function GroupDetail() {
       const { url } = await api.post(`/api/teams/${id}/invites`);
       const body =
         `Join my ${team.name} group on SportsCal so I can include you in ` +
-        `ride coordination: ${url}`;
+        `ride requests: ${url}`;
       Linking.openURL(`sms:?body=${encodeURIComponent(body)}`).catch(() => {
         Alert.alert('Invite created', url);
       });

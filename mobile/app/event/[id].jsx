@@ -519,9 +519,9 @@ export default function EventDetail() {
           </View>
         ) : null}
 
-        {/* RIDE COORDINATION */}
+        {/* RIDE REQUESTS */}
         <View style={[s.card, s.pad]}>
-          <Text style={s.clab}>Ride coordination</Text>
+          <Text style={s.clab}>Ride requests</Text>
           <View style={s.rides}>
             <LogisticsSlot
               role="dropoff"

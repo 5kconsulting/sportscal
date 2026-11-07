@@ -397,7 +397,7 @@ function Teams({ initialAdding = false }) {
       const { url, team_name } = await api.teams.createInvite(team.id);
       const body =
         `Join my ${team_name} group on SportsCal so I can include you in ` +
-        `ride coordination: ${url}`;
+        `ride requests: ${url}`;
       const supportsSmsLink = /Mac|iPhone|iPad|iPod|Android/.test(navigator.userAgent);
       if (supportsSmsLink) {
         window.location.href = `sms:?body=${encodeURIComponent(body)}`;

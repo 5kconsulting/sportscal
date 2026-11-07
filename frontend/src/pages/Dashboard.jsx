@@ -1442,7 +1442,7 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
               </form>
             ) : contacts.length === 0 ? (
               <div style={{ fontSize: 14, color: 'var(--slate)', background: 'var(--off-white)', borderRadius: 8, padding: 16 }}>
-                No contacts yet. Add family and carpool contacts in <strong>Settings → Ride contacts</strong>.
+                No contacts yet. Add family and carpool contacts on the <strong>Carpool</strong> page.
               </div>
             ) : (
               <form onSubmit={handleAssign} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

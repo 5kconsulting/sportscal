@@ -196,10 +196,10 @@ export function EventDetailModal({
             </div>
           )}
 
-          {/* Ride coordination */}
+          {/* Ride requests */}
           <div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--slate)' }}>Ride coordination</div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--slate)' }}>Ride requests</div>
               <button onClick={onManageRides} className="btn btn-ghost btn-sm">Manage</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
