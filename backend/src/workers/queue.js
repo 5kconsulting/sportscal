@@ -68,7 +68,6 @@ export const JobType = {
   FETCH_ICAL:       'fetch-ical',
   FETCH_SCRAPE:     'fetch-scrape',
   SEND_DIGEST:      'send-digest',
-  SEND_REMINDER:    'send-reminder',
   PUSH_DIGEST:      'push-digest',
   SEND_HOUSEHOLD_INVITE: 'send-household-invite',
 };
@@ -101,10 +100,6 @@ export async function enqueueDigest(userId, opts = {}) {
     { userId },
     { jobId: `digest-${userId}-${new Date().toDateString()}`, ...opts }
   );
-}
-
-export async function enqueueReminder(userId, eventId, opts = {}) {
-  return emailQueue.add(JobType.SEND_REMINDER, { userId, eventId }, opts);
 }
 
 // Household invite email. jobId keyed on the token so a retried

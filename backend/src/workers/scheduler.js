@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { getSourcesDueForRefresh, query, getUsersDueForPushDigest } from '../db/index.js';
-import { enqueueIcalFetch, enqueueScrapeFetch, enqueueDigest, enqueueReminder, enqueuePushDigest } from './queue.js';
+import { enqueueIcalFetch, enqueueScrapeFetch, enqueueDigest, enqueuePushDigest } from './queue.js';
 import { checkSourceHealth } from './healthWorker.js';
 import { refreshAllWeather } from '../lib/weather.js';
 

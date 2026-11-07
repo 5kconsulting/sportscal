@@ -207,7 +207,7 @@ export async function updateUser(id, fields) {
   const allowed = [
     'name', 'plan', 'stripe_customer_id', 'stripe_subscription_id',
     'plan_expires_at', 'digest_enabled', 'digest_day', 'digest_hour',
-    'reminder_hours_before', 'timezone',
+    'timezone',
   ];
   const updates = [];
   const values = [];

@@ -320,52 +320,6 @@ export function digestEmail(user, events) {
 }
 
 // ============================================================
-// Reminder email
-// ============================================================
-export function reminderEmail(user, event) {
-  const tz         = user.timezone || DEFAULT_TZ;
-  const startsAt   = new Date(event.starts_at);
-  const hoursUntil = Math.round((startsAt - Date.now()) / 3_600_000);
-
-  const content = `
-    <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#D97706;text-transform:uppercase;letter-spacing:0.06em;">
-      Reminder · in ~${hoursUntil} hour${hoursUntil !== 1 ? 's' : ''}
-    </p>
-    <h2 style="${styles.h2};margin-bottom:20px;">${escapeHtml(event.display_title)}</h2>
-
-    <table cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-      <tr>
-        <td style="font-size:14px;color:#64748B;padding:6px 16px 6px 0;white-space:nowrap;">When</td>
-        <td style="font-size:14px;color:#0F172A;font-weight:500;padding:6px 0;">
-          ${formatFullDateTime(startsAt, tz)}
-          ${event.ends_at ? ` – ${formatTime(new Date(event.ends_at), tz)}` : ''}
-        </td>
-      </tr>
-      ${event.location ? `
-      <tr>
-        <td style="font-size:14px;color:#64748B;padding:6px 16px 6px 0;white-space:nowrap;">Where</td>
-        <td style="font-size:14px;color:#0F172A;font-weight:500;padding:6px 0;">
-          <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}"
-             style="color:#2563EB;text-decoration:none;">
-            ${escapeHtml(event.location)} ↗
-          </a>
-        </td>
-      </tr>` : ''}
-    </table>
-
-    <p style="text-align:center;">
-      <a href="${BASE_URL}" style="${styles.btn}">Open dashboard</a>
-    </p>
-  `;
-
-  return {
-    subject: `Reminder: ${event.display_title} in ~${hoursUntil}h`,
-    html: layout(content, `${event.display_title} is coming up in about ${hoursUntil} hours.`),
-    text: `Reminder: ${event.display_title}\nWhen: ${formatFullDateTime(startsAt, tz)}\n${event.location ? `Where: ${event.location}` : ''}`,
-  };
-}
-
-// ============================================================
 // Household invite email
 // Sent when a parent invites their co-parent to join their
 // SportsCal household. The magic link lands on
@@ -451,14 +405,6 @@ function formatDay(date, timezone, allDay = false) {
 
 function formatTime(date, timezone = DEFAULT_TZ) {
   return date.toLocaleTimeString('en-US', {
-    hour: 'numeric', minute: '2-digit', hour12: true,
-    timeZone: timezone,
-  });
-}
-
-function formatFullDateTime(date, timezone = DEFAULT_TZ) {
-  return date.toLocaleString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric',
     hour: 'numeric', minute: '2-digit', hour12: true,
     timeZone: timezone,
   });

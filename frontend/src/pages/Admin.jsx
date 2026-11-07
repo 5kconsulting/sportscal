@@ -733,7 +733,6 @@ function EmailTestCard() {
 
   const tests = [
     { key: 'test-digest', label: 'Weekly digest email', desc: 'Sends your weekly summary email right now' },
-    { key: 'test-reminder', label: 'Event reminder email', desc: 'Sends a reminder for your next upcoming event' },
   ];
 
   return (

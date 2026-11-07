@@ -83,7 +83,6 @@ export default function Settings() {
     digest_enabled:       user?.digest_enabled ?? true,
     digest_day:           user?.digest_day ?? 0,
     digest_hour:          user?.digest_hour ?? 18,
-    reminder_hours_before: user?.reminder_hours_before ?? 12,
   });
 
   function setField(k, v) { setForm(f => ({ ...f, [k]: v })); }
@@ -384,23 +383,6 @@ export default function Settings() {
           )}
         </Section>
 
-        {/* Reminders */}
-        <Section title="Event reminders">
-          <p style={{ fontSize: 14, color: 'var(--slate)', marginBottom: 12 }}>
-            Get an email before each event.
-            {user?.plan === 'free' && <span style={{ color: 'var(--amber)', fontWeight: 500 }}> (Pro plan)</span>}
-          </p>
-          <div className="field">
-            <label>Send reminder</label>
-            <select className="input" value={form.reminder_hours_before}
-              onChange={e => setField('reminder_hours_before', Number(e.target.value))}>
-              {[1, 2, 3, 6, 12, 24, 48].map(h => (
-                <option key={h} value={h}>{h} hour{h !== 1 ? 's' : ''} before</option>
-              ))}
-            </select>
-          </div>
-        </Section>
-
         {/* Plan */}
         <Section title="Plan">
           <div style={{
@@ -415,7 +397,7 @@ export default function Settings() {
               <div style={{ fontSize: 13, color: 'var(--slate)', marginTop: 2 }}>
                 {user?.plan === 'free'
                   ? '2 members · 2 calendars · no email digest'
-                  : '8 members · 24 calendars · digest + reminders'}
+                  : '8 members · 24 calendars · weekly digest'}
               </div>
             </div>
             {user?.plan === 'free' ? (

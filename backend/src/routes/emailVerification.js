@@ -86,7 +86,7 @@ router.post('/resend-verification', requireAuth, async (req, res) => {
 // Send verification email helper (called from auth.js on signup).
 // The HTML/text/subject all live in emails/templates.js so the
 // verification email inherits the shared header (real logo mark)
-// and stays consistent with welcome / digest / reminder styling.
+// and stays consistent with welcome / digest styling.
 // ============================================================
 export async function sendVerificationEmail(user) {
   const token = crypto.randomBytes(32).toString('hex');

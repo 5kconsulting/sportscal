@@ -9,7 +9,6 @@ import {
 import { connection, JobType } from './queue.js';
 import {
   digestEmail,
-  reminderEmail,
   householdInviteEmail,
 } from '../emails/templates.js';
 
@@ -31,22 +30,6 @@ const worker = new Worker('email-send', async (job) => {
 
     console.log(`[email-worker] digest sent to ${user.email}`);
     return { emailId: result.id, eventCount: events.length };
-  }
-
-  if (job.name === JobType.SEND_REMINDER) {
-    const { userId, eventId } = job.data;
-    const user   = await getUserById(userId);
-    if (!user) return { skipped: true };
-
-    const events = await getUpcomingEvents(userId);
-    const event  = events.find(e => e.id === eventId);
-    if (!event) return { skipped: true };
-
-    const { subject, html, text } = reminderEmail(user, event);
-    const result = await resend.emails.send({ from: FROM, to: user.email, subject, html, text });
-
-    console.log(`[email-worker] reminder sent to ${user.email}`);
-    return { emailId: result.id };
   }
 
   if (job.name === JobType.SEND_HOUSEHOLD_INVITE) {

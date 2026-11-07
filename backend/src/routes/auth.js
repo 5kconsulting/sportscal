@@ -145,7 +145,6 @@ router.patch('/me',
     body('digest_enabled').optional().isBoolean(),
     body('digest_day').optional().isInt({ min: 0, max: 6 }),
     body('digest_hour').optional().isInt({ min: 0, max: 23 }),
-    body('reminder_hours_before').optional().isInt({ min: 1, max: 72 }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -155,7 +154,7 @@ router.patch('/me',
 
     const allowed = [
       'name', 'timezone', 'digest_enabled',
-      'digest_day', 'digest_hour', 'reminder_hours_before',
+      'digest_day', 'digest_hour',
     ];
     const fields = Object.fromEntries(
       Object.entries(req.body).filter(([k]) => allowed.includes(k))

@@ -317,30 +317,6 @@ router.post('/test-digest', requireAuth, requireAdmin, async (req, res) => {
 });
 
 // ============================================================
-// POST /api/admin/test-reminder
-// Manually trigger a reminder email for the next upcoming event
-// ============================================================
-router.post('/test-reminder', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const { user_id } = req.body;
-    const target = user_id || req.user.id;
-
-    // Find the next upcoming event for this user
-    const event = await queryOne(
-      `SELECT * FROM events WHERE user_id = $1 AND starts_at > NOW() ORDER BY starts_at ASC LIMIT 1`,
-      [target]
-    );
-    if (!event) return res.status(404).json({ error: 'No upcoming events found for this user' });
-
-    const { enqueueReminder } = await import('../workers/queue.js');
-    await enqueueReminder(target, event.id);
-    res.json({ ok: true, message: `Reminder queued for event "${event.display_title}"` });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ============================================================
 // POST /api/admin/test-push
 // Immediately enqueues a night-digest push to user_id (default: self).
 // Bypasses the 8pm-local scheduler — for verifying the full path
