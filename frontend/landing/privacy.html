@@ -83,7 +83,7 @@
 
 <div class="container">
   <h1>Privacy Policy</h1>
-  <p class="meta">Last updated: April 9, 2026</p>
+  <p class="meta">Last updated: November 7, 2026</p>
 
   <p>This Privacy Policy explains how 5K Consulting LLP ("we," "us," or "our") collects, uses, and protects information when you use SportsCal ("Service"). We take your privacy seriously — especially since SportsCal deals with your family's schedule.</p>
 
@@ -110,7 +110,6 @@
     <li><strong>Railway</strong> — cloud hosting for our servers and database</li>
     <li><strong>Resend</strong> — email delivery service</li>
     <li><strong>Stripe</strong> — payment processing</li>
-    <li><strong>Twilio</strong> — SMS delivery for ride request notifications (Premium subscribers only)</li>
     <li><strong>Sentry</strong> — error monitoring and crash reporting; reports do not include your account identifiers</li>
     <li><strong>TikTok</strong> — advertising measurement and audience matching for our paid campaigns. The TikTok pixel runs on our public website only (not inside the SportsCal mobile app) and sends signup events back to TikTok. With Automatic Advanced Matching enabled, hashed (SHA-256) versions of your email and phone number are also sent so TikTok can attribute conversions back to ad views; the unhashed values are never transmitted</li>
     <li><strong>Meta (Facebook / Instagram)</strong> — same purpose as TikTok above. The Meta Pixel runs on our public website with Automatic Advanced Matching (hashed SHA-256 email and phone values when present in our forms; unhashed values are never sent). The Meta SDK also runs inside the SportsCal iOS app to record signup events for the same ad-attribution purpose; on iOS, the SDK is dormant by default and only collects an advertising identifier (IDFA) after you grant App Tracking Transparency permission. If you decline ATT, no IDFA is collected and the SDK reports only aggregate, non-identifying counts</li>
@@ -151,22 +150,12 @@
 
   <p><strong>Product analytics &mdash; iOS app.</strong> The SportsCal iOS app uses Firebase Analytics to record standard product events (sign-up, login) and aggregate device metadata (app version, device model, OS version, country). Firebase Analytics does not use IDFA and is not affected by ATT. We use this data to understand which features are working, debug issues, and decide what to build next.</p>
 
-  <h2>9. SMS Messaging</h2>
-  <p>SportsCal sends SMS messages to two distinct groups, each with their own direct consent.</p>
+  <h2>9. Ride Request Texts</h2>
+  <p><strong>SportsCal does not send text messages.</strong> When you send a ride request by text, SportsCal opens the messaging app on your own device with the request pre-filled (for example: "Can you pick up Emma from Riverside Fields on Thursday at 4pm?" plus a link to accept or decline). You review and send the message yourself, from your own phone number.</p>
 
-  <p><strong>Account holders (parents).</strong> When you sign up at sportscalapp.com/signup, you are presented with a separate, unchecked SMS consent checkbox in addition to the Terms of Service checkbox. Checking that box records your consent to receive SMS notifications about your own account, including ride coordination confirmations sent on your behalf. Consent is optional &mdash; you can use SportsCal without it &mdash; and you can revoke it at any time by replying STOP to any message. Your consent timestamp and IP address are recorded against your account.</p>
+  <p><strong>Phone numbers.</strong> Phone numbers you add to your contacts are stored in your account so SportsCal can pre-fill these messages for you. They are not used for marketing and are not shared with third parties or affiliates for marketing or promotional purposes.</p>
 
-  <p><strong>Ride contacts (people you add).</strong> When you add a contact with a phone number, SportsCal sends that contact exactly one SMS asking them to opt in directly. The message reads, in substance: "[Your first name] added you as a ride contact on SportsCal &mdash; a youth sports calendar app. Reply YES to receive occasional ride coordination texts (typically 1&ndash;4/week), or STOP to opt out. Msg&amp;data rates may apply." The contact must reply <strong>YES</strong> from their own phone before SportsCal will send any further messages to that number. Their YES reply is the contact&rsquo;s direct consent of record, stored with timestamp and the originating phone number. If the contact does not reply, or replies STOP, SportsCal will not text them. Account holders cannot consent on a contact&rsquo;s behalf.</p>
-
-  <p><strong>Message content.</strong> After consent, messages to contacts are limited to pickup/dropoff coordination for specific events (example: "Can you pick up Emma from Riverside Fields on Thursday at 4pm? Reply YES or NO."). SportsCal does not send marketing, promotional, or other unsolicited messages.</p>
-
-  <p><strong>Message frequency.</strong> Message frequency varies based on the SportsCal account holder&rsquo;s activity, typically ranging from zero to a few messages per week per contact.</p>
-
-  <p><strong>Opt-out and help.</strong> Recipients may opt out at any time by replying <strong>STOP</strong> to any message. Reply <strong>HELP</strong> for support. Opt-outs are honored immediately and recorded against the recipient&rsquo;s phone number; SportsCal will not send further messages to that number unless the recipient later opts back in.</p>
-
-  <p><strong>Message and data rates.</strong> Message and data rates may apply based on the recipient&rsquo;s mobile carrier plan. SportsCal does not charge recipients for these messages.</p>
-
-  <p><strong>Phone number handling.</strong> Mobile phone numbers are collected solely for the purpose of the consent flow described above and the ride coordination messages initiated by the SportsCal account holder once the contact has opted in. <strong>Mobile phone numbers and SMS consent are not shared with third parties or affiliates for marketing or promotional purposes.</strong> Numbers are shared only with Twilio, our SMS delivery provider, as necessary to deliver messages.</p>
+  <p><strong>Accept and decline links.</strong> When a contact taps the link in a ride request, SportsCal records their response so you can see who is covering the ride.</p>
 
   <h2>10. Changes to This Policy</h2>
   <p>We may update this Privacy Policy from time to time. We will notify you of material changes by email or by posting a notice in the Service. Continued use after changes take effect constitutes your acceptance of the updated policy.</p>
