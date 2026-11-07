@@ -171,8 +171,10 @@ only reminder. `users.reminder_hours_before` is an unused column.
 - Modal → picker data handoff uses `lib/selectionStore.js` (tiny pub-sub
   keyed by session ID) to avoid URL-param serialization of non-trivial
   objects.
-- Mobile does NOT set `notify` on logistics assignment — M2 assigns only,
-  never triggers SMS/email to the contact. That's a web-first flow.
+- Ride assignment on mobile: `lib/notifyChoice.js` shows an action sheet
+  (Premium only) with Just assign / Email / Text. Email posts `notify:'email'`;
+  Text posts `notify:'none'` and opens Messages pre-filled via
+  `openMessagesFallback` in `app/event/[id].jsx`.
 - Kid attendance toggle is deliberately NOT yet in mobile — deferred to M3.
 
 ---
