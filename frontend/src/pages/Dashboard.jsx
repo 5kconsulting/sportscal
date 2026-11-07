@@ -325,8 +325,8 @@ function ConflictBanner({ events }) {
     }}>
       <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
       <div style={{ flex: 1, fontSize: 13.5, color: '#991B1B', lineHeight: 1.5 }}>
-        <strong>{count} conflict{count !== 1 ? 's' : ''} this week</strong>
-        {' — '}two kids expected in two places at the same time. Look for the red badges below.
+        <strong>{count} event{count !== 1 ? 's' : ''} with a conflict</strong>
+        {' — '}kids due in different places at the same time. Look for the red badges below.
       </div>
     </div>
   );
