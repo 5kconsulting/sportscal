@@ -131,8 +131,17 @@ This is not obvious from schema alone:
    via the "+ Add event" button. Lives under the hood; surfaced in the UI
    via the "Manual events" section of the Sources page.
 
-The `app` value `email_forward` is reserved in `sources_app_check` but
-email forwarding is not yet implemented. (Planned: Resend Inbound.)
+Email forwarding is live: mail to `add+<token>@inbox.sportscalapp.com` hits
+Cloudflare Email Routing → the Worker in `cloudflare/inbound-mail/` → POST
+`/api/inbound/mail` (`backend/src/routes/inbound.js`, shared-secret auth).
+
+## Ride-request texting
+
+Twilio has been removed. Ride-request texts are native only: the web app
+opens an `sms:` deep link so the parent sends the pre-filled message from
+their own phone. `backend/src/lib/sms.js` and `routes/twilio.js` are dormant
+(no `TWILIO_*` env vars) — don't build on them, and don't describe SportsCal
+as sending texts in marketing or legal copy.
 
 ---
 
@@ -224,7 +233,7 @@ cd ~/sportscal/mobile && npx expo start --ios --clear
 
 - App: `www.sportscalapp.com`
 - Email (outbound): `mail.sportscalapp.com` via Resend
-- Email (inbound, planned): `ingest.sportscalapp.com` via Resend Inbound
+- Email (inbound): `inbox.sportscalapp.com` via Cloudflare Email Routing + Worker
 - Railway internal: `sportscal-production.up.railway.app`
 
 ---
