@@ -29,10 +29,10 @@ import {
 } from '../lib/iap';
 
 const FEATURES = [
-  { icon: 'paper-plane-outline',   text: 'SMS ride requests to your carpool' },
-  { icon: 'people-outline',        text: 'Unlimited kids' },
-  { icon: 'calendar-outline',      text: 'Unlimited connected calendars' },
-  { icon: 'mail-outline',          text: 'Weekly email digest of upcoming events' },
+  { icon: 'paper-plane-outline',   text: 'Text and email ride requests to your carpool' },
+  { icon: 'people-outline',        text: 'Up to 8 kids' },
+  { icon: 'calendar-outline',      text: 'Up to 24 connected calendars' },
+  { icon: 'mail-outline',          text: 'Weekly digest of upcoming events' },
   { icon: 'sparkles-outline',      text: 'Priority support' },
 ];
 
@@ -133,7 +133,7 @@ export default function UpgradeScreen() {
           <Ionicons name="sparkles" size={36} color={t.accent} />
           <Text style={s.heroTitle}>Unlock the full SportsCal</Text>
           <Text style={s.heroSub}>
-            Carpool with confidence and connect every calendar.
+            Carpool with confidence and connect up to 24 calendars.
           </Text>
         </View>
 
