@@ -11,7 +11,9 @@ export default function Signup() {
   const intendedInterval = searchParams.get('interval'); // 'month' or 'year' from pricing page
   const [form, setForm]   = useState({ name: '', email: '', password: '' });
   const [agreed, setAgreed] = useState(false);
-  const [smsConsent, setSmsConsent] = useState(false);
+  // SMS consent was for Twilio-sent texts; ride texts are now sent natively
+  // from the parent's own phone, so there is nothing to consent to.
+  const smsConsent = false;
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -136,27 +138,6 @@ export default function Signup() {
                     <a href="/terms" target="_blank" style={{ color: 'var(--accent-dim)' }}>Terms of Service</a>
                     {' '}and{' '}
                     <a href="/privacy" target="_blank" style={{ color: 'var(--accent-dim)' }}>Privacy Policy</a>
-                  </span>
-                </label>
-
-                {/*
-                  A2P 10DLC requires direct, account-holder-level consent
-                  to send SMS — captured here on the public signup form so
-                  carrier reviewers can see it without an account. Optional
-                  (consent is not required to use SportsCal). Stored on the
-                  user row with timestamp + IP at the moment of submit.
-                */}
-                <label style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 10,
-                  cursor: 'pointer', marginTop: 4,
-                }}>
-                  <input type="checkbox" checked={smsConsent} onChange={e => setSmsConsent(e.target.checked)}
-                    style={{ marginTop: 3, flexShrink: 0, accentColor: 'var(--accent)', width: 15, height: 15 }} />
-                  <span style={{ fontSize: 13, color: 'var(--slate-light)', lineHeight: 1.5 }}>
-                    I agree to receive SMS notifications from SportsCal about my account, including
-                    ride coordination confirmations. Message frequency varies. Msg&amp;data rates may
-                    apply. Reply STOP to opt out, HELP for help.{' '}
-                    <strong style={{ color: 'var(--slate)' }}>Consent is not a condition of using the service.</strong>
                   </span>
                 </label>
 
