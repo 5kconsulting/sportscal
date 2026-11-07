@@ -138,7 +138,7 @@ export function welcomeEmail(user) {
             "Each kid gets their own subscribable URL for their phone.")}
         </td>
         <td width="50%" style="padding:6px 0 6px 6px;vertical-align:top;">
-          ${cardCell(`${BASE_URL}/how/add-a-head-of-household`, '🏠', 'Add a co-parent',
+          ${cardCell(`${BASE_URL}/how/add-a-co-parent`, '🏠', 'Add a co-parent',
             "Both parents see the same kids, calendars, and events.")}
         </td>
       </tr>
@@ -188,7 +188,7 @@ export function welcomeEmail(user) {
       '',
       "Once your calendars are in, SportsCal can also:",
       `  * Share a kid's calendar     ${BASE_URL}/how/share-kid-calendar`,
-      `  * Add a co-parent            ${BASE_URL}/how/add-a-head-of-household`,
+      `  * Add a co-parent            ${BASE_URL}/how/add-a-co-parent`,
       `  * Route events to the right kid   ${BASE_URL}/how/route-to-kid`,
       `  * Ask a group for a ride     ${BASE_URL}/rides/group`,
       `  * Weekly digest email        ${BASE_URL}/how/weekly-digest`,
@@ -241,7 +241,7 @@ export function verifyEmail(user, verifyUrl) {
         Start with
         <a href="${BASE_URL}/how/add-calendar" style="color:#2563EB;text-decoration:none;">adding a calendar</a>,
         then try
-        <a href="${BASE_URL}/how/add-a-head-of-household" style="color:#2563EB;text-decoration:none;">adding a co-parent</a>
+        <a href="${BASE_URL}/how/add-a-co-parent" style="color:#2563EB;text-decoration:none;">adding a co-parent</a>
         or
         <a href="${BASE_URL}/rides/group" style="color:#2563EB;text-decoration:none;">asking for a ride</a> —
         90 seconds each.
