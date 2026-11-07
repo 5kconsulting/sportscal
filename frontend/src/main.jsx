@@ -74,6 +74,23 @@ function LandingRedirect() {
   return null;
 }
 
+function NotFound() {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, system-ui, sans-serif', padding: 24 }}>
+      <div style={{ textAlign: 'center', maxWidth: 420 }}>
+        <p style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.1em', color: '#64748b', margin: 0 }}>404</p>
+        <h1 style={{ fontSize: 28, margin: '8px 0 12px', color: '#0f172a' }}>We couldn't find that page.</h1>
+        <p style={{ fontSize: 15, color: '#475569', lineHeight: 1.5, margin: '0 0 24px' }}>
+          The link may be old or mistyped. Your calendars are fine.
+        </p>
+        <a href="/" style={{ display: 'inline-block', background: '#b45f1e', color: '#fff', padding: '10px 18px', borderRadius: 8, textDecoration: 'none', fontWeight: 600 }}>
+          Back to SportsCal
+        </a>
+      </div>
+    </div>
+  );
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
@@ -99,6 +116,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="settings"     element={<Settings />} />
             <Route path="setup"        element={<SetupAgent onSourceAdded={() => {}} />} />  {/* ← add this */}
           </Route>
+          <Route path="*"              element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
