@@ -70,7 +70,7 @@ function LandingRedirect() {
   );
   if (user) return <Navigate to="/dashboard" replace />;
   // Not logged in — show landing page via iframe trick or redirect
-  window.location.href = '/landing/index.html';
+  window.location.href = '/';
   return null;
 }
 

@@ -544,7 +544,7 @@ export default function Settings() {
         <DeleteAccountModal
           user={user}
           onClose={() => setShowDeleteModal(false)}
-          onDeleted={() => { logout(); window.location.href = '/landing/index.html'; }}
+          onDeleted={() => { logout(); window.location.href = '/'; }}
         />
       )}
     </div>

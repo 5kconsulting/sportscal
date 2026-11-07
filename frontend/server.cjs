@@ -31,7 +31,12 @@ app.use(apiProxy);
 app.get('/robots.txt', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'robots.txt')));
 app.get('/sitemap.xml', (_req, res) => res.type('application/xml').sendFile(path.join(__dirname, 'landing', 'sitemap.xml')));
 
-// Explicit landing pages at their own paths
+// Explicit landing pages at their own paths.
+// The homepage is served as static HTML at / so crawlers and link previews
+// (iMessage, Slack, etc.) see real content and meta tags. Signed-in users are
+// bounced to /dashboard by a tiny script in the landing page's <head>.
+app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'index.html')));
+app.get('/landing/index.html', (_req, res) => res.redirect(301, '/'));
 app.get('/pricing', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'pricing.html')));
 app.get('/terms', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'terms.html')));
 app.get('/privacy', (_req, res) => res.sendFile(path.join(__dirname, 'landing', 'privacy.html')));
