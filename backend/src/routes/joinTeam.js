@@ -9,7 +9,7 @@
 
 import { Router, urlencoded } from 'express';
 import { query, queryOne, withTransaction } from '../db/index.js';
-import { toE164 } from '../lib/sms.js';
+import { toE164 } from '../lib/phone.js';
 
 const router = Router();
 const APP_URL = process.env.FRONTEND_URL || 'https://www.sportscalapp.com';

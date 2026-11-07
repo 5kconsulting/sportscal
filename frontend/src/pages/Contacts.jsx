@@ -132,8 +132,7 @@ export default function Contacts() {
 }
 
 // ============================================================
-// RideContacts — individuals with name/phone/email plus their
-// SMS opt-in status (pending / confirmed / declined).
+// RideContacts — individuals with name/phone/email.
 // ============================================================
 // `initialShowForm` is set by the chip-variant welcome — when a brand-new
 // user taps "Add a person" we render this section with the contact form

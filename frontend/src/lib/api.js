@@ -115,7 +115,6 @@ export const api = {
     create:    (data)      => post('/contacts', data),
     update:    (id, data)  => patch(`/contacts/${id}`, data),
     delete:    (id)        => del(`/contacts/${id}`),
-    sendOptIn: (id)        => post(`/contacts/${id}/send-opt-in`),
   },
   teams: {
     list:            ()                         => get('/teams'),

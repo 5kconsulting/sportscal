@@ -145,11 +145,11 @@ export default function EventDetail() {
   // below for why.
 
   // Open the native Messages app pre-filled with the request, including
-  // the same Yes/No tap-links that the Twilio path embeds. Token comes
+  // the same Yes/No tap-links the email uses. Token comes
   // from the logistics row we just created — when the contact taps Yes,
   // it hits GET /api/logistics/respond/:token/confirmed (public, no auth)
-  // and the parent gets an email confirmation. Same plumbing as email
-  // and Twilio paths, just routed through the parent's own Messages app.
+  // and the parent gets an email confirmation. Same plumbing as email,
+  // just routed through the parent's own Messages app.
   function openMessagesFallback(contact, role, token) {
     if (!contact?.phone || !event) return;
     const action_word = role === 'pickup' ? 'pick up' : 'drop off';
@@ -240,8 +240,7 @@ export default function EventDetail() {
       const { contact, notify: choice } = payload;
 
       // 'manual_sms' opens Messages directly and still records the
-      // assignment server-side (with notify='none' so we don't ALSO try
-      // to send through Twilio).
+      // assignment server-side (notify='none' — nothing to send there).
       const isManualSms = choice === 'manual_sms';
       const notify = isManualSms ? 'none' : choice;
 
@@ -257,14 +256,8 @@ export default function EventDetail() {
           return [...others, resp.logistics];
         });
 
-        // Whenever the Twilio path didn't actually send (because consent
-        // isn't confirmed or A2P verification is still pending), route
-        // through Messages directly — no consent-warning prompt. v1 ships
-        // SMS-via-parent's-iPhone as the primary path; Twilio is a
-        // post-launch addition.
-        const needsManualMessage = isManualSms
-          || resp.sms_skipped_reason === 'consent_pending'
-          || resp.sms_skipped_reason === 'consent_declined';
+        // Texts always go from the parent's own Messages app.
+        const needsManualMessage = isManualSms || resp.open_messages;
         if (needsManualMessage) {
           openMessagesFallback(contact, role, resp.logistics?.token);
         }
@@ -281,7 +274,7 @@ export default function EventDetail() {
   // with member counts; on pick, fires team-request and opens iMessage
   // with the recipient list + body prefilled. iOS will then create a
   // single group thread and send the message from the parent's own
-  // phone — no Twilio.
+  // phone.
   async function openTeamRequest(role, teams) {
     const action_word = role === 'pickup' ? 'pick up' : 'drop off';
     const team = await new Promise((resolve) => {

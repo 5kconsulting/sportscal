@@ -11,9 +11,6 @@ export default function Signup() {
   const intendedInterval = searchParams.get('interval'); // 'month' or 'year' from pricing page
   const [form, setForm]   = useState({ name: '', email: '', password: '' });
   const [agreed, setAgreed] = useState(false);
-  // SMS consent was for Twilio-sent texts; ride texts are now sent natively
-  // from the parent's own phone, so there is nothing to consent to.
-  const smsConsent = false;
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +20,7 @@ export default function Signup() {
     setError('');
     setLoading(true);
     try {
-      await signup(form.name, form.email, form.password, referralSource, smsConsent);
+      await signup(form.name, form.email, form.password, referralSource);
 
       // Fire TikTok + Meta pixel CompleteRegistration. Wrapped in
       // try/catch and optional-chaining so a missing pixel script

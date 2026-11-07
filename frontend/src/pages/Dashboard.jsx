@@ -1238,21 +1238,11 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
         return [...filtered, updated];
       });
 
-      // SMS was requested but suppressed because the contact hasn't
-      // opted in yet (or has opted out). Offer the native Messages app
-      // as a fallback so the parent can still text them through their
-      // own phone — that's outside our A2P 10DLC consent obligations.
-      // The pre-filled body includes the same Yes/No tap-links the
-      // Twilio path uses, so the contact can confirm/decline without
-      // a free-text reply (which would land in the parent's inbox, not
-      // ours). Tapping a link hits the public token endpoint and
-      // updates the row + emails the parent.
-      // Twilio path didn't actually send (A2P verification still pending,
-      // or contact never opted in). Route through the parent's own
-      // Messages app instead — no consent warning, no confirm prompt.
-      // This is the v1 launch design: SMS-via-parent's-iPhone is the
-      // primary path; Twilio is a post-launch addition.
-      if (resp.sms_skipped_reason === 'consent_pending' || resp.sms_skipped_reason === 'consent_declined') {
+      // Texts are never sent by SportsCal. When a text was requested, open
+      // the parent's own Messages app pre-filled with the request and the
+      // same Yes/No tap-links the email uses. Tapping a link hits the
+      // public token endpoint, updates the row, and emails the parent.
+      if (resp.open_messages) {
         const contact = contacts.find(c => c.id === form.contact_id);
         if (contact?.phone) {
           const action_word = form.role === 'pickup' ? 'pick up' : 'drop off';
@@ -1427,10 +1417,10 @@ function LogisticsModal({ event, logistics, onClose, onUpdate }) {
                   background: 'var(--off-white)', borderRadius: 8,
                   padding: '10px 12px', border: '1px solid var(--border)',
                 }}>
-                  Opens a group iMessage from your phone to everyone in the group with a
+                  Opens a group text from your phone to everyone in the group with a
                   single short link. They tap it, see the event, and pick their name to
                   claim. <strong>First person to claim wins</strong> — the others are
-                  auto-locked out. No Twilio.
+                  auto-locked out.
                 </div>
                 <button type="submit" className="btn btn-primary"
                   disabled={!teamForm.team_id || saving === 'team-request'}

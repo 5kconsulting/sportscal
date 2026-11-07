@@ -2,7 +2,7 @@ import { Router } from 'express';
 import crypto from 'crypto';
 import { requireAuth } from '../middleware/auth.js';
 import { query, queryOne, withTransaction } from '../db/index.js';
-import { toE164 } from '../lib/sms.js';
+import { toE164 } from '../lib/phone.js';
 
 const APP_URL = process.env.FRONTEND_URL || 'https://www.sportscalapp.com';
 
@@ -162,8 +162,7 @@ router.post('/:id/members/bulk', async (req, res) => {
     );
     if (!team) return res.status(404).json({ error: 'Team not found' });
 
-    // Normalize phones to E.164 server-side so the inbound webhook
-    // lookup matches what Twilio sends (matches POST /api/contacts
+    // Normalize phones to E.164 server-side (matches POST /api/contacts
     // behavior). Filter out rows with no name — required field.
     const cleaned = members
       .map(m => ({

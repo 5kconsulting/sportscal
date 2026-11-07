@@ -85,26 +85,15 @@ router.post('/:eventId', requireAuth, async (req, res) => {
     const user_plan = (await queryOne(`SELECT plan FROM users WHERE id = $1`, [req.user.id]))?.plan;
     const isPremium = user_plan === 'premium';
 
-    // Notifications (email/SMS) are premium only.
+    // Notifications are premium only. Email is sent server-side; texts are
+    // never sent by SportsCal — the client opens the parent's own Messages
+    // app with the request pre-filled (see Dashboard.jsx / event/[id].jsx).
     const wantsEmail = (notify === 'email' || notify === 'both');
     const wantsSms   = (notify === 'sms'   || notify === 'both');
 
-    // SMS additionally requires that the contact has actively opted in
-    // by replying YES to the confirmation message (A2P 10DLC double
-    // opt-in). Pending or declined contacts are silently skipped here;
-    // the response includes sms_skipped_reason so the UI can prompt the
-    // user to use the native Messages app instead.
-    let smsSkippedReason = null;
-    if (wantsSms) {
-      if (!isPremium)                                  smsSkippedReason = 'not_premium';
-      else if (!contact.phone)                         smsSkippedReason = 'no_phone';
-      else if (contact.sms_consent_status === 'pending')  smsSkippedReason = 'consent_pending';
-      else if (contact.sms_consent_status === 'declined') smsSkippedReason = 'consent_declined';
-    }
-
-    const sendEmail = isPremium && wantsEmail && contact.email;
-    const sendSms   = isPremium && wantsSms   && contact.phone && contact.sms_consent_status === 'confirmed';
-    const status = (sendEmail || sendSms) ? 'requested' : 'assigned';
+    const sendEmail    = isPremium && wantsEmail && contact.email;
+    const openMessages = !!(isPremium && wantsSms && contact.phone);
+    const status = sendEmail ? 'requested' : 'assigned';
 
     // Upsert — replace existing assignment for this role
     const logistics = await queryOne(
@@ -146,44 +135,12 @@ router.post('/:eventId', requireAuth, async (req, res) => {
       }).catch(err => console.error('[logistics] email error:', err.message));
     }
 
-    // Send SMS if requested
-    if (sendSms) {
-      const eventDate = new Date(event.starts_at).toLocaleDateString('en-US', {
-        weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles'
-      });
-      const eventTime = new Date(event.starts_at).toLocaleTimeString('en-US', {
-        hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles'
-      });
-      const action = role === 'pickup' ? 'pick up' : 'drop off';
-      const confirmUrl = `${APP_URL}/api/logistics/respond/${token}/confirmed`;
-      const declineUrl = `${APP_URL}/api/logistics/respond/${token}/declined`;
-
-      // A2P 10DLC requires every outbound marketing/transactional SMS to
-      // include opt-out instructions and the rates disclosure. Append them
-      // to every message so campaign compliance is never in question.
-      const smsBody = `Hi ${contact.name.split(' ')[0]}! Can you ${action} ${kidName} on ${eventDate} at ${eventTime}${event.location ? ` at ${event.location}` : ''}?${note ? ` "${note}"` : ''}\n\nYes: ${confirmUrl}\nNo: ${declineUrl}\n\nReply STOP to opt out, HELP for help. Msg&data rates may apply.`;
-
-      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-        try {
-          const twilio = (await import('twilio')).default;
-          const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-          await client.messages.create({
-            body: smsBody,
-            from: process.env.TWILIO_PHONE_NUMBER,
-            to: contact.phone,
-          });
-          console.log(`[logistics] SMS sent to ${contact.phone}`);
-        } catch (err) {
-          console.error('[logistics] SMS error:', err.message);
-        }
-      } else {
-        console.log('[logistics] SMS skipped — Twilio not configured. Message would be:', smsBody);
-      }
-    }
-
     res.status(201).json({
       logistics: { ...logistics, contact_name: contact.name, contact_email: contact.email },
-      sms_skipped_reason: smsSkippedReason,
+      open_messages: openMessages,
+      // Legacy field: iOS builds before this change open Messages only when
+      // they see 'consent_pending'. Remove once those builds are retired.
+      sms_skipped_reason: openMessages ? 'consent_pending' : null,
     });
   } catch (err) {
     console.error('[logistics] post error:', err.message);
@@ -197,8 +154,7 @@ router.post('/:eventId', requireAuth, async (req, res) => {
 // Create a "first parent to confirm wins" ride request directed at
 // every member of a team. We don't send the SMS server-side — we
 // return the per-parent links + assembled body so the parent's
-// own iMessage app sends the group text from their own phone
-// number (no Twilio, no A2P regime, no per-message fee).
+// own Messages app sends the group text from their own phone number.
 //
 // Body: { team_id, role }
 // Response: { offers, sms_body, phones }

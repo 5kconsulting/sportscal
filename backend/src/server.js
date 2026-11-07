@@ -32,7 +32,6 @@ import contactsRoutes         from './routes/contacts.js';
 import logisticsRoutes        from './routes/logistics.js';
 import overridesRoutes        from './routes/overrides.js';
 import ingestionsRoutes       from './routes/ingestions.js';
-import twilioRoutes           from './routes/twilio.js';
 import teamsRoutes            from './routes/teams.js';
 import respondRoutes          from './routes/respond.js';
 import joinTeamRoutes         from './routes/joinTeam.js';
@@ -117,7 +116,6 @@ app.use('/api/setup-agent', setupAgentRoutes);
 app.use('/api/push-tokens', pushTokensRoutes);
 app.use('/api/household',   householdRoutes);
 app.use('/api/inbound',     inboundRoutes);  // public: Cloudflare Email Worker -> JSON envelope (shared-secret protected)
-app.use('/api/twilio',      twilioRoutes);   // public: Twilio inbound webhook (signature-verified)
 app.use('/feed',            calendarRoutes); // public: /feed/:token.ics
 app.use('/r',               respondRoutes);  // public: team-request landing page
 app.use('/join',            joinTeamRoutes); // public: team-invite self-signup page
