@@ -153,7 +153,10 @@ only reminder. `users.reminder_hours_before` is an unused column.
 ## Plan limits (`plan_limits` view)
 
 - **Free:** 2 kids, 2 sources, no digest
-- **Premium monthly ($10/mo), annual ($100/yr):** 8 kids, 24 sources, digest
+- **Premium monthly ($4.99/mo), annual ($49.99/yr):** 8 kids, 24 sources, digest.
+  Same on web (Stripe) and iPhone (App Store, via RevenueCat). Changed
+  from $10/$100 on 2026-11-12 so web matches the App Store; if one
+  changes, change the other.
 - **Grandfathered:** $5/mo premium for users who signed up before the
   pricing overhaul (Apr 2026). Don't change their billing without
   explicit user consent.
