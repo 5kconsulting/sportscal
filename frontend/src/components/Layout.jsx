@@ -214,23 +214,24 @@ export default function Layout() {
         background: 'var(--navy)',
         borderTop: '1px solid var(--navy-mid)',
         display: 'none',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        padding: '8px 0 max(8px, env(safe-area-inset-bottom))',
+        // Equal-width columns, top-aligned: two-line labels ("Add a
+        // calendar") hang below instead of pushing their icon up.
+        alignItems: 'flex-start',
+        padding: '8px 4px max(8px, env(safe-area-inset-bottom))',
         zIndex: 50,
       }}>
         {NAV.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} end={to === '/'} style={({ isActive }) => ({
             display: 'flex', flexDirection: 'column', alignItems: 'center',
-            gap: 3, padding: '4px 8px', borderRadius: 8,
+            flex: '1 1 0', minWidth: 0,
+            gap: 3, padding: '4px 2px', borderRadius: 8,
             color: isActive ? 'var(--accent-on-dark)' : 'var(--slate)',
             textDecoration: 'none', transition: 'color 0.15s',
-            minWidth: 48,
           })}>
             {({ isActive }) => (
               <>
                 <Icon color={isActive ? 'var(--accent-on-dark)' : 'var(--slate)'} />
-                <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.02em' }}>
+                <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.02em', textAlign: 'center', lineHeight: 1.2 }}>
                   {label}
                 </span>
               </>
@@ -240,15 +241,15 @@ export default function Layout() {
         {user?.is_admin && (
           <NavLink to="/admin" style={({ isActive }) => ({
             display: 'flex', flexDirection: 'column', alignItems: 'center',
-            gap: 3, padding: '4px 8px', borderRadius: 8,
+            flex: '1 1 0', minWidth: 0,
+            gap: 3, padding: '4px 2px', borderRadius: 8,
             color: isActive ? 'var(--accent-on-dark)' : 'var(--slate)',
             textDecoration: 'none', transition: 'color 0.15s',
-            minWidth: 48,
           })}>
             {({ isActive }) => (
               <>
                 <ShieldIcon color={isActive ? 'var(--accent-on-dark)' : 'var(--slate)'} />
-                <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.02em' }}>Admin</span>
+                <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.02em', textAlign: 'center', lineHeight: 1.2 }}>Admin</span>
               </>
             )}
           </NavLink>
