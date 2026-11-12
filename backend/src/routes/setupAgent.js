@@ -16,7 +16,7 @@ import rateLimit from 'express-rate-limit';
 import Anthropic from '@anthropic-ai/sdk';
 
 import { requireAuth } from '../middleware/auth.js';
-import { getKidsByUser, query } from '../db/index.js';
+import { getKidsByUser, query, ensureInboundToken } from '../db/index.js';
 import { buildSystemPrompt, APP_INSTRUCTIONS } from '../lib/setupAgentPrompt.js';
 
 const router = Router();
@@ -91,8 +91,17 @@ router.post('/message', setupAgentLimiter, async (req, res) => {
     // that the client could then forge into a source-create payload.
     const kids = await getKidsByUser(req.user.id);
 
+    // The iPhone chat sends PDFs to the user's forwarding address, so the
+    // model needs the real address to hand them. Best effort.
+    let inboundAddress = null;
+    if (platform === 'mobile') {
+      const token = await ensureInboundToken(req.user.id).catch(() => null);
+      if (token) inboundAddress = `add+${token}@${process.env.INBOUND_DOMAIN || 'inbox.sportscalapp.com'}`;
+    }
+
     const systemPrompt = buildSystemPrompt(kids, {
       platform: platform === 'mobile' ? 'mobile' : 'web',
+      inboundAddress,
     });
 
     const t0 = Date.now();

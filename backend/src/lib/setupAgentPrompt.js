@@ -8,14 +8,14 @@
 // and DEMO_FEEDS server-side means a single source of truth for both clients
 // and zero risk of the API key leaking from a browser bundle.
 //
-// `buildSystemPrompt(kids, { platform })` adjusts the prompt for the active
-// client:
+// `buildSystemPrompt(kids, { platform, inboundAddress })` adjusts the prompt
+// for the active client:
 //   - 'web'    — full prompt including the PDF upload flow (file picker +
 //                ingestion job + review modal already exist in the React app)
-//   - 'mobile' — drops the PDF flow; if the user mentions a PDF, the agent
-//                tells them to open sportscalapp.com/setup on a computer.
-//                Mobile chat UI does not have a file picker / ingestion modal
-//                today; revisit when push notifications + PDF parity ship.
+//   - 'mobile' — the app can't open files, so the agent sends PDFs to the
+//                user's forwarding address (inboundAddress), which reads the
+//                attachment and emails back a review link. Photos use the
+//                app's camera button.
 // ============================================================================
 
 export const APP_INSTRUCTIONS = {
@@ -124,29 +124,31 @@ export const DEMO_FEEDS = [
   { sport: 'Track',      url: 'https://www.sportscalapp.com/demo-feeds/track-field.ics',         name: 'Tualatin HS Track & Field' },
 ];
 
-export function buildSystemPrompt(kids, { platform = 'web' } = {}) {
+export function buildSystemPrompt(kids, { platform = 'web', inboundAddress = null } = {}) {
   const appNames = Object.values(APP_INSTRUCTIONS).map(a => a.label).join(', ');
   const appValues = APP_LIST.map(a => '- ' + a.label + ' -> "' + a.value + '"').join('\n');
   const demoList = DEMO_FEEDS.map(f => '- ' + f.sport + ': ' + f.url).join('\n');
   const appInstructions = JSON.stringify(APP_INSTRUCTIONS, null, 2);
   const kidRoster = (kids || []).map(k => '- ' + k.name).join('\n') || '(no kids yet)';
 
-  // Platform-specific mention of PDF support. Mobile doesn't have the
-  // file-picker / ingestion-review UI, so we redirect users with PDFs to
-  // the web rather than half-implementing a flow that can't finish.
+  // Platform-specific mention of PDF support. The iPhone app can't open
+  // files, but the per-user forwarding address reads PDF attachments
+  // (routes/inbound.js), and that works from the phone's Mail app.
   const isMobile = platform === 'mobile';
+  const address = inboundAddress || 'their SportsCal email address (Settings → "Forward emails to add a calendar")';
   const pdfMention = isMobile
-    ? '(If you only have a PDF schedule, open sportscalapp.com/setup on a computer — I can read PDFs there but not in the mobile app yet.)'
+    ? '(If you only have a PDF schedule, email it to your SportsCal address and I\'ll read it.)'
     : '(If you only have a PDF schedule from the coach, I can read that too.)';
 
-  // Whole PDF-flow section is omitted on mobile.
   const pdfSection = isMobile
     ? '## PDF schedules\n'
-      + 'You CANNOT process PDFs in this mobile chat. If the user mentions a PDF, '
-      + 'photo, or paper schedule, kindly tell them: "I can read PDFs on the website — '
-      + 'open sportscalapp.com/setup on a computer and I\'ll be there. For now, do '
-      + 'you have an iCal URL from one of your sports apps?" Do NOT emit a '
-      + 'request_pdf_upload action.\n\n'
+      + 'You can\'t open files in this mobile chat, but SportsCal reads PDFs sent by email. '
+      + 'If the user mentions a PDF schedule, tell them to email it to ' + address + ': '
+      + 'forward the coach\'s email as-is, or attach the PDF to a new email. They\'ll get an '
+      + 'email back with a link to pick whose schedule it is and check the events before '
+      + 'anything is added. Write the address out in full, exactly as given. '
+      + 'For a paper schedule or a screenshot, tell them to tap the camera button next to '
+      + 'the message box instead. Do NOT emit a request_pdf_upload action.\n\n'
     : '## PDF upload flow\n'
       + 'If the user says they have a PDF of their schedule (or a photo, which we will treat like a PDF for now):\n\n'
       + '  Step 1 — Ask which kid it is for. You MUST know the kid before the upload.\n'

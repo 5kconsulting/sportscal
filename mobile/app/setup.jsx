@@ -6,15 +6,15 @@
 //   - inline system bubbles for "Added 'Tualatin Baseball' for Emma" notices
 //
 // All Anthropic calls go through POST /api/setup-agent/message — the API
-// key lives on Railway, not in this bundle. PDF upload is intentionally
-// skipped on mobile; the system prompt redirects users with PDFs to
-// sportscalapp.com/setup on a computer.
+// key lives on Railway, not in this bundle. The app can't open PDFs, so
+// the chat sends them to the user's forwarding address (add+<token>@…),
+// which reads PDF attachments and emails back a review link.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
   KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Alert,
-  ActionSheetIOS,
+  ActionSheetIOS, Share,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -75,6 +75,9 @@ export default function SetupAgentScreen() {
   const [loading, setLoading]   = useState(false);
   const [booting, setBooting]   = useState(true);
   const [kids, setKids]         = useState([]);
+  // add+<token>@inbox… — where PDFs go from the phone. Bubbles that show
+  // it get a Share / copy button.
+  const [inboundAddress, setInboundAddress] = useState('');
 
   // Tracks an in-flight ingestion (image upload -> Claude vision -> events).
   // We keep this in a ref so the polling loop has a stable handle even
@@ -113,6 +116,9 @@ export default function SetupAgentScreen() {
         ]);
         kidsList    = kidsRes.kids || [];
         sourceCount = (sourcesRes.sources || []).filter(s => s.name !== '__manual__').length;
+        api.get('/api/auth/inbound-address')
+          .then(r => { if (!cancelled && r?.address) setInboundAddress(r.address); })
+          .catch(() => {});
       } catch {
         // Non-fatal — we can still chat even if we couldn't pre-load context.
       }
@@ -234,7 +240,10 @@ export default function SetupAgentScreen() {
   // whatever they have.
   function startWithChat() {
     const kidNames = kids.map(k => k.name).join(', ');
-    const intro = `Hi${kids.length > 0 ? `, I see ${kids.length > 1 ? kids.length + ' kids' : '1 kid'}: ${kidNames}` : ''}! Tell me which app you use or paste an iCal URL — I can also read a PDF schedule if you have one.`;
+    const pdfLine = inboundAddress
+      ? `Got a PDF schedule? Email it to ${inboundAddress} and I'll read it.`
+      : 'Got a PDF schedule? Email it to your SportsCal address (in Settings) and I\'ll read it.';
+    const intro = `Hi${kids.length > 0 ? `, I see ${kids.length > 1 ? kids.length + ' kids' : '1 kid'}: ${kidNames}` : ''}! Tell me which app you use or paste an iCal URL.\n\n${pdfLine}`;
     const initialMessages = [{ role: 'assistant', content: intro, display: intro }];
     if (!hasShareIntent) {
       initialMessages.push({
@@ -627,14 +636,11 @@ export default function SetupAgentScreen() {
     }
 
     if (action.action === 'request_pdf_upload') {
-      setMessages(prev => [...prev, {
-        role: 'system',
-        content: 'PDFs aren\'t supported in the mobile app yet. Open sportscalapp.com/setup on a computer to upload PDF schedules.',
-        error: true,
-      }]);
+      const text = `Email the PDF to ${inboundAddress || 'your SportsCal address (in Settings)'} and I'll read it. You'll get a link to check the events before anything is added.`;
+      setMessages(prev => [...prev, { role: 'assistant', content: text, display: text }]);
       return;
     }
-  }, [kids]);
+  }, [kids, inboundAddress]);
 
   function confirmDone() {
     Alert.alert(
@@ -742,6 +748,7 @@ export default function SetupAgentScreen() {
                   ? () => approveIngestion(m._ingestionId, m._eventCount)
                   : null}
                 approving={busyIngestion}
+                inboundAddress={inboundAddress}
               />
             ))
           )}
@@ -786,11 +793,17 @@ export default function SetupAgentScreen() {
 
 // ----- bubble ---------------------------------------------------------------
 
-function Bubble({ message, onApprove, approving }) {
+function Bubble({ message, onApprove, approving, inboundAddress }) {
   const t = useTheme();
   const s = useMemo(() => makeStyles(t), [t]);
   const { role, display, content, error, _typing, _eventCount } = message;
   const text = display || content || '';
+  // Replies that hand over the forwarding address get the same share
+  // sheet as Settings (Copy, Mail, …) so it can go straight into a forward.
+  const showsAddress = role === 'assistant' && !!inboundAddress && text.includes(inboundAddress);
+  async function shareAddress() {
+    try { await Share.share({ message: inboundAddress, url: `mailto:${inboundAddress}` }); } catch {}
+  }
 
   if (role === 'system') {
     return (
@@ -830,8 +843,14 @@ function Bubble({ message, onApprove, approving }) {
         {_typing ? (
           <ActivityIndicator color={t.slate} size="small" />
         ) : (
-          <Text style={[s.bubbleText, isUser && s.bubbleTextUser]}>{text}</Text>
+          <Text selectable style={[s.bubbleText, isUser && s.bubbleTextUser]}>{text}</Text>
         )}
+        {showsAddress ? (
+          <TouchableOpacity onPress={shareAddress} activeOpacity={0.7} style={s.addressBtn}>
+            <Ionicons name="share-outline" size={15} color={t.accent} />
+            <Text style={s.addressBtnText}>Share / copy address</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     </View>
   );
@@ -902,6 +921,12 @@ function makeStyles(t) {
   },
   bubbleText:     { fontSize: 15, color: t.navy, lineHeight: 21 },
   bubbleTextUser: { color: t.onAccent },
+  addressBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+    marginTop: 10, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999,
+    borderWidth: 1, borderColor: t.border, backgroundColor: t.surface,
+  },
+  addressBtnText: { fontSize: 13, fontWeight: '600', color: t.accent },
 
   // Light-green pill for status messages and the share-extension tip.
   // #d8f5e6 + #047a47 from the design mockups — warm muted mint with
