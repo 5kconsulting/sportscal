@@ -39,7 +39,7 @@ import Sources         from './pages/Sources.jsx';
 import Settings        from './pages/Settings.jsx';
 import ForgotPassword  from './pages/ForgotPassword.jsx';
 import ResetPassword   from './pages/ResetPassword.jsx';
-import SetupAgent      from './pages/SetupAgent.jsx';
+import SetupAgent, { MagicLinkPdfReview } from './pages/SetupAgent.jsx';
 import Admin           from './pages/Admin.jsx';
 import LogisticsResponse from './pages/LogisticsResponse.jsx';
 import HouseholdJoin    from './pages/HouseholdJoin.jsx';
@@ -59,6 +59,17 @@ function RequireAuth({ children }) {
     </div>
   );
   return <Navigate to="/login" replace />;
+}
+
+// /setup?ingestion=<token> is the link in the "we got your PDF" email.
+// The token is the proof, so it opens without signing in; most parents
+// tap it on a phone where they only use the app. Everything else on
+// /setup needs an account as before.
+function SetupGate() {
+  const { user, loading } = useAuth();
+  const token = new URLSearchParams(window.location.search).get('ingestion');
+  if (token && !user && !loading) return <MagicLinkPdfReview token={token} />;
+  return <RequireAuth><Layout /></RequireAuth>;
 }
 
 function LandingRedirect() {
@@ -109,12 +120,14 @@ createRoot(document.getElementById('root')).render(
           <Route path="/dashboard"      element={<RequireAuth><Layout /></RequireAuth>}>
             <Route index                element={<Dashboard />} />
           </Route>
+          <Route path="/setup"          element={<SetupGate />}>
+            <Route index                element={<SetupAgent onSourceAdded={() => {}} />} />
+          </Route>
           <Route path="/"              element={<RequireAuth><Layout /></RequireAuth>}>
             <Route path="kids"         element={<Kids />} />
             <Route path="contacts"     element={<Contacts />} />
             <Route path="sources"      element={<Sources />} />
             <Route path="settings"     element={<Settings />} />
-            <Route path="setup"        element={<SetupAgent onSourceAdded={() => {}} />} />  {/* ← add this */}
           </Route>
           <Route path="*"              element={<NotFound />} />
         </Routes>

@@ -1077,7 +1077,7 @@ function TypingDots() {
 const MAGIC_LINK_TERMINAL = new Set(['ready_for_review', 'approved', 'rejected', 'failed']);
 const MAGIC_LINK_POLL_MS  = 1500;
 
-function MagicLinkPdfReview({ token }) {
+export function MagicLinkPdfReview({ token }) {
   const { user } = useAuth();
   const [data, setData]       = useState(null);   // { ingestion, user, kids }
   const [loadError, setLoadError] = useState(null);
@@ -1151,41 +1151,37 @@ function MagicLinkPdfReview({ token }) {
     }
   }
 
+  // Approve/reject authorize with the link's own token, so this works
+  // without being signed in on the web (most parents tap the link from
+  // their phone). Both clear the token server-side, so we update the
+  // page locally instead of re-fetching by link.
+  function setStatus(patch) {
+    setData(d => ({ ...d, ingestion: { ...d.ingestion, ...patch } }));
+  }
+
   async function handleApprove(events, sourceName) {
-    // Approve still requires auth — uses the same /:id/approve as the
-    // logged-in flow. If the user isn't signed in we'll get a 401 here
-    // and surface a sign-in prompt.
-    const auth = localStorage.getItem('sc_token');
-    if (!auth) {
-      setLoadError('Please sign in to save these events to your calendar.');
-      return;
-    }
     const res = await fetch('/api/ingestions/' + data.ingestion.id + '/approve', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + auth,
-      },
-      body: JSON.stringify({ events, sourceName }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ events, sourceName, magicLinkToken: token }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.error || 'Approve failed');
     }
+    const result = await res.json().catch(() => ({}));
     setShowReview(false);
-    // Refresh — status will be 'approved'.
-    const next = await fetchIngestion().catch(() => null);
-    if (next) setData(next);
+    setStatus({ status: 'approved', approved_count: result.eventsInserted });
   }
 
   async function handleReject() {
-    const auth = localStorage.getItem('sc_token');
-    if (!auth) { setShowReview(false); return; }
+    setShowReview(false);
     await fetch('/api/ingestions/' + data.ingestion.id + '/reject', {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + auth },
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ magicLinkToken: token }),
     }).catch(() => {});
-    setShowReview(false);
+    setStatus({ status: 'rejected' });
   }
 
   // ----- render branches -------------------------------------------------
@@ -1214,7 +1210,8 @@ function MagicLinkPdfReview({ token }) {
     return (
       <CenteredCard title={`Added ${ing.approved_count || ing.event_count || 0} events`}>
         <p style={{ fontSize: 14, color: 'var(--slate)', lineHeight: 1.6 }}>
-          {kid?.name ? `${kid.name}'s` : 'The'} schedule is up to date.
+          {kid?.name ? `${kid.name}'s` : 'The'} schedule is up to date in SportsCal
+          and on every calendar you've connected. You can close this page.
         </p>
         <a href="/dashboard" className="btn btn-primary btn-sm" style={{ marginTop: 16 }}>
           Open SportsCal
@@ -1246,8 +1243,8 @@ function MagicLinkPdfReview({ token }) {
         {data.kids.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--slate)', padding: 12,
                         background: 'var(--off-white)', borderRadius: 8 }}>
-            You don't have any kids on your account yet.
-            {' '}<a href="/kids">Add one in the Kids page</a> first, then come back to this link.
+            You don't have any kids on your account yet. Add one in the
+            SportsCal app (or on the Kids page on the web), then open this link again.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1313,7 +1310,8 @@ function MagicLinkPdfReview({ token }) {
 function CenteredCard({ title, children }) {
   return (
     <div style={{
-      maxWidth: 480, margin: '60px auto', padding: '32px',
+      maxWidth: 480, width: 'calc(100% - 32px)', margin: '48px auto', padding: '28px',
+      boxSizing: 'border-box',
       background: 'white', border: '1px solid var(--border)',
       borderRadius: 'var(--radius)', boxShadow: '0 4px 12px rgba(15,22,41,0.05)',
     }}>

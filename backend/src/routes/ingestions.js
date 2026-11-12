@@ -182,6 +182,27 @@ function uploadMiddleware(req, res, next) {
   });
 }
 
+// Approve/reject accept either a signed-in user or the emailed magic-link
+// token for that same ingestion. The token is already the owner's proof
+// for viewing it and picking the kid (above); parents who live in the
+// iPhone app usually aren't signed in on the web when they tap the link.
+// Approving or rejecting clears the token, so it works once.
+async function authOrMagicLink(req, res, next) {
+  const token = req.body?.magicLinkToken;
+  if (!token) return requireAuth(req, res, next);
+  try {
+    const ingestion = await getIngestionByMagicLink(String(token));
+    if (!ingestion || ingestion.id !== req.params.id) {
+      return res.status(404).json({ error: 'Link expired or invalid' });
+    }
+    req.user = { id: ingestion.user_id };
+    next();
+  } catch (err) {
+    console.error('[ingestions] magic-link auth error', err);
+    res.status(500).json({ error: 'Lookup failed' });
+  }
+}
+
 function computeContentHash(raw_title, location, starts_at, ends_at) {
   const h = crypto.createHash('sha256');
   h.update(String(raw_title || ''));
@@ -361,7 +382,7 @@ router.get('/', requireAuth, async (req, res) => {
 // Otherwise the flow is unchanged: create a new source, link the kid,
 // insert events.
 // ----------------------------------------------------------------------------
-router.post('/:id/approve', requireAuth, async (req, res) => {
+router.post('/:id/approve', authOrMagicLink, async (req, res) => {
   const { events, sourceName } = req.body;
   if (!Array.isArray(events) || events.length === 0) {
     return res.status(400).json({ error: 'No events to approve' });
@@ -531,7 +552,7 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
 // ----------------------------------------------------------------------------
 // POST /api/ingestions/:id/reject  — user throws it away
 // ----------------------------------------------------------------------------
-router.post('/:id/reject', requireAuth, async (req, res) => {
+router.post('/:id/reject', authOrMagicLink, async (req, res) => {
   const ingestion = await queryOne(
     `SELECT id, storage_path FROM ingestions WHERE id = $1 AND user_id = $2`,
     [req.params.id, req.user.id],
