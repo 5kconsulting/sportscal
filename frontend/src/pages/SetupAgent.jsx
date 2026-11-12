@@ -24,6 +24,19 @@ function isIcalUrl(url) {
   return /^(https?|webcal):\/\/.+/i.test(url.trim());
 }
 
+// New kids created from the chat cycle through these; changeable on /kids.
+const KID_PALETTE = ['#ef4444','#3b82f6','#22c55e','#8b5cf6','#f97316','#06b6d4','#ec4899','#eab308'];
+
+function isPdfFile(file) {
+  return file.type === 'application/pdf' || (!file.type && /\.pdf$/i.test(file.name));
+}
+
+// Some systems hand us a .pdf with an empty type, which would go up as
+// application/octet-stream and be refused by the server's type check.
+function asPdf(file) {
+  return file.type ? file : new File([file], file.name, { type: 'application/pdf' });
+}
+
 function statusToBubble(ing) {
   if (!ing) return null;
   const detail = ing.status_detail || ing.status;
@@ -88,7 +101,14 @@ export default function SetupAgent({ onSourceAdded }) {
   const fileInputRef = useRef(null);
 
   const { ingestion, uploading, error: ingestionError, uploadPdf, approve, reject, reset: resetIngestion } = useIngestion();
+  // pendingKid: the kid the chat asked about, for the next file attached.
+  // uploadKid: whose schedule the current upload is (review + wrap-up).
   const [pendingKid, setPendingKid] = useState(null);
+  const [uploadKid, setUploadKid] = useState(null);
+  // A PDF that was attached before we knew whose it is: { file, id }.
+  // Held here (not thrown away) until a kid is picked.
+  const [pendingFile, setPendingFile] = useState(null);
+  const [dragging, setDragging] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const statusMsgIdxRef = useRef(null);
 
@@ -161,7 +181,9 @@ export default function SetupAgent({ onSourceAdded }) {
       ? 'Hi' + (kids.length > 0 ? ', I can see you have ' + (kids.length > 1 ? kids.length + ' kids' : '1 kid') + ': ' + kidNames : '') + '! Want to jump right in with your real sports apps, or would you like to try SportsCal first with some sample schedules? I have demo feeds for soccer, baseball, basketball, volleyball, swimming, and track ready to go. (If you only have a PDF from the coach, I can read that too — just say "I have a PDF".)'
       : 'Hi' + (kids.length > 0 ? ' - I see you already have ' + existingSources.length + ' calendar' + (existingSources.length !== 1 ? 's' : '') + ' set up' : '') + '! Want to add more? Which apps do you use? (I can also read PDF schedules if you have one.)';
 
-    setMessages([{ role: 'assistant', content: intro }]);
+    // Prepend, don't replace: a file attached or dropped while the
+    // sources fetch was in flight has already added its own messages.
+    setMessages(prev => [{ role: 'assistant', content: intro }, ...prev]);
     setLoading(false);
     setTimeout(() => inputRef.current?.focus(), 100);
   }
@@ -209,6 +231,59 @@ export default function SetupAgent({ onSourceAdded }) {
       .then(({ apps }) => setAppCatalog(apps))
       .catch(() => setAppCatalog({})); // empty map → chip section degrades gracefully
   }, [isFreshUser, appCatalog]);
+
+  // Drop a PDF anywhere on the page. Without this, the browser opens the
+  // dropped PDF in place of the app. The ref keeps the window listeners
+  // pointed at this render's state.
+  const dropFileRef = useRef(null);
+  dropFileRef.current = (file) => {
+    if (!started) {
+      setStarted(true);
+      setMessages([{ role: 'assistant', content: 'Hi! Let me read that schedule for you.' }]);
+    }
+    takeFile(file);
+  };
+  useEffect(() => {
+    let depth = 0;
+    const hasFiles = (e) => Array.from(e.dataTransfer?.types || []).includes('Files');
+    const onEnter = (e) => { if (hasFiles(e)) { depth++; setDragging(true); } };
+    const onLeave = (e) => { if (hasFiles(e) && --depth <= 0) { depth = 0; setDragging(false); } };
+    const onOver  = (e) => { if (hasFiles(e)) e.preventDefault(); };
+    const onDrop  = (e) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      depth = 0;
+      setDragging(false);
+      const file = e.dataTransfer.files?.[0];
+      if (file) dropFileRef.current(file);
+    };
+    window.addEventListener('dragenter', onEnter);
+    window.addEventListener('dragleave', onLeave);
+    window.addEventListener('dragover', onOver);
+    window.addEventListener('drop', onDrop);
+    return () => {
+      window.removeEventListener('dragenter', onEnter);
+      window.removeEventListener('dragleave', onLeave);
+      window.removeEventListener('dragover', onOver);
+      window.removeEventListener('drop', onDrop);
+    };
+  }, []);
+
+  const dropOverlay = dragging ? (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 50, pointerEvents: 'none',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'color-mix(in srgb, var(--navy) 55%, transparent)',
+    }}>
+      <div style={{
+        padding: '22px 30px', borderRadius: 14,
+        border: '2px dashed var(--accent)', background: 'var(--card-bg, #fff)',
+        color: 'var(--navy)', fontSize: 16, fontWeight: 600,
+      }}>
+        📄 Drop your PDF schedule
+      </div>
+    </div>
+  ) : null;
 
   // Tap a chip → skip the welcome → enter chat already populated
   // with (a) the user's pick as a user bubble, and (b) the deterministic
@@ -289,9 +364,25 @@ export default function SetupAgent({ onSourceAdded }) {
       // Resolve kid by name against the real roster — never trust the model
       // to produce a valid UUID. Same pattern as executeAddSource.
       const kidName = (action.kid_name || '').trim();
-      const matched = kids.find(
+      let matched = kids.find(
         k => k.name.toLowerCase() === kidName.toLowerCase(),
       );
+      // No kids on the account yet: the name they just gave is a new kid,
+      // the same way executeAddSource handles calendar links.
+      if (!matched && kidName && kids.length === 0) {
+        try {
+          const { kid } = await api.kids.create({ name: kidName, color: KID_PALETTE[0] });
+          setKids([kid]);
+          matched = kid;
+        } catch (err) {
+          setMessages(prev => [...prev, {
+            role: 'system',
+            content: 'Couldn\'t add "' + kidName + '": ' + (err.message || 'unknown error'),
+            error: true,
+          }]);
+          return;
+        }
+      }
       if (!matched) {
         setMessages(prev => [...prev, {
           role: 'system',
@@ -302,7 +393,11 @@ export default function SetupAgent({ onSourceAdded }) {
         }]);
         return;
       }
+      // They already attached the file and we asked whose it is.
+      if (pendingFile) return startUpload(pendingFile.file, matched);
       setPendingKid({ id: matched.id, name: matched.name });
+      // Best effort: browsers often block a file picker opened this long
+      // after the keypress, so the reply also points at the 📎 button.
       setTimeout(() => fileInputRef.current?.click(), 100);
       return;
     }
@@ -322,7 +417,7 @@ export default function SetupAgent({ onSourceAdded }) {
         .filter(Boolean);
       const kidIds = [];
       const liveKids = [...kids];
-      const palette = ['#ef4444','#3b82f6','#22c55e','#8b5cf6','#f97316','#06b6d4','#ec4899','#eab308'];
+      const palette = KID_PALETTE;
       for (const wantedName of wantedNames) {
         const existing = liveKids.find(k => k.name.toLowerCase() === wantedName.toLowerCase());
         if (existing) {
@@ -367,35 +462,49 @@ export default function SetupAgent({ onSourceAdded }) {
   }
 
   function openFilePicker() {
-    if (!pendingKid && kids.length === 1) {
-      setPendingKid({ id: kids[0].id, name: kids[0].name });
-    }
     fileInputRef.current?.click();
   }
 
-  async function onFileChosen(e) {
+  function onFileChosen(e) {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (!file) return;
+    if (file) takeFile(file);
+  }
 
-    if (!pendingKid) {
-      if (kids.length === 1) {
-        setPendingKid({ id: kids[0].id, name: kids[0].name });
-      } else {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: 'Which kid is this schedule for? Tell me their name and I\'ll upload the PDF.',
-          display: 'Which kid is this schedule for? Tell me their name and I\'ll upload the PDF.',
-        }]);
-        return;
-      }
+  // Every attached or dropped file comes through here. If we know whose
+  // schedule it is (one kid, or the chat already asked), upload now.
+  // Otherwise keep the file and ask, with a button per kid, so nobody
+  // has to pick the same file twice.
+  function takeFile(file) {
+    if (uploading) return; // same as the disabled 📎 while a file is going up
+    if (!isPdfFile(file)) {
+      setMessages(prev => [...prev, {
+        role: 'system',
+        content: '"' + file.name + '" isn\'t a PDF. Attach a PDF schedule, or paste a calendar link.',
+        error: true,
+      }]);
+      return;
     }
+    const kid = pendingKid || (kids.length === 1 ? kids[0] : null);
+    if (kid) {
+      startUpload(file, kid);
+      return;
+    }
+    const id = Date.now();
+    setPendingFile({ file, id });
+    const ask = kids.length === 0
+      ? 'Got "' + file.name + '". Who\'s this schedule for? Type their first name and I\'ll add them.'
+      : 'Got "' + file.name + '". Whose schedule is it?';
+    setMessages(prev => [...prev, { role: 'assistant', content: ask, kidPickerFor: kids.length > 0 ? id : null }]);
+  }
 
-    const targetKid = pendingKid || { id: kids[0].id, name: kids[0].name };
+  async function startUpload(file, kid) {
+    setPendingFile(null);
+    setPendingKid(null);
+    setUploadKid({ id: kid.id, name: kid.name });
     statusMsgIdxRef.current = null;
-
     try {
-      await uploadPdf(file, targetKid.id);
+      await uploadPdf(asPdf(file), kid.id);
     } catch (err) {
       setMessages(prev => [...prev, {
         role: 'system',
@@ -403,6 +512,18 @@ export default function SetupAgent({ onSourceAdded }) {
         error: true,
       }]);
     }
+  }
+
+  function pickKidForPendingFile(kid) {
+    if (!pendingFile) return;
+    setMessages(prev => [...prev, { role: 'user', content: kid.name }]);
+    startUpload(pendingFile.file, kid);
+  }
+
+  function cancelPendingFile() {
+    setPendingFile(null);
+    const msg = 'No problem, I didn\'t upload it.';
+    setMessages(prev => [...prev, { role: 'assistant', content: msg }]);
   }
 
   async function handleApprove(editedEvents, sourceName) {
@@ -414,7 +535,7 @@ export default function SetupAgent({ onSourceAdded }) {
         onSourceAdded({ id: result.sourceId, name: sourceName, app: 'pdf_upload' });
       }
 
-      const kidName = pendingKid?.name || 'your kid';
+      const kidName = uploadKid?.name || 'your kid';
       const followup = '✅ Added ' + result.eventsInserted + ' events for ' + kidName + '! Want to add another schedule?';
 
       setMessages(prev => [
@@ -522,6 +643,7 @@ export default function SetupAgent({ onSourceAdded }) {
               <span style={{ opacity: 0.7 }}>→</span>
             </button>
           </div>
+          {dropOverlay}
         </div>
       );
     }
@@ -575,6 +697,7 @@ export default function SetupAgent({ onSourceAdded }) {
             Let's set up my calendars →
           </button>
         </div>
+        {dropOverlay}
       </div>
     );
   }
@@ -722,6 +845,52 @@ export default function SetupAgent({ onSourceAdded }) {
           const isUser = msg.role === 'user';
           const displayText = msg.display != null ? msg.display : msg.content;
 
+          if (msg.kidPickerFor && pendingFile?.id === msg.kidPickerFor) {
+            return (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: 10, flexShrink: 0, marginRight: 8,
+                    background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <AssistantMascot size={26} />
+                  </div>
+                  <div style={{
+                    maxWidth: '78%', padding: '10px 14px', borderRadius: '16px 16px 16px 4px',
+                    background: 'var(--card-bg, #fff)', color: 'var(--navy)',
+                    border: '1px solid var(--border)', fontSize: 14, lineHeight: 1.6,
+                    wordBreak: 'break-word',
+                  }}>
+                    {displayText}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingLeft: 42 }}>
+                  {kids.map(k => (
+                    <button key={k.id} type="button" onClick={() => pickKidForPendingFile(k)}
+                      disabled={uploading}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 7,
+                        padding: '7px 14px', borderRadius: 999, cursor: 'pointer',
+                        border: '1px solid var(--border)', background: 'var(--card-bg, #fff)',
+                        color: 'var(--navy)', fontSize: 14, fontWeight: 600, fontFamily: 'inherit',
+                      }}>
+                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: k.color || 'var(--accent)' }} />
+                      {k.name}
+                    </button>
+                  ))}
+                  <button type="button" onClick={cancelPendingFile}
+                    style={{
+                      padding: '7px 10px', border: 'none', background: 'none', cursor: 'pointer',
+                      color: 'var(--slate)', fontSize: 13, fontFamily: 'inherit',
+                    }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
           return (
             <div key={i} style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
               {!isUser && (
@@ -850,13 +1019,15 @@ export default function SetupAgent({ onSourceAdded }) {
       </div>
 
       <p style={{ fontSize: 11, color: 'var(--slate)', textAlign: 'center', marginTop: 8 }}>
-        Press Enter to send · Shift+Enter for new line · attach a PDF
+        Press Enter to send · Shift+Enter for new line · attach or drop a PDF
       </p>
+
+      {dropOverlay}
 
       {showReviewModal && ingestion?.status === 'ready_for_review' && (
         <IngestionReviewModal
           ingestion={ingestion}
-          kidName={pendingKid?.name}
+          kidName={uploadKid?.name}
           onApprove={handleApprove}
           onCancel={handleReject}
         />
