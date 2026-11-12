@@ -16,6 +16,7 @@ import {
 } from '../db/index.js';
 import { requireAuth } from '../middleware/auth.js';
 import { welcomeEmail } from '../emails/templates.js';
+import { WELCOME_FROM_NAME } from '../emails/welcomeSeries.js';
 import { sendVerificationEmail } from './emailVerification.js';
 
 const router = Router();
@@ -64,8 +65,10 @@ router.post('/signup',
     if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 're_xxxxxxxxxxxx') {
       const { subject, html, text } = welcomeEmail(user);
       resend.emails.send({
-        from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`,
+        from: `${WELCOME_FROM_NAME} <${process.env.EMAIL_FROM}>`,
         to:   user.email,
+        // It invites replies; FROM is a no-reply sending domain.
+        reply_to: process.env.EMAIL_REPLY_TO || 'hello@sportscalapp.com',
         subject,
         html,
         text,

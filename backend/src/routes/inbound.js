@@ -442,6 +442,7 @@ router.post('/mail', async (req, res) => {
     );
     if (linkKid) lines.push(`\nLinked to ${linkKid.name}.`);
     else if (kids.length > 1) lines.push('\nOpen the app to assign these to a kid.');
+    else lines.push('\nAdd your kids in SportsCal, then assign this calendar to them so the events show whose they are.');
   }
   if (urlFailed.length) {
     if (lines.length) lines.push('');

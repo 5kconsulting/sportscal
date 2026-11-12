@@ -3,13 +3,28 @@
 // Run: SC_TOKEN=... node videos/welcome-bedtime.js
 import { record } from '../lib/recorder.js';
 
-// Same shape as renderDigest() in backend/src/workers/pushWorker.js (sent at
-// 8 PM local). Keep the event in step with what the demo dashboard shows for
-// tomorrow when re-recording.
-const title = 'Tomorrow on SportsCal';
-const body = '7:00 PM · Bobby - Practice @ Tigard HS Soccer Turf 11v11';
+// Builds the banner from the demo account's real events for tomorrow, the
+// same way renderDigest() in backend/src/workers/pushWorker.js does at 8 PM,
+// so the notification matches the dashboard behind it.
+const TZ = 'America/Los_Angeles'; // the demo account's timezone
 
-async function pushBanner(page, show) {
+async function tomorrowDigest(page) {
+  const digest = await page.evaluate(async (tz) => {
+    const day = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
+    const tomorrow = day(new Date(Date.now() + 86_400_000));
+    const r = await fetch('/api/events?days=3', { headers: { Authorization: `Bearer ${localStorage.getItem('sc_token')}` } });
+    const list = ((await r.json()).events || []).filter(e => day(new Date(e.starts_at)) === tomorrow);
+    if (!list.length) return null;
+    const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' });
+    const lines = list.slice(0, 3).map(e => `${e.all_day ? 'All day' : fmt.format(new Date(e.starts_at))} · ${e.display_title || e.title || 'Event'}`);
+    if (list.length > 3) lines.push(`+${list.length - 3} more`);
+    return { title: list.length === 1 ? 'Tomorrow on SportsCal' : `Tomorrow: ${list.length} events`, body: lines.join('\n') };
+  }, TZ);
+  if (!digest) throw new Error('The demo account has nothing tomorrow; the banner would be made up. Re-record another day.');
+  return digest;
+}
+
+async function pushBanner(page, show, { title, body } = {}) {
   await page.evaluate((show, title, body) => {
     let b = document.getElementById('__push');
     if (!b) {
@@ -30,9 +45,11 @@ async function pushBanner(page, show) {
             <span style="font-size:13px;font-weight:600;color:#0F172A">SportsCal</span>
             <span style="font-size:12px;color:#64748B">8:00 PM</span>
           </div>
-          <div style="font-size:14px;font-weight:600;color:#0F172A;margin-top:2px">${title}</div>
-          <div style="font-size:13px;color:#374151;margin-top:2px;line-height:1.35">${body}</div>
+          <div data-k="title" style="font-size:14px;font-weight:600;color:#0F172A;margin-top:2px"></div>
+          <div data-k="body" style="font-size:13px;color:#374151;margin-top:2px;line-height:1.35;white-space:pre-line"></div>
         </div>`;
+      b.querySelector('[data-k="title"]').textContent = title;
+      b.querySelector('[data-k="body"]').textContent = body;
       document.body.appendChild(b);
     }
     requestAnimationFrame(() => { b.style.transform = show ? 'translateY(0)' : 'translateY(-170%)'; });
@@ -44,8 +61,10 @@ await record({
   token: process.env.SC_TOKEN,
   size: '720x1280',
   script: async ({ page, sleep, scrollTo }) => {
+    const digest = await tomorrowDigest(page);
+    console.log(`[bedtime] banner: ${digest.title} / ${digest.body.replace(/\n/g, ' | ')}`);
     await sleep(900);
-    await pushBanner(page, true);
+    await pushBanner(page, true, digest);
     await sleep(3600);
     await pushBanner(page, false);
     await sleep(600);

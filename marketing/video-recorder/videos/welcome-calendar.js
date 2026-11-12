@@ -10,6 +10,14 @@ await record({
   token: process.env.SC_TOKEN,
   startUrl: 'https://www.sportscalapp.com/sources',
   size: '720x1280',
+  // The free-plan upgrade card shows a price; keep it out of the clip,
+  // which plays in the iOS app and in email.
+  beforeRecord: (page) => page.evaluate(() => {
+    const label = Array.from(document.querySelectorAll('div'))
+      .find(d => d.children.length === 0 && /Upgrade to Premium/.test(d.textContent || ''));
+    const card = label?.parentElement?.parentElement;
+    if (card) card.style.display = 'none';
+  }),
   script: async ({ page, sleep, tapText, ripple, scrollToText }) => {
     await sleep(900);
     await tapText('+ Add calendar', { wait: 700 });

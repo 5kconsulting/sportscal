@@ -70,6 +70,7 @@ export const JobType = {
   SEND_DIGEST:      'send-digest',
   PUSH_DIGEST:      'push-digest',
   SEND_HOUSEHOLD_INVITE: 'send-household-invite',
+  SEND_WELCOME_STEP: 'send-welcome-step',
 };
 
 export async function enqueueIcalFetch(source, opts = {}) {
@@ -109,6 +110,17 @@ export async function enqueueHouseholdInvite({ inviteToken, inviterUserId, invit
     JobType.SEND_HOUSEHOLD_INVITE,
     { inviteToken, inviterUserId, invitedEmail },
     { jobId: `household-invite-${inviteToken}`, ...opts },
+  );
+}
+
+// Today's welcome-series email (emails/welcomeSeries.js). jobId is per
+// user per local day, so the hourly scheduler can't queue two in a day.
+// The worker re-checks state and claims the step before sending.
+export async function enqueueWelcomeStep(userId, localDay, opts = {}) {
+  return emailQueue.add(
+    JobType.SEND_WELCOME_STEP,
+    { userId },
+    { jobId: `welcome-${userId}-${localDay}`, ...opts },
   );
 }
 

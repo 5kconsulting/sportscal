@@ -6,7 +6,7 @@
 const BASE_URL = process.env.FRONTEND_URL || 'https://sportscalapp.com';
 const DEFAULT_TZ = 'America/Los_Angeles';
 
-const styles = {
+export const styles = {
   body:    'margin:0;padding:0;background:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;',
   wrapper: 'background:#F8FAFC;padding:40px 16px;',
   card:    'background:#ffffff;border-radius:12px;max-width:600px;width:100%;margin:0 auto;overflow:hidden;',
@@ -25,7 +25,9 @@ const styles = {
   logoText:'font-size:16px;font-weight:600;color:#ffffff;letter-spacing:-0.02em;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;',
 };
 
-function layout(content, preheader = '') {
+// `footer` replaces the default preferences/unsubscribe line, e.g. with
+// the welcome series' one-click unsubscribe link.
+export function layout(content, preheader = '', { footer } = {}) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -61,10 +63,10 @@ function layout(content, preheader = '') {
         </td></tr>
         <!-- Footer -->
         <tr><td style="${styles.footer}">
-          <p style="${styles.muted}">
+          ${footer || `<p style="${styles.muted}">
             SportsCal · <a href="${BASE_URL}/settings" style="color:#64748B;">manage preferences</a>
             &nbsp;·&nbsp; <a href="${BASE_URL}/settings" style="color:#64748B;">unsubscribe</a>
-          </p>
+          </p>`}
         </td></tr>
       </table>
     </td></tr>
@@ -170,6 +172,11 @@ export function welcomeEmail(user) {
       </a>
     </p>
 
+    <p style="${styles.p}">
+      Over the next few mornings I'll send one short email a day, each about one
+      feature. Tomorrow: your SportsCal's own email address.
+    </p>
+
     <p style="${styles.muted}">
       Built by a parent of four who was tired of missing pickups.
       Questions or a feature you wish existed? Reply — I read every email.
@@ -195,6 +202,9 @@ export function welcomeEmail(user) {
       `  * Bedtime reminder           ${BASE_URL}/how/bedtime-reminder`,
       '',
       `See all 12 walkthroughs: ${BASE_URL}/how`,
+      '',
+      "Over the next few mornings I'll send one short email a day, each about one",
+      "feature. Tomorrow: your SportsCal's own email address.",
       '',
       "Questions? Reply to this email — I read every one.",
     ].join('\n'),
@@ -429,7 +439,7 @@ function buildDigestText(user, events) {
   return lines.join('\n');
 }
 
-function escapeHtml(str) {
+export function escapeHtml(str) {
   return (str || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

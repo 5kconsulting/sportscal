@@ -757,6 +757,17 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS push_enabled BOOLEAN NOT NULL DEFAULT
 -- turns push_enabled back on unless this flag is set.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS push_opted_out BOOLEAN NOT NULL DEFAULT false;
 
+-- Welcome series: one feature email each morning after signup
+-- (emails/welcomeSeries.js). welcome_series = keys already sent or
+-- skipped; NULL = not enrolled, which is every account created before
+-- the series shipped. createUser() enrolls new accounts with '{}'.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS welcome_series         TEXT[];
+ALTER TABLE users ADD COLUMN IF NOT EXISTS welcome_series_sent_at TIMESTAMPTZ;
+-- One-click "stop sending me tips" from the series' footer link. Covers
+-- onboarding/feature emails only; the weekly digest and replies to
+-- forwarded mail are separate.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS tips_opted_out BOOLEAN NOT NULL DEFAULT false;
+
 -- RevenueCat-driven iOS in-app purchase tracking. Stripe-driven web
 -- purchases continue to set stripe_subscription_id; an iOS user has
 -- apple_product_id instead. plan_expires_at is shared (set by whichever

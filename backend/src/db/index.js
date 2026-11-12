@@ -192,8 +192,8 @@ export async function createUser({
   referralSource = null,
 }) {
   return queryOne(
-    `INSERT INTO users (email, password_hash, name, referral_source)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO users (email, password_hash, name, referral_source, welcome_series)
+     VALUES ($1, $2, $3, $4, '{}')
      RETURNING *`,
     [email, passwordHash, name, referralSource]
   );
@@ -1292,6 +1292,98 @@ export async function removeHouseholdMember(actorUserId, targetUserId) {
 
     return { ok: true };
   });
+}
+
+// ============================================================
+// Welcome series (emails/welcomeSeries.js, scheduled hourly)
+// ============================================================
+
+// Enrolled accounts that haven't finished the series. The 30-day bound
+// keeps the scan small; the series itself takes about a week.
+export async function getWelcomeSeriesCandidates(stepCount) {
+  return query(
+    `SELECT id, timezone, created_at, welcome_series, welcome_series_sent_at
+       FROM users
+      WHERE welcome_series IS NOT NULL
+        AND cardinality(welcome_series) < $1
+        AND NOT tips_opted_out
+        AND created_at > NOW() - INTERVAL '30 days'`,
+    [stepCount],
+  );
+}
+
+// Everything a welcome-series email adapts to. Household-wide, so a
+// co-parent who joined an existing family sees that family's kids.
+export async function getWelcomeSeriesContext(userId) {
+  const memberIds = await getHouseholdMemberIds(userId);
+  const [plan, limits, ownSources, kids, sources, invite, push] = await Promise.all([
+    getEffectivePlanForUser(userId),
+    getUserPlanLimits(userId),
+    countUserSources(userId),
+    query(
+      `SELECT name FROM kids WHERE user_id = ANY($1::uuid[]) ORDER BY sort_order, name`,
+      [memberIds],
+    ),
+    queryOne(
+      `SELECT COUNT(*)::int AS n FROM sources
+        WHERE user_id = ANY($1::uuid[]) AND name <> '__manual__' AND app <> 'email_forward'`,
+      [memberIds],
+    ),
+    queryOne(
+      `SELECT 1 AS pending FROM household_invites hi
+         JOIN household_members hm ON hm.household_id = hi.household_id
+        WHERE hm.user_id = $1 AND hi.redeemed_at IS NULL AND hi.expires_at > NOW()
+        LIMIT 1`,
+      [userId],
+    ),
+    queryOne(
+      `SELECT EXISTS (SELECT 1 FROM push_tokens WHERE user_id = $1) AS has_app`,
+      [userId],
+    ),
+  ]);
+  return {
+    kidNames: kids.map(k => k.name),
+    calendarCount: sources?.n ?? 0,
+    householdSize: memberIds.length,
+    pendingInvite: !!invite,
+    hasApp: !!push?.has_app,
+    isPremium: plan === 'premium',
+    // Same check POST /api/sources and inbound mail enforce.
+    atCalendarLimit: !!limits && ownSources >= limits.max_sources,
+  };
+}
+
+// Record `keys` (the one being sent plus any skipped ahead of it) as done,
+// but only if the series is still exactly where `prevSeries` saw it.
+// Returns false when another worker advanced it first.
+export async function claimWelcomeSeriesStep(userId, keys, prevSeries) {
+  const row = await queryOne(
+    `UPDATE users
+        SET welcome_series = welcome_series || $2::text[],
+            welcome_series_sent_at = NOW()
+      WHERE id = $1
+        AND NOT tips_opted_out
+        AND welcome_series = $3::text[]
+      RETURNING id`,
+    [userId, keys, prevSeries],
+  );
+  return !!row;
+}
+
+// Undo a claim when the send itself failed, so a retry (or tomorrow's
+// run) picks the same step again.
+export async function releaseWelcomeSeriesStep(userId, prevSeries, prevSentAt) {
+  await query(
+    `UPDATE users SET welcome_series = $2::text[], welcome_series_sent_at = $3::timestamptz WHERE id = $1`,
+    [userId, prevSeries, prevSentAt],
+  );
+}
+
+export async function setTipsOptedOut(userId) {
+  return queryOne(
+    `UPDATE users SET tips_opted_out = true WHERE id = $1 RETURNING id`,
+    [userId],
+  );
 }
 
 export default pool;

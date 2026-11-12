@@ -1,6 +1,7 @@
 import cron from 'node-cron';
-import { getSourcesDueForRefresh, query, getUsersDueForPushDigest } from '../db/index.js';
-import { enqueueIcalFetch, enqueueScrapeFetch, enqueueDigest, enqueuePushDigest } from './queue.js';
+import { getSourcesDueForRefresh, query, getUsersDueForPushDigest, getWelcomeSeriesCandidates } from '../db/index.js';
+import { enqueueIcalFetch, enqueueScrapeFetch, enqueueDigest, enqueuePushDigest, enqueueWelcomeStep } from './queue.js';
+import { WELCOME_STEPS, isWelcomeDue, localDay } from '../emails/welcomeSeries.js';
 import { checkSourceHealth } from './healthWorker.js';
 import { refreshAllWeather } from '../lib/weather.js';
 
@@ -61,6 +62,21 @@ export function startScheduler() {
       for (const user of users) await enqueuePushDigest(user.id);
     } catch (err) {
       console.error('[scheduler] push digest error:', err.message);
+    }
+  });
+
+  // Welcome series — hourly at :05. isWelcomeDue() picks the users whose
+  // local time is 9 AM and who haven't had today's email yet; the worker
+  // decides which step to send (or skip) and claims it atomically.
+  cron.schedule('5 * * * *', async () => {
+    try {
+      const now = new Date();
+      const due = (await getWelcomeSeriesCandidates(WELCOME_STEPS.length)).filter(u => isWelcomeDue(u, now));
+      if (due.length === 0) return;
+      console.log(`[scheduler] ${due.length} user(s) due for a welcome-series email`);
+      for (const u of due) await enqueueWelcomeStep(u.id, localDay(now, u.timezone));
+    } catch (err) {
+      console.error('[scheduler] welcome series error:', err.message);
     }
   });
 

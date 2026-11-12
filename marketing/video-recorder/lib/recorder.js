@@ -1,6 +1,6 @@
 // Records a scripted Puppeteer session at a phone viewport and writes an mp4.
 //
-//   record({ name, token?, startUrl?, caption?, size?, script })
+//   record({ name, token?, startUrl?, caption?, size?, beforeRecord?, script })
 //
 // - Viewport is 360x640 CSS at DPR 3 (1080x1920 native, 9:16).
 // - `token` is injected as localStorage.sc_token before any app JS runs, so
@@ -8,6 +8,8 @@
 // - `caption: true` adds the dark narration bar used by the /how videos.
 //   Carousel clips leave it off; the slide's own title does the narrating.
 // - `size` is the output frame size, e.g. '720x1280' for bundled app assets.
+// - `beforeRecord(page)` runs after the page loads but before the first
+//   frame, e.g. to hide something that shouldn't appear in the clip.
 import puppeteer from 'puppeteer';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -127,7 +129,7 @@ function makeHelpers(page, withCaption) {
   return { page, sleep, caption, ripple, tapText, scrollTo, scrollToText, goto };
 }
 
-export async function record({ name, token, startUrl, caption = false, size = '1080x1920', script }) {
+export async function record({ name, token, startUrl, caption = false, size = '1080x1920', beforeRecord, script }) {
   mkdirSync(OUT_DIR, { recursive: true });
   const browser = await puppeteer.launch({
     headless: 'shell',
@@ -146,6 +148,7 @@ export async function record({ name, token, startUrl, caption = false, size = '1
     throw new Error(`Not signed in (landed on ${page.url()}) — the token is probably expired.`);
   }
   await injectOverlays(page, caption);
+  if (beforeRecord) await beforeRecord(page);
   await sleep(500);
 
   const webm = join(OUT_DIR, `${name}.webm`);
