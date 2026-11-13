@@ -82,7 +82,7 @@ function RideSlot({ label, row, fg }) {
 
 export function EventDetailModal({
   event, overrides = {}, onToggleKid, dropoff, pickup,
-  onManageRides, onEdit, onDelete, isManual, onClose,
+  onManageRides, onEdit, onDelete, onRemove, isManual, onClose,
 }) {
   const start = new Date(event.starts_at);
   const end = event.ends_at ? new Date(event.ends_at) : null;
@@ -208,11 +208,17 @@ export function EventDetailModal({
             </div>
           </div>
 
-          {/* Edit / Remove (manual events) */}
-          {(onEdit || onDelete) && (
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+          {/* Edit / Delete (manual events) or Remove (synced events) */}
+          {(onEdit || onDelete || onRemove) && (
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+              {onRemove && (
+                <span style={{ flex: '1 1 180px', fontSize: 12.5, color: 'var(--slate)', lineHeight: 1.45 }}>
+                  Synced from {event.source_name || 'a team calendar'}. Removing hides it here only.
+                </span>
+              )}
               {onEdit && <button onClick={onEdit} className="btn btn-ghost btn-sm">Edit</button>}
               {onDelete && <button onClick={onDelete} className="btn btn-danger btn-sm">Delete</button>}
+              {onRemove && <button onClick={onRemove} className="btn btn-ghost btn-sm" style={{ color: '#dc2626' }}>Remove from SportsCal</button>}
             </div>
           )}
         </div>

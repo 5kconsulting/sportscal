@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { api } from '../lib/api.js';
 import HouseholdSection from '../components/HouseholdSection.jsx';
+import HiddenEventsSection from '../components/HiddenEventsSection.jsx';
 
 const TIMEZONES = [
   'America/Los_Angeles','America/Denver','America/Chicago','America/New_York',
@@ -457,6 +458,9 @@ export default function Settings() {
 
       {/* Household */}
       <HouseholdSection currentUserId={user?.id} />
+
+      {/* Hidden events — only renders once something has been removed */}
+      <HiddenEventsSection />
 
       {/* Support */}
       <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border)' }}>

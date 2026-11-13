@@ -891,6 +891,11 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogist
   const startsAt = new Date(event.starts_at);
   const endsAt   = event.ends_at ? new Date(event.ends_at) : null;
   const isManual = event.source_app === 'custom' && event.source_name === '__manual__';
+  const { user } = useAuth();
+  // Synced events can't be deleted (the feed would bring them back), only
+  // hidden. The server only hides the signed-in user's own events, so a
+  // co-parent viewing the other parent's feed doesn't get a button that 404s.
+  const canRemove = !isManual && !!user?.id && event.user_id === user.id;
   const [deleting, setDeleting] = useState(false);
   const [showLogistics, setShowLogistics] = useState(false);
   const [showAttendance, setShowAttendance] = useState(false);
@@ -938,6 +943,25 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogist
       onDelete(event.id, event.recurrence_id, deleteSeries);
     } catch (err) {
       alert(err.message);
+      setDeleting(false);
+    }
+  }
+
+  async function handleRemove() {
+    const title = event.display_title || event.raw_title || 'this event';
+    if (!confirm(
+      `Remove "${title}" from SportsCal?\n\n` +
+      `It will disappear from your calendar and your calendar feeds. ` +
+      `The original stays in the team's calendar. ` +
+      `You can bring it back anytime from Settings → Hidden events.`
+    )) return;
+    setDeleting(true);
+    try {
+      await api.events.hide(event.id);
+      // Only this one row goes away; the rest of a recurring series stays.
+      onDelete(event.id, null, false);
+    } catch (err) {
+      alert(err.message || 'Could not remove that event. Try again.');
       setDeleting(false);
     }
   }
@@ -1120,6 +1144,7 @@ function EventCard({ event, onEdit, onDelete, eventOverrides = {}, initialLogist
           onManageRides={() => { setShowDetail(false); openLogistics(); }}
           onEdit={isManual ? () => { setShowDetail(false); onEdit(event); } : null}
           onDelete={isManual ? () => { setShowDetail(false); handleDelete(); } : null}
+          onRemove={canRemove ? () => { setShowDetail(false); handleRemove(); } : null}
           isManual={isManual}
           onClose={() => setShowDetail(false)}
         />

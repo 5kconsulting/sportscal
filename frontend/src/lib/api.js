@@ -99,6 +99,12 @@ export const api = {
     list:  (params = {}) => get(`/events?${new URLSearchParams(params)}`),
     today: ()            => get('/events/today'),
     get:   (id)          => get(`/events/${id}`),
+    // "Remove from SportsCal" for synced events: a soft hide keyed on the
+    // feed's UID, so it survives the next refresh. Restore via unhide()
+    // with the hidden_events row id from hidden().
+    hide:   (id)         => del(`/events/${id}`),
+    hidden: ()           => get('/events/hidden'),
+    unhide: (hiddenId)   => del(`/events/hidden/${hiddenId}`),
   },
   manual: {
     list:   ()              => get('/manual'),
