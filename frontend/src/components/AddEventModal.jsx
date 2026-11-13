@@ -76,6 +76,9 @@ export function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) 
         location: form.location || null,
         description: form.description || null,
         recurrence_until: form.recurrence_until || null,
+        // Lets the server lay repeats out on this family's wall clock
+        // (same weekday + time, across DST) instead of the server's UTC.
+        timezone: browserTimeZone(),
       };
       if (isEditing) {
         const { event } = await api.manual.update(existingEvent.id, payload);
@@ -272,4 +275,9 @@ export function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) 
       </div>
     </div>
   );
+}
+
+function browserTimeZone() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; }
+  catch { return null; }
 }

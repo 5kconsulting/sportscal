@@ -87,10 +87,46 @@ export default function EventDetail() {
   const [savingKidId, setSavingKidId] = useState(null);
   const [removing, setRemoving] = useState(false);
 
+  // Events the family typed in themselves (incl. repeats added here or on
+  // web) have no team calendar behind them, so they're deleted outright —
+  // with a "whole series" option for repeats — rather than soft-hidden.
+  const isManual = event?.source_name === '__manual__';
+
+  async function deleteManual(series) {
+    setRemoving(true);
+    try {
+      await api.del(`/api/manual/${id}${series ? '?series=true' : ''}`);
+      router.back();
+    } catch (err) {
+      Alert.alert('Could not delete', err.message || 'Try again.');
+      setRemoving(false);
+    }
+  }
+
   // "Remove from SportsCal" — soft-hides this event for this user. The
   // backend keys the hide on source_uid (not events.id) so it survives
   // the next iCal feed refresh, which UPSERTs and would otherwise un-hide.
   function confirmRemove() {
+    const title = event?.display_title || event?.raw_title || 'This event';
+    if (isManual) {
+      Alert.alert(
+        event?.recurrence_id ? 'Delete repeating event?' : 'Delete event?',
+        event?.recurrence_id
+          ? `"${title}" repeats. Delete just this one, or every event in the series?`
+          : `"${title}" will be deleted from SportsCal and your calendar feeds.`,
+        event?.recurrence_id
+          ? [
+              { text: 'This event only', style: 'destructive', onPress: () => deleteManual(false) },
+              { text: 'All events in the series', style: 'destructive', onPress: () => deleteManual(true) },
+              { text: 'Cancel', style: 'cancel' },
+            ]
+          : [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Delete', style: 'destructive', onPress: () => deleteManual(false) },
+            ],
+      );
+      return;
+    }
     Alert.alert(
       'Remove from SportsCal?',
       `"${event?.display_title || event?.raw_title || 'This event'}" will be hidden from your calendar. The original stays in the source app. Restore from Settings → Hidden events.`,
@@ -537,11 +573,15 @@ export default function EventDetail() {
 
         {/* Remove — subtle, last in scroll; server soft-hides keyed on source_uid. */}
         <TouchableOpacity style={s.removeBtn} onPress={confirmRemove} activeOpacity={0.7} disabled={removing}>
-          {removing ? <ActivityIndicator color={t.danger} /> : <Text style={s.removeBtnText}>Remove from SportsCal</Text>}
+          {removing ? <ActivityIndicator color={t.danger} />
+            : <Text style={s.removeBtnText}>{isManual ? 'Delete event' : 'Remove from SportsCal'}</Text>}
         </TouchableOpacity>
         <Text style={s.removeHelp}>
-          Hides this event from your calendar. The original stays in the source app.
-          Restore from Settings → Hidden events.
+          {isManual
+            ? (event.recurrence_id
+                ? 'Delete this one or the whole repeating series.'
+                : 'Deletes this event from SportsCal and your calendar feeds.')
+            : 'Hides this event from your calendar. The original stays in the source app. Restore from Settings → Hidden events.'}
         </Text>
       </ScrollView>
     </SafeAreaView>

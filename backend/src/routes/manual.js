@@ -4,6 +4,7 @@ import { query, queryOne, invalidateFeedCache, getKidsByUser } from '../db/index
 import { requireAuth } from '../middleware/auth.js';
 import { buildDisplayTitle } from '../normalizer.js';
 import crypto from 'crypto';
+import { generateOccurrences, isValidTimeZone } from '../lib/recurrence.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -63,6 +64,7 @@ router.post('/',
     body('recurrence').optional({ nullable: true }).isIn(['none', 'weekly', 'biweekly', 'monthly']),
     body('recurrence_days').optional().isArray(),
     body('recurrence_until').optional({ nullable: true }).isISO8601(),
+    body('timezone').optional({ nullable: true }).isString().isLength({ max: 64 }),
     body('is_private').optional().isBoolean(),
   ],
   async (req, res) => {
@@ -85,18 +87,20 @@ router.post('/',
     const startsAt    = new Date(req.body.starts_at);
     const endsAt      = req.body.ends_at ? new Date(req.body.ends_at) : null;
     const duration    = endsAt ? endsAt.getTime() - startsAt.getTime() : null;
-    const recurrence  = req.body.recurrence || 'none';
-    const recurrenceDays = req.body.recurrence_days || [];
-    const recurrenceUntil = req.body.recurrence_until ? new Date(req.body.recurrence_until) : null;
+    const allDay      = req.body.all_day || false;
+    const description = req.body.description || null;
 
-    // Generate all event instances
-    const instances = generateInstances({
-      rawTitle, location, displayTitle,
-      startsAt, endsAt, duration,
-      allDay: req.body.all_day || false,
-      description: req.body.description || null,
-      recurrence, recurrenceDays, recurrenceUntil,
-    });
+    // Repeats are laid out on the family's wall clock. Clients send the
+    // device's IANA zone; older clients fall back to the account's.
+    const timeZone = isValidTimeZone(req.body.timezone) ? req.body.timezone
+      : (req.user.timezone || 'America/Los_Angeles');
+    const instances = generateOccurrences({
+      startsAt, duration,
+      recurrence:      req.body.recurrence || 'none',
+      recurrenceDays:  req.body.recurrence_days || [],
+      recurrenceUntil: req.body.recurrence_until || null,
+      timeZone,
+    }).map(o => ({ ...o, rawTitle, location, displayTitle, allDay, description }));
 
     const recurrenceId = instances.length > 1 ? crypto.randomUUID() : null;
     const createdEvents = [];
@@ -203,69 +207,6 @@ router.delete('/:id',
   }
 );
 
-// ============================================================
-// Instance generator
-// ============================================================
-function generateInstances({ rawTitle, location, displayTitle, startsAt, endsAt, duration,
-  allDay, description, recurrence, recurrenceDays, recurrenceUntil }) {
-
-  if (recurrence === 'none' || !recurrenceUntil) {
-    return [{ rawTitle, location, displayTitle, startsAt, endsAt, allDay, description }];
-  }
-
-  const instances = [];
-  const until = new Date(recurrenceUntil);
-  until.setHours(23, 59, 59, 999);
-
-  // Max 365 instances as a safety cap
-  const MAX = 365;
-
-  if (recurrence === 'weekly' || recurrence === 'biweekly') {
-    const intervalDays = recurrence === 'biweekly' ? 14 : 7;
-    const days = recurrenceDays.length > 0 ? recurrenceDays.map(Number) : [startsAt.getDay()];
-
-    let current = new Date(startsAt);
-    current.setHours(0, 0, 0, 0);
-
-    // Start from the beginning of the week containing startsAt
-    const startDay = startsAt.getDay();
-
-    // Generate weekly occurrences
-    let weekStart = new Date(current);
-    weekStart.setDate(weekStart.getDate() - startDay); // go to Sunday of this week
-
-    while (instances.length < MAX) {
-      for (const day of days.sort((a, b) => a - b)) {
-        const occDate = new Date(weekStart);
-        occDate.setDate(occDate.getDate() + day);
-
-        // Must be >= original start date and <= until
-        if (occDate < startsAt) continue;
-        if (occDate > until) break;
-
-        const occStart = new Date(occDate);
-        occStart.setHours(startsAt.getHours(), startsAt.getMinutes(), startsAt.getSeconds());
-        const occEnd = duration ? new Date(occStart.getTime() + duration) : null;
-
-        instances.push({ rawTitle, location, displayTitle, startsAt: occStart, endsAt: occEnd, allDay, description });
-        if (instances.length >= MAX) break;
-      }
-
-      weekStart.setDate(weekStart.getDate() + intervalDays);
-      if (weekStart > until) break;
-    }
-
-  } else if (recurrence === 'monthly') {
-    let current = new Date(startsAt);
-    while (current <= until && instances.length < MAX) {
-      const occEnd = duration ? new Date(current.getTime() + duration) : null;
-      instances.push({ rawTitle, location, displayTitle, startsAt: new Date(current), endsAt: occEnd, allDay, description });
-      current.setMonth(current.getMonth() + 1);
-    }
-  }
-
-  return instances.length > 0 ? instances : [{ rawTitle, location, displayTitle, startsAt, endsAt, allDay, description }];
-}
 router.patch('/:id',
   [
     param('id').isUUID(),

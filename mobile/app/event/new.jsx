@@ -1,14 +1,13 @@
-// "+ Add event" modal — manual one-off event entry on mobile.
+// "+ Add event" modal — manual event entry on mobile.
 //
-// Mirrors web's AddEventModal but trimmed to the parent-task essentials
-// for tonight: title, date+time (or all-day), location, kid multi-select.
-// Description, end-time, and recurrence are intentionally web-only for now
-// — the use case is "just add Tuesday's pickup at 3pm," not "set up a
-// 12-week recurring weekly soccer practice with detailed notes." Parents
-// who need those advanced fields can edit on web.
+// Mirrors web's AddEventModal, trimmed to the parent-task essentials:
+// title, date+time (or all-day), repeats, location, kid multi-select.
+// Description stays web-only.
 //
-// POSTs to /api/manual which already handles all of the above; we just
-// don't expose every input. Backend is unchanged.
+// Repeats (weekly / every 2 weeks / monthly, until a date) are expanded
+// server-side by /api/manual into separate events sharing a
+// recurrence_id. We send the device's timezone so the server keeps each
+// one on the same local weekday + time, across DST.
 
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -51,13 +50,45 @@ export default function NewEvent() {
   const [kidIds, setKidIds]     = useState([]);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
+  // Repeats. Day chips start on the start date's weekday; "until" defaults
+  // to 12 weeks out — about one season.
+  const [repeat, setRepeat]           = useState('none');
+  const [repeatDays, setRepeatDays]   = useState([]);
+  const [until, setUntil]             = useState(() => addDays(startOfLocalDay(roundedNowPlus30()), 84));
+  const [showUntilPicker, setShowUntilPicker] = useState(false);
+  const weeklyish = repeat === 'weekly' || repeat === 'biweekly';
+  const occurrences = useMemo(
+    () => countOccurrences({ start: date, repeat, days: repeatDays, until }),
+    [date, repeat, repeatDays, until],
+  );
 
   // Keep end-time tracking start-time when the user adjusts start (so
   // duration stays the same). Direct edits to end go through setEndDate.
   function updateStart(newStart) {
     const delta = endDate.getTime() - date.getTime();
+    // Day chips follow the start date while they're still the default.
+    if (repeatDays.length === 1 && repeatDays[0] === date.getDay()) {
+      setRepeatDays([newStart.getDay()]);
+    }
+    if (startOfLocalDay(until) < startOfLocalDay(newStart)) {
+      setUntil(addDays(startOfLocalDay(newStart), 84));
+    }
     setDate(newStart);
     setEndDate(new Date(newStart.getTime() + delta));
+  }
+
+  function chooseRepeat(value) {
+    setRepeat(value);
+    if ((value === 'weekly' || value === 'biweekly') && repeatDays.length === 0) {
+      setRepeatDays([date.getDay()]);
+    }
+  }
+
+  function toggleRepeatDay(day) {
+    setRepeatDays(prev => {
+      if (prev.includes(day)) return prev.length === 1 ? prev : prev.filter(d => d !== day);
+      return [...prev, day].sort((a, b) => a - b);
+    });
   }
 
   useEffect(() => {
@@ -89,6 +120,10 @@ export default function NewEvent() {
       setError('End time must be after start time.');
       return;
     }
+    if (repeat !== 'none' && startOfLocalDay(until) < startOfLocalDay(date)) {
+      setError('The repeat-until date has to be on or after the start date.');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -103,7 +138,10 @@ export default function NewEvent() {
         location:  location.trim() || null,
         all_day:   allDay,
         kid_ids:   kidIds,
-        recurrence: 'none',
+        recurrence:       repeat,
+        recurrence_days:  weeklyish ? repeatDays : [],
+        recurrence_until: repeat === 'none' ? null : localYMD(until),
+        timezone:         deviceTimeZone(),
         is_private: !shareWithFamily,
       });
       router.back();
@@ -234,6 +272,77 @@ export default function NewEvent() {
             </>
           )}
 
+          <Text style={s.label}>Repeats</Text>
+          <View style={s.chipWrap}>
+            {REPEAT_OPTIONS.map(o => {
+              const on = repeat === o.value;
+              return (
+                <TouchableOpacity
+                  key={o.value}
+                  onPress={() => chooseRepeat(o.value)}
+                  style={[s.chip, on && s.chipOnAccent]}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                >
+                  <Text style={[s.chipText, on && s.chipTextOnAccent]}>{o.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {weeklyish && (
+            <>
+              <Text style={s.label}>On</Text>
+              <View style={s.dayRow}>
+                {DAY_LETTERS.map((letter, i) => {
+                  const on = repeatDays.includes(i);
+                  return (
+                    <TouchableOpacity
+                      key={i}
+                      onPress={() => toggleRepeatDay(i)}
+                      style={[s.dayChip, on && s.chipOnAccent]}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={DAY_NAMES[i]}
+                      accessibilityState={{ selected: on }}
+                    >
+                      <Text style={[s.dayChipText, on && s.chipTextOnAccent]}>{letter}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          {repeat !== 'none' && (
+            <>
+              <Text style={s.label}>Until</Text>
+              <TouchableOpacity
+                style={s.pickerBtn}
+                onPress={() => setShowUntilPicker(v => !v)}
+                activeOpacity={0.7}
+              >
+                <Text style={s.pickerBtnText}>{formatDate(until)}</Text>
+              </TouchableOpacity>
+              {showUntilPicker && (
+                <DateTimePicker
+                  value={until}
+                  mode="date"
+                  minimumDate={startOfLocalDay(date)}
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                  onChange={(_, picked) => {
+                    if (picked) setUntil(startOfLocalDay(picked));
+                    if (Platform.OS !== 'ios') setShowUntilPicker(false);
+                  }}
+                />
+              )}
+              <Text style={s.repeatSummary}>
+                {repeatSummary({ start: date, repeat, days: repeatDays, until, count: occurrences })}
+              </Text>
+            </>
+          )}
+
           <Text style={s.label}>Location (optional)</Text>
           <TextInput
             style={s.input}
@@ -315,7 +424,9 @@ export default function NewEvent() {
           >
             {saving
               ? <ActivityIndicator color={t.ctaText} />
-              : <Text style={s.saveText}>Save event</Text>}
+              : <Text style={s.saveText}>
+                  {occurrences > 1 ? `Save ${occurrences} events` : 'Save event'}
+                </Text>}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -324,6 +435,94 @@ export default function NewEvent() {
 }
 
 // ----- helpers --------------------------------------------------------------
+
+const REPEAT_OPTIONS = [
+  { value: 'none',     label: 'Never' },
+  { value: 'weekly',   label: 'Weekly' },
+  { value: 'biweekly', label: 'Every 2 weeks' },
+  { value: 'monthly',  label: 'Monthly' },
+];
+const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const DAY_NAMES   = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_SHORT   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MAX_EVENTS  = 365; // server cap per add (routes/manual.js → lib/recurrence.js)
+
+// Mirrors the server's expansion (lib/recurrence.js) on the device's own
+// clock, so the summary and "Save N events" match what gets created.
+function countOccurrences({ start, repeat, days, until }) {
+  if (repeat === 'none') return 1;
+  const first = startOfLocalDay(start);
+  const last  = startOfLocalDay(until);
+  if (last < first) return 1;
+  let n = 0;
+  if (repeat === 'monthly') {
+    for (let k = 0; n < MAX_EVENTS; k++) {
+      const d = new Date(first.getFullYear(), first.getMonth() + k, first.getDate());
+      if (d > last) break;
+      if (d.getDate() === first.getDate()) n++;   // the 31st skips short months
+    }
+  } else {
+    const step = repeat === 'biweekly' ? 14 : 7;
+    const picked = days.length ? [...days].sort((a, b) => a - b) : [first.getDay()];
+    for (let w = -first.getDay(); n < MAX_EVENTS; w += step) {
+      const weekStart = new Date(first.getFullYear(), first.getMonth(), first.getDate() + w);
+      if (weekStart > last) break;
+      for (const d of picked) {
+        const day = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + d);
+        if (day < first) continue;
+        if (day > last || n >= MAX_EVENTS) break;
+        n++;
+      }
+    }
+  }
+  return Math.max(n, 1);
+}
+
+function repeatSummary({ start, repeat, days, until, count }) {
+  const untilText = until.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  let what;
+  if (repeat === 'monthly') {
+    const dom = start.getDate();
+    what = `Monthly on the ${ordinal(dom)}`;
+    if (dom > 28) what += ` (skips months without a ${ordinal(dom)})`;
+  } else {
+    const names = (days.length ? days : [start.getDay()]).map(d => DAY_SHORT[d]);
+    const list = names.length === 7 ? 'day' : joinList(names);
+    what = repeat === 'biweekly' ? `Every other ${list}` : `Every ${list}`;
+  }
+  const n = count >= MAX_EVENTS ? `${MAX_EVENTS} events (the most we can add at once)`
+    : `${count} event${count === 1 ? '' : 's'}`;
+  return `${what} until ${untilText} · ${n}`;
+}
+
+function joinList(items) {
+  if (items.length <= 1) return items.join('');
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+}
+
+function ordinal(n) {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return `${n}th`;
+  return n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
+}
+
+function addDays(d, days) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + days);
+  return x;
+}
+
+// "YYYY-MM-DD" in device-local terms (toISOString would shift to UTC).
+function localYMD(d) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function deviceTimeZone() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; }
+  catch { return null; }
+}
 
 function roundedNowPlus30() {
   const d = new Date();
@@ -423,6 +622,17 @@ function makeStyles(t) {
   },
   chipText: { fontSize: 13, color: t.navy, fontWeight: '500' },
   chipTextOn: { color: '#ffffff' },
+  chipOnAccent: { backgroundColor: t.accent, borderColor: t.accent },
+  chipTextOnAccent: { color: t.onAccent, fontWeight: '600' },
+
+  dayRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  dayChip: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: t.surface, borderWidth: 1, borderColor: t.border,
+  },
+  dayChipText: { fontSize: 14, color: t.navy, fontWeight: '500' },
+  repeatSummary: { fontSize: 13, color: t.slate, marginTop: 8, lineHeight: 18 },
 
   error: {
     color: t.danger, fontSize: 13, padding: 10,
