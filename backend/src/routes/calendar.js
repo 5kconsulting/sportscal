@@ -13,6 +13,11 @@ import { applyAttendance } from '../normalizer.js';
 
 const router = Router();
 
+// How far ahead subscribed calendars see. Was 90 days, which cut off the
+// back half of a winter season; parents expect the whole season in
+// Apple/Google Calendar the moment they subscribe.
+const FEED_DAYS = 365;
+
 // Rate limit the feed endpoint — calendar apps poll frequently
 const feedLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 min
@@ -63,7 +68,7 @@ router.get('/:token.ics', feedLimiter, async (req, res) => {
 
   // Build fresh .ics — apply attendance overrides. excludePrivate=true
   // keeps user-marked private events out of the family-shared feed.
-  const events = await getUpcomingEvents(user.id, { days: 90, excludePrivate: true });
+  const events = await getUpcomingEvents(user.id, { days: FEED_DAYS, excludePrivate: true });
 
   // getUpcomingEvents returns bare event rows, so resolve each event's
   // kids separately — the override logic below needs them, and so does
@@ -136,7 +141,7 @@ router.get('/kid/:token.ics', feedLimiter, async (req, res) => {
   // <kid>'s calendar" is that it stays out of the family-wide feed but
   // still reaches whoever subscribes to that kid's individual feed
   // (the kid's other parent, the kid's school, etc.).
-  const events = await getUpcomingEvents(kid.user_id, { days: 90, kidId: kid.id });
+  const events = await getUpcomingEvents(kid.user_id, { days: FEED_DAYS, kidId: kid.id });
 
   // Apply this-kid attendance overrides only — if the kid is
   // marked not-attending for an event, drop it entirely from

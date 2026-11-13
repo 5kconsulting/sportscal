@@ -256,7 +256,7 @@ export default function Dashboard() {
       {sources.filter(s => s.name !== '__manual__').length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 20px' }}>
           <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--slate)' }}>Show</span>
-          {[7, 14, 30].map(d => (
+          {[7, 14, 30, 365].map(d => (
             <button key={d} onClick={() => setDays(d)}
               className="btn btn-sm"
               style={{
@@ -264,7 +264,7 @@ export default function Dashboard() {
                 color:      days === d ? 'var(--white)' : 'var(--slate)',
                 border:     `1px solid ${days === d ? 'var(--navy)' : 'var(--border)'}`,
               }}>
-              {d} days
+              {d === 365 ? 'All upcoming' : d + ' days'}
             </button>
           ))}
         </div>

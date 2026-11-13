@@ -35,8 +35,11 @@ export default function Calendar() {
       // calendar list once they're set up. All five are small and
       // already-indexed by user_id — cheap enough to fetch on every
       // focus-effect re-run without optimizing.
+      // Events: a full year ahead (the API max). This used to be 30 days,
+      // so a parent who loaded a whole season saw it stop a month out.
+      // FlatList virtualizes, so a season's worth of rows is fine.
       const [eventsRes, overridesRes, kidsRes, sourcesRes, contactsRes] = await Promise.all([
-        api.get('/api/events?days=30'),
+        api.get('/api/events?days=365'),
         api.get('/api/overrides'),
         api.get('/api/kids'),
         api.get('/api/sources'),
@@ -201,7 +204,7 @@ export default function Calendar() {
           <Text style={s.hi}>Hi {user?.name?.split(' ')[0] || 'there'}</Text>
           <Text style={s.sub}>
             {events.length === 0
-              ? 'Nothing upcoming in the next 30 days.'
+              ? 'Nothing upcoming yet.'
               : events.length + ' upcoming event' + (events.length === 1 ? '' : 's')}
           </Text>
         </View>
