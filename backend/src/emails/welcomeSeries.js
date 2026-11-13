@@ -29,7 +29,7 @@
 // sent or skipped. Footer + List-Unsubscribe headers turn off tips only.
 // ============================================================
 
-import { layout, styles, escapeHtml } from './templates.js';
+import { layout, styles, escapeHtml, mailingAddress } from './templates.js';
 
 const BASE_URL = process.env.FRONTEND_URL || 'https://sportscalapp.com';
 const APP_STORE_URL = 'https://apps.apple.com/us/app/id6765724702';
@@ -410,6 +410,7 @@ export function renderWelcomeEmail(key, { user, ctx, inboundAddress, unsubscribe
   return {
     subject,
     html: layout(body, preheader, { footer: footer(unsubscribeUrl) }),
-    text: `${text}\n\n--\nStop these tips: ${unsubscribeUrl}`,
+    text: `${text}\n\n--\nStop these tips: ${unsubscribeUrl}` +
+      (mailingAddress() ? `\n${mailingAddress()}` : ''),
   };
 }

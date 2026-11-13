@@ -25,6 +25,21 @@ export const styles = {
   logoText:'font-size:16px;font-weight:600;color:#ffffff;letter-spacing:-0.02em;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;',
 };
 
+// CAN-SPAM wants a physical mailing address (a P.O. box counts) in
+// marketing email. Set MAILING_ADDRESS on Railway, e.g.
+// "5K Consulting LLP, PO Box 123, Portland, OR 97201". Every layout()
+// email shows it under the footer; the line is left out while unset.
+export function mailingAddress() {
+  return (process.env.MAILING_ADDRESS || '').replace(/\s*\n\s*/g, ', ').trim();
+}
+
+function addressLine() {
+  const addr = mailingAddress();
+  return addr
+    ? `<p style="${styles.muted}margin-top:8px;">${escapeHtml(addr)}</p>`
+    : '';
+}
+
 // `footer` replaces the default preferences/unsubscribe line, e.g. with
 // the welcome series' one-click unsubscribe link.
 export function layout(content, preheader = '', { footer } = {}) {
@@ -67,6 +82,7 @@ export function layout(content, preheader = '', { footer } = {}) {
             SportsCal · <a href="${BASE_URL}/settings" style="color:#64748B;">manage preferences</a>
             &nbsp;·&nbsp; <a href="${BASE_URL}/settings" style="color:#64748B;">unsubscribe</a>
           </p>`}
+          ${addressLine()}
         </td></tr>
       </table>
     </td></tr>
