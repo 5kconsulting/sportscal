@@ -90,6 +90,16 @@ router.post('/',
     const allDay      = req.body.all_day || false;
     const description = req.body.description || null;
 
+    // A repeat whose End is days after its start is almost always the
+    // season's last day typed into End instead of recurrence_until; it
+    // made every occurrence span months. Up to 24h still allows overnight.
+    if ((req.body.recurrence || 'none') !== 'none' && duration != null && duration > 24 * 3_600_000) {
+      return res.status(422).json({
+        error: 'For a repeating event, End is when each one finishes, usually the same day it starts. '
+             + 'Put the last date in "Repeat until" instead.',
+      });
+    }
+
     // Repeats are laid out on the family's wall clock. Clients send the
     // device's IANA zone; older clients fall back to the account's.
     const timeZone = isValidTimeZone(req.body.timezone) ? req.body.timezone

@@ -2,7 +2,7 @@
 // Extracted from pages/Dashboard.jsx so it can be reused from pages/Sources.jsx.
 // Behaviour is unchanged from the inline version; only the location moved.
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api.js';
 
 export function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) {
@@ -44,6 +44,12 @@ export function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) 
   }
   const [saving, setSaving]  = useState(false);
   const [error, setError]    = useState('');
+  // The error banner sits at the top of a scrolling sheet; the Submit
+  // button is at the bottom. Bring the message into view when it changes.
+  const errorRef = useRef(null);
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [error]);
 
   function setField(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
@@ -59,6 +65,30 @@ export function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+
+    // End sanity checks. The common slip: typing the season's last day
+    // into End (it's right above Repeats) instead of "Repeat until" — that
+    // made every practice in a series last months.
+    const start = form.starts_at ? new Date(form.starts_at) : null;
+    const end   = form.ends_at ? new Date(form.ends_at) : null;
+    if (start && end) {
+      const hours = (end - start) / 3_600_000;
+      if (hours <= 0) {
+        setError('End has to be after the start.');
+        return;
+      }
+      if (!isEditing && form.recurrence !== 'none' && hours > 24) {
+        setError('For a repeating event, End is when each one finishes, usually the same day it starts. '
+          + 'Put the last date in "Repeat until" instead.');
+        return;
+      }
+      if (hours > 24 && !window.confirm(
+        `This event runs from ${fmtWhen(start)} to ${fmtWhen(end)}, about ${Math.round(hours / 24)} `
+        + `day${Math.round(hours / 24) === 1 ? '' : 's'}. Is that right?\n\n`
+        + 'If it happens every week, set End to when it finishes that day and use Repeats instead.'
+      )) return;
+    }
+
     setSaving(true);
     try {
       // Convert datetime-local values to proper ISO strings with local timezone offset
@@ -124,7 +154,7 @@ export function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) 
           <button onClick={onCancel} style={{ fontSize: 20, color: 'var(--slate)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}>×</button>
         </div>
 
-        {error && <div className="error-msg" style={{ marginBottom: 16 }}>{error}</div>}
+        {error && <div ref={errorRef} className="error-msg" style={{ marginBottom: 16 }}>{error}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="field">
@@ -275,6 +305,10 @@ export function AddEventModal({ kids, event: existingEvent, onSave, onCancel }) 
       </div>
     </div>
   );
+}
+
+function fmtWhen(d) {
+  return d.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
 function browserTimeZone() {
