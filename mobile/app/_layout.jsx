@@ -11,7 +11,7 @@ import { subscribeToNotificationTaps } from '../lib/push';
 import { configureIap, logOutIap } from '../lib/iap';
 
 function AuthGate() {
-  const { user, loading } = useAuth();
+  const { user, loading, hasAccountOnDevice } = useAuth();
   const segments = useSegments();
   const router   = useRouter();
   // iOS Share Extension hand-off. When a parent shares a calendar URL or
@@ -67,11 +67,13 @@ function AuthGate() {
     const onAuthScreen = first === 'login' || first === 'signup';
 
     if (!user && !onAuthScreen) {
-      router.replace('/login');
+      // Someone who just downloaded the app needs "Create your account",
+      // not a sign-in form for an account they don't have yet.
+      router.replace(hasAccountOnDevice ? '/login' : '/signup');
     } else if (user && (onAuthScreen || !first)) {
       router.replace('/(tabs)');
     }
-  }, [user, loading, segments]);
+  }, [user, loading, segments, hasAccountOnDevice]);
 
   // Whenever a share-extension payload arrives (cold launch or warm
   // foreground), bounce the signed-in user into /setup. setup.jsx reads

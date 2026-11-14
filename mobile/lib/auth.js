@@ -3,18 +3,40 @@ import * as SecureStore from 'expo-secure-store';
 import { api } from './api';
 import { registerForPush, unregisterPushOnLogout } from './push';
 
+import { loadLatestBeforeFirstRun } from './firstRunUpdate';
+
 const TOKEN_KEY = 'sc_token';
+// Set the first time anyone signs in or signs up on this device. Decides
+// which screen a signed-out launch opens on: Create account for a brand-new
+// install, Sign in for someone who has been here before.
+const HAS_ACCOUNT_KEY = 'sc_has_account';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hasAccountOnDevice, setHasAccountOnDevice] = useState(false);
+
+  function rememberAccount() {
+    setHasAccountOnDevice(true);
+    SecureStore.setItemAsync(HAS_ACCOUNT_KEY, '1').catch(() => {});
+  }
 
   useEffect(() => {
     (async () => {
       try {
         const token = await SecureStore.getItemAsync(TOKEN_KEY);
-        if (!token) { setLoading(false); return; }
+        if (!token) {
+          const known = await SecureStore.getItemAsync(HAS_ACCOUNT_KEY).catch(() => null);
+          setHasAccountOnDevice(known === '1');
+          // Brand-new install: grab the latest over-the-air update before
+          // the first screen, so the first session isn't stuck on whatever
+          // shipped in the App Store build. May restart the app.
+          if (known !== '1') await loadLatestBeforeFirstRun();
+          setLoading(false);
+          return;
+        }
+        rememberAccount();
         api.setToken(token);
         const { user } = await api.get('/api/auth/me');
         setUser(user);
@@ -35,6 +57,7 @@ export function AuthProvider({ children }) {
     const { token, user } = await api.post('/api/auth/login', { email, password });
     await SecureStore.setItemAsync(TOKEN_KEY, token);
     api.setToken(token);
+    rememberAccount();
     setUser(user);
     registerForPush();
   }
@@ -46,6 +69,7 @@ export function AuthProvider({ children }) {
     });
     await SecureStore.setItemAsync(TOKEN_KEY, token);
     api.setToken(token);
+    rememberAccount();
     setUser(user);
     // Permission prompt fires here on first signup — Apple's HIG is fine
     // with this since the user just intentionally created an account.
@@ -76,7 +100,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, hasAccountOnDevice, login, signup, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
