@@ -162,7 +162,7 @@ function photoFallback(platform) {
  * `priorUserTexts` are the user's earlier messages in this chat (oldest first).
  */
 export async function linkFastPath({ text, priorUserTexts = [], kids = [], platform = 'web',
-  inboundAddress = null, fetchImpl }) {
+  inboundAddress = null, fetchImpl, limitMessage = null }) {
   const url = extractSoleUrl(text);
   // Braces would break the clients' ACTION:{...} parser; let the model handle those.
   if (!url || /[{}]/.test(url)) return null;
@@ -219,6 +219,20 @@ export async function linkFastPath({ text, priorUserTexts = [], kids = [], platf
           ? `Here's where ${label} keeps the calendar link:\n\n${numbered(steps)}\n\n`
           : 'Look for "Subscribe", "Sync calendar" or "Export calendar" in your team app, and copy the link it gives you.\n\n')
         + photoFallback(platform),
+    };
+  }
+
+  // Already at the plan's calendar limit: say so now, rather than "adding
+  // it" and then failing. `limitMessage` resolves to the sentence to show,
+  // or null when there's room.
+  const atLimit = limitMessage ? await limitMessage() : null;
+  if (atLimit) {
+    return {
+      kind: 'at_limit',
+      content: (check.ok
+        ? `That link works${check.eventCount > 0 ? ` (${check.eventCount} event${check.eventCount === 1 ? '' : 's'})` : ''}, but I can't add it yet. `
+        : 'I can\'t add that yet. ')
+        + atLimit,
     };
   }
 

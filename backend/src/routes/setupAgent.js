@@ -16,7 +16,7 @@ import rateLimit from 'express-rate-limit';
 import Anthropic from '@anthropic-ai/sdk';
 
 import { requireAuth } from '../middleware/auth.js';
-import { getKidsByUser, query, ensureInboundToken } from '../db/index.js';
+import { getKidsByUser, query, ensureInboundToken, getUserPlanLimits, countUserSources } from '../db/index.js';
 import { buildSystemPrompt, APP_INSTRUCTIONS } from '../lib/setupAgentPrompt.js';
 import { linkFastPath } from '../lib/calendarLink.js';
 import { recordOnboardingEvent } from './track.js';
@@ -114,6 +114,16 @@ router.post('/message', setupAgentLimiter, async (req, res) => {
         kids,
         platform: platform === 'mobile' ? 'mobile' : 'web',
         inboundAddress,
+        // Same neutral wording as POST /api/sources (no purchase language in the iOS app).
+        limitMessage: async () => {
+          const [limits, count] = await Promise.all([
+            getUserPlanLimits(req.user.id),
+            countUserSources(req.user.id),
+          ]);
+          return count >= limits.max_sources
+            ? `You've reached the limit of ${limits.max_sources} calendars. Remove one to add a new one.`
+            : null;
+        },
       }).catch((err) => {
         console.error('[setup-agent] link fast path failed (falling back to model):', err.message);
         return null;

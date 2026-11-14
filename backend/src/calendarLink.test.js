@@ -107,6 +107,14 @@ await test('a link we could not check in time is added anyway', async () => {
   const r = await linkFastPath({ text: 'https://feeds.example.com/timeout.ics', kids: [], fetchImpl: respond(502, '') });
   assert.strictEqual(r.kind, 'added');
 });
+await test('at the calendar limit: says so up front and adds nothing', async () => {
+  const r = await linkFastPath({ text: 'https://feeds.example.com/full.ics', kids: [], fetchImpl: respond(200, ICS(15)),
+    limitMessage: async () => "You've reached the limit of 2 calendars. Remove one to add a new one." });
+  assert.strictEqual(r.kind, 'at_limit');
+  assert.ok(!r.content.includes('ACTION:'));
+  assert.ok(r.content.includes('That link works (15 events)'));
+  assert.ok(r.content.includes('limit of 2 calendars'));
+});
 await test('GameChanger sharing link: says what it is and gives the right steps', async () => {
   const r = await linkFastPath({ text: GC_SHARE, kids: [], platform: 'mobile', fetchImpl: async () => { throw new Error('should not fetch'); } });
   assert.strictEqual(r.kind, 'gamechanger_share');

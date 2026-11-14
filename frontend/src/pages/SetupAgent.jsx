@@ -1001,7 +1001,7 @@ export default function SetupAgent({ onSourceAdded }) {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message, paste a URL, or attach a PDF…"
+          placeholder="Type a message, paste a link, or attach a PDF…"
           rows={1}
           style={{
             flex: 1, border: 'none', outline: 'none', resize: 'none',
