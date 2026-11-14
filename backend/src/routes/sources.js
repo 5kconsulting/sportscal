@@ -19,11 +19,15 @@ import { requireAuth } from '../middleware/auth.js';
 import { enqueueIcalFetch, enqueueScrapeFetch } from '../workers/queue.js';
 import { buildDisplayTitle } from '../normalizer.js';
 import { intakeFromUrl } from '../lib/sourceIntake.js';
+import { checkCalendarLink, describeBadLink } from '../lib/calendarLink.js';
 
 const router = Router();
 router.use(requireAuth);
 
-const VALID_APPS = ['teamsnap', 'teamsnapone', 'gamechanger', 'playmetrics', 'teamsideline', 'byga', 'sportsengine', 'teamreach', 'leagueapps', 'demosphere', '360player', 'sportsyou', 'band', 'rankone', 'google_classroom', 'custom'];
+// Keep in step with the sources_app_check constraint (db/schema.sql) and
+// APP_INSTRUCTIONS. 'parentsquare' was missing here, so the ParentSquare
+// button on the app's home screen could never finish.
+const VALID_APPS = ['teamsnap', 'teamsnapone', 'gamechanger', 'playmetrics', 'parentsquare', 'teamsideline', 'byga', 'sportsengine', 'teamreach', 'leagueapps', 'demosphere', '360player', 'sportsyou', 'band', 'rankone', 'google_classroom', 'custom'];
 const VALID_FETCH_TYPES = ['ical', 'scrape', 'ical_with_scrape_fallback'];
 
 // ============================================================
@@ -153,6 +157,21 @@ router.post('/',
     }
     if ((fetch_type === 'scrape' || fetch_type === 'ical_with_scrape_fallback') && !scrape_url) {
       return res.status(422).json({ error: 'scrape_url required for this fetch type' });
+    }
+
+    // Open the link once before saving it. A team web page or a PDF saved
+    // as a "calendar" fails every sync forever and uses up one of the
+    // family's calendar slots. Only a definite "this isn't a calendar"
+    // blocks; a slow or briefly-down server is let through and the first
+    // sync sorts it out.
+    if (ical_url && (fetch_type === 'ical' || fetch_type === 'ical_with_scrape_fallback')) {
+      const check = await checkCalendarLink(ical_url);
+      if (check.ok === false) {
+        return res.status(422).json({
+          error: `${describeBadLink(check)} Copy the calendar link from your team app (look for "Subscribe" or "Sync calendar") and try again.`,
+          reason: check.reason,
+        });
+      }
     }
 
     // Enforce plan limits

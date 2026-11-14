@@ -351,7 +351,7 @@ function OnboardingBanner({ hasKids, hasSources, onDismiss }) {
       // they want a guided way to add the first thing. The chat helper
       // also surfaces email-forwarding as a sibling option for parents
       // who already have a schedule email open in their inbox.
-      desc: 'Walk through it with our setup helper — paste an iCal link, scan a printed schedule, or forward an email.',
+      desc: 'Walk through it with our setup helper — paste a calendar link, scan a printed schedule, or forward an email.',
       done: hasSources,
       action: <Link to="/setup" className="btn btn-sm btn-primary" style={{ textDecoration: 'none' }}>Add calendar →</Link>,
     },

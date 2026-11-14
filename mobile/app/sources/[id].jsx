@@ -103,7 +103,7 @@ export default function EditSource() {
       const normalized = trimmedUrl.replace(/^webcal:\/\//i, 'https://');
       try { new URL(normalized); }
       catch {
-        setError('That doesn\'t look like a valid URL. iCal links start with https:// or webcal://');
+        setError('That doesn\'t look like a link. Calendar links start with https:// or webcal://');
         return;
       }
     }
@@ -271,11 +271,11 @@ export default function EditSource() {
             </>
           ) : null}
 
-          {/* iCal URL — editable for ical-based sources, read-only for
+          {/* Calendar link — editable for ical-based sources, read-only for
               scrape-only sources (no ical_url to begin with). */}
           {source?.ical_url !== null && source?.ical_url !== undefined ? (
             <>
-              <Text style={s.label}>iCal URL</Text>
+              <Text style={s.label}>Calendar link</Text>
               <TextInput
                 style={[s.input, s.urlInput]}
                 value={icalUrl}
@@ -288,8 +288,8 @@ export default function EditSource() {
                 multiline
               />
               <Text style={s.help}>
-                The iCal link from your sports app. If a typo broke this,
-                fix it here and we'll re-fetch the calendar.
+                The calendar link you copied from your team app. If a typo
+                broke it, fix it here and we'll read the calendar again.
               </Text>
             </>
           ) : source?.scrape_url ? (

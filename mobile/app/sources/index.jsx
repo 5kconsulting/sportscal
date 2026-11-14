@@ -40,7 +40,7 @@ const APP_LABELS = {
   band:             'BAND',
   rankone:          'RankOne',
   google_classroom: 'Google Classroom',
-  custom:           'Custom iCal',
+  custom:           'Other calendar',
 };
 
 export default function ManageSources() {
@@ -173,8 +173,8 @@ export default function ManageSources() {
               <Ionicons name="calendar-outline" size={40} color={t.slate} style={s.emptyIcon} />
               <Text style={s.emptyTitle}>No calendars yet</Text>
               <Text style={s.emptyText}>
-                Connect TeamSnap, GameChanger, or any iCal feed and we'll pull
-                games and practices into one calendar automatically.
+                Add your kids' teams from TeamSnap, GameChanger or any other
+                team app, and their games and practices show up here.
               </Text>
               <TouchableOpacity
                 style={s.emptyCta}

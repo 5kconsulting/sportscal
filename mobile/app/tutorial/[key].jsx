@@ -22,6 +22,7 @@ import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { markTutorialSeen, ONCE_TUTORIALS } from '../../lib/tutorialSeen';
+import { track } from '../../lib/analytics';
 
 // expo-video adds a native module that's only present in dev clients
 // built AFTER 2026-05-31. Older dev clients (and Expo Go) crash on
@@ -76,6 +77,8 @@ export default function TutorialPlayer() {
   useEffect(() => {
     if (!canPlay) {
       router.replace(next);
+    } else {
+      track('app_video_shown', { app: key });
     }
   }, [canPlay, next]);
 
@@ -98,6 +101,7 @@ export default function TutorialPlayer() {
   useEffect(() => {
     if (!player) return;
     const sub = player.addListener('playToEnd', () => {
+      track('app_video_finished', { app: key });
       router.replace(next);
     });
     return () => sub?.remove?.();
@@ -125,7 +129,7 @@ export default function TutorialPlayer() {
           collide with the iPhone notch/Dynamic Island on most devices. */}
       <SafeAreaView style={styles.skipWrap} edges={['bottom']} pointerEvents="box-none">
         <Pressable
-          onPress={() => router.replace(next)}
+          onPress={() => { track('app_video_skipped', { app: key }); router.replace(next); }}
           style={({ pressed }) => [styles.skip, pressed && { opacity: 0.7 }]}
           hitSlop={16}
           accessibilityLabel="Skip tutorial"

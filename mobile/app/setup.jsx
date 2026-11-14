@@ -1,5 +1,7 @@
 // Mobile SetupAgent — chat-style helper that walks parents through
-// pasting their iCal URLs from sports apps. Mirrors the spirit of
+// pasting the calendar link from their team app. A pasted link is checked
+// and added straight away (server: lib/calendarLink.js); "whose schedule
+// is this?" comes after, as tappable names. Mirrors the spirit of
 // frontend/src/pages/SetupAgent.jsx but native-feeling on iOS:
 //   - keyboard-avoiding chat input pinned to the bottom
 //   - assistant / user bubbles
@@ -23,7 +25,11 @@ import { useShareIntentContext } from 'expo-share-intent';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../lib/api';
+import { track } from '../lib/analytics';
 import { useTheme } from '../lib/theme';
+
+// Colors handed to kids created from inside the chat, in order.
+const KID_PALETTE = ['#ef4444','#3b82f6','#22c55e','#8b5cf6','#f97316','#06b6d4','#ec4899','#eab308'];
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl
   || 'https://sportscal-production.up.railway.app';
@@ -86,6 +92,16 @@ export default function SetupAgentScreen() {
   const activeIngestionRef = useRef(null);
   const [busyIngestion, setBusyIngestion] = useState(false);
 
+  // The calendar most recently added in this chat. "Whose schedule is
+  // this?" — answered by tapping a name or typing one — applies to it.
+  const lastSourceRef = useRef(null);
+  const addedCountRef = useRef(0);
+  // Kids, kept in a ref as well: several async steps (photo upload, the
+  // model's follow-up action) create a kid and then need the fresh list
+  // before React has re-rendered.
+  const kidsRef = useRef([]);
+  useEffect(() => { kidsRef.current = kids; }, [kids]);
+
   // iOS Share Extension hand-off — a parent in Safari/Mail/Photos hits
   // share -> SportsCal. _layout.jsx routes them here; we read the
   // payload from the same global context and process it like a typed
@@ -125,9 +141,14 @@ export default function SetupAgentScreen() {
       if (cancelled) return;
 
       setKids(kidsList);
+      kidsRef.current = kidsList;
 
       const isNew = sourceCount === 0;
       setIsFreshUser(isNew);
+      track('setup_opened', {
+        entry: hasShareIntent ? 'share' : deepLinkScreenshot ? 'screenshot' : deepLinkApp ? `app:${deepLinkApp}` : 'direct',
+        first_calendar: isNew,
+      });
 
       // Fresh users see the chip welcome instead of an immediate chat
       // intro. We hold off seeding messages so the welcome renders.
@@ -140,7 +161,7 @@ export default function SetupAgentScreen() {
 
       const kidNames = kidsList.map(k => k.name).join(', ');
       const intro = isNew
-        ? `Hi${kidsList.length > 0 ? `, I see ${kidsList.length > 1 ? kidsList.length + ' kids' : '1 kid'}: ${kidNames}` : ''}! I'll help you connect your sports calendars. Which apps do you use? (TeamSnap, GameChanger, PlayMetrics, SportsEngine, and others — or paste an iCal URL if you already have one.)`
+        ? `Hi${kidsList.length > 0 ? `, I see ${kidsList.length > 1 ? kidsList.length + ' kids' : '1 kid'}: ${kidNames}` : ''}! I'll help you add your kids' team schedules. Which app does the team use? (TeamSnap, GameChanger, PlayMetrics, SportsEngine and others.) If you already have the calendar link, just paste it.`
         : `Hi${kidsList.length > 0 ? ` — I see you already have ${sourceCount} calendar${sourceCount !== 1 ? 's' : ''} set up` : ''}! Want to add more? Which app are we working with?`;
 
       // Drop a one-time tip about the iOS Share Extension as a system
@@ -223,9 +244,11 @@ export default function SetupAgentScreen() {
     const numberedSteps = (info.steps || []).map((s, i) => `${i + 1}. ${s}`).join('\n');
     const noteLine = info.note ? `\n\nTip: ${info.note}` : '';
     const assistantText =
-      `Perfect — here's how to find your ${info.label} iCal URL:\n\n` +
+      `Here's how to get your ${info.label} calendar link:\n\n` +
       `${numberedSteps}${noteLine}\n\n` +
-      `Paste the URL here when you've got it and I'll add it to your account.`;
+      `Paste the link here and I'll add it.\n\n` +
+      `Can't find it? Tap the camera button below and send a screenshot of the schedule instead.`;
+    track('setup_app_steps_shown', { app: appKey });
 
     setMessages([
       { role: 'user',      content: `I use ${info.label}.` },
@@ -243,7 +266,8 @@ export default function SetupAgentScreen() {
     const pdfLine = inboundAddress
       ? `Got a PDF schedule? Email it to ${inboundAddress} and I'll read it.`
       : 'Got a PDF schedule? Email it to your SportsCal address (in Settings) and I\'ll read it.';
-    const intro = `Hi${kids.length > 0 ? `, I see ${kids.length > 1 ? kids.length + ' kids' : '1 kid'}: ${kidNames}` : ''}! Tell me which app you use or paste an iCal URL.\n\n${pdfLine}`;
+    const intro = `Hi${kids.length > 0 ? `, I see ${kids.length > 1 ? kids.length + ' kids' : '1 kid'}: ${kidNames}` : ''}! Tell me which app your team uses, or paste its calendar link if you have it.\n\nNo team app? Tap the camera button below and send a photo or screenshot of the schedule.\n\n${pdfLine}`;
+    track('setup_other_chosen');
     const initialMessages = [{ role: 'assistant', content: intro, display: intro }];
     if (!hasShareIntent) {
       initialMessages.push({
@@ -325,7 +349,7 @@ export default function SetupAgentScreen() {
         .filter(m => m.role === 'user' || m.role === 'assistant')
         .map(m => ({ role: m.role, content: m.content }));
 
-      const { content } = await api.post('/api/setup-agent/message', {
+      const { content, assigned } = await api.post('/api/setup-agent/message', {
         messages: apiMessages,
         platform: 'mobile',
       });
@@ -334,6 +358,16 @@ export default function SetupAgentScreen() {
       const display = stripAction(content) || (action ? 'Got it!' : 'Sorry, something went wrong. Please try again.');
 
       setMessages(prev => [...prev, { role: 'assistant', content, display }]);
+
+      // A typed answer to "whose schedule is this?" is carried out by the
+      // server (lib/assignKids.js); it tells us what it did so we can drop
+      // the name buttons and pick up any kid it created.
+      if (assigned?.source_id) {
+        setMessages(prev => prev.map(m => (m._kidPickerFor === assigned.source_id ? { ...m, _kidPickerFor: null } : m)));
+        api.get('/api/kids')
+          .then(({ kids: fresh }) => { if (fresh) { kidsRef.current = fresh; setKids(fresh); } })
+          .catch(() => {});
+      }
 
       if (action) await runAction(action);
     } catch (err) {
@@ -360,15 +394,71 @@ export default function SetupAgentScreen() {
   // single timeline view of "we're scanning your photo." If anything fails
   // we drop a system bubble with role='system' and error=true.
 
-  async function pickKidForUpload() {
-    if (kids.length === 0) {
-      Alert.alert(
-        'Add a kid first',
-        'Add at least one family member from Settings, then come back to scan a schedule.',
+  // Ask for a first name with the system text prompt (iOS only).
+  function askKidName() {
+    return new Promise((resolve) => {
+      if (Platform.OS !== 'ios' || !Alert.prompt) { resolve(null); return; }
+      Alert.prompt(
+        'Whose schedule is this?',
+        "Your child's first name",
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
+          { text: 'Continue', onPress: (value) => resolve((value || '').trim() || null) },
+        ],
+        'plain-text',
       );
-      return null;
+    });
+  }
+
+  // Names → kid ids, creating any kid we don't have yet. A parent should
+  // never have to leave what they're doing to "add a kid first".
+  async function resolveKidIds(names) {
+    const wanted = (names || []).map(n => String(n).trim()).filter(Boolean);
+    const live = [...kidsRef.current];
+    const ids = [];
+    for (const name of wanted) {
+      const existing = live.find(k => k.name.toLowerCase() === name.toLowerCase());
+      if (existing) { ids.push(existing.id); continue; }
+      try {
+        const { kid: created } = await api.post('/api/kids', {
+          name,
+          color: KID_PALETTE[live.length % KID_PALETTE.length],
+        });
+        ids.push(created.id);
+        live.push(created);
+      } catch (createErr) {
+        setMessages(prev => [...prev, {
+          role: 'system',
+          content: `Couldn't add "${name}": ${createErr.message || 'unknown error'}`,
+          error: true,
+        }]);
+      }
     }
-    if (kids.length === 1) return kids[0];
+    if (live.length !== kidsRef.current.length) {
+      kidsRef.current = live;
+      setKids(live);
+    }
+    return { ids, kids: live.filter(k => ids.includes(k.id)) };
+  }
+
+  async function pickKidForUpload() {
+    const current = kidsRef.current;
+    if (current.length === 0) {
+      // Brand-new account: ask for a first name right here and create the
+      // kid, instead of sending them off to Settings.
+      track('photo_asked_kid_name');
+      const name = await askKidName();
+      if (!name) {
+        if (Platform.OS !== 'ios') {
+          Alert.alert('One thing first', 'Type your child\'s first name in the chat, then send the photo again.');
+        }
+        return null;
+      }
+      const { kids: made } = await resolveKidIds([name]);
+      return made[0] || null;
+    }
+    if (current.length === 1) return current[0];
+    const kids = current;
 
     return new Promise((resolve) => {
       const options = kids.map(k => k.name).concat('Cancel');
@@ -511,6 +601,7 @@ export default function SetupAgentScreen() {
 
     setBusyIngestion(true);
     pushSystem(`📷 Scanning ${kid.name}'s schedule…`);
+    track('photo_started');
     try {
       const ingestion = await uploadPhotoForIngestion(asset, kid);
       activeIngestionRef.current = ingestion.id;
@@ -519,9 +610,10 @@ export default function SetupAgentScreen() {
       if (!ready) return; // superseded
 
       const count = ready.event_count || (ready.extracted_events || []).length;
+      track('photo_scanned', { events: count });
       if (count === 0) {
         pushSystem(
-          'I couldn\'t find any schedulable events in that photo. Try a clearer shot, or paste an iCal URL instead.',
+          'I couldn\'t find any events in that photo. Try a clearer shot, or paste the team\'s calendar link instead.',
           { error: true },
         );
         return;
@@ -532,6 +624,7 @@ export default function SetupAgentScreen() {
       );
     } catch (err) {
       pushSystem(err.message || 'Photo scan failed.', { error: true });
+      track('photo_failed', { reason: String(err.message || '').slice(0, 80) });
     } finally {
       setBusyIngestion(false);
       activeIngestionRef.current = null;
@@ -559,6 +652,8 @@ export default function SetupAgentScreen() {
         return;
       }
       await api.post(`/api/ingestions/${ingestionId}/approve`, { events });
+      addedCountRef.current += 1;
+      track('photo_approved', { events: eventCount });
       pushSystem(`✅ Added ${eventCount} event${eventCount === 1 ? '' : 's'} to your calendar.`);
     } catch (err) {
       pushSystem(err.message || 'Could not save events.', { error: true });
@@ -567,51 +662,56 @@ export default function SetupAgentScreen() {
     }
   }
 
-  // Actions emitted by the model. Mobile only handles add_source today;
-  // request_pdf_upload should never arrive (the system prompt forbids it
-  // on mobile) but we defensively redirect just in case the model drifts.
+  // Put a calendar under one or more kids (by name; unknown names become
+  // new kids). Used by the name buttons under "Whose schedule is this?".
+  // (A name typed into the chat instead is handled by the server.)
+  async function assignKidsToSource(source, names, via) {
+    const { ids, kids: assigned } = await resolveKidIds(names);
+    if (ids.length === 0) return false;
+    try {
+      await api.patch(`/api/sources/${source.id}`, { kid_ids: ids });
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        role: 'system',
+        content: `Couldn't set whose calendar that is: ${err.message || 'unknown error'}`,
+        error: true,
+      }]);
+      return false;
+    }
+    // Retire the name buttons for this calendar.
+    setMessages(prev => prev.map(m => (m._kidPickerFor === source.id ? { ...m, _kidPickerFor: null } : m)));
+    track('kid_assigned', { via, kids: assigned.length });
+    return assigned.map(k => k.name);
+  }
+
+  // A name button was tapped. Shown in the chat as the parent's own reply
+  // so the conversation (and what the model sees next turn) stays in step.
+  async function chooseKidForSource(sourceId, name, via = 'button') {
+    const source = lastSourceRef.current?.id === sourceId ? lastSourceRef.current : { id: sourceId };
+    const done = await assignKidsToSource(source, [name], via);
+    if (!done) return;
+    const reply = `Done. That's ${done.join(' and ')}'s schedule. Got another team to add? Paste its link, or tell me the app.`;
+    setMessages(prev => [...prev,
+      { role: 'user', content: name },
+      { role: 'assistant', content: reply, display: reply },
+    ]);
+  }
+
+  async function chooseNewKidForSource(sourceId) {
+    const name = await askKidName();
+    if (name) return chooseKidForSource(sourceId, name, 'new_name');
+    if (Platform.OS !== 'ios') setTimeout(() => inputRef.current?.focus(), 50);
+  }
+
+  // Actions emitted by the helper (the server's link fast path, or the
+  // model). request_pdf_upload should never arrive on mobile (the system
+  // prompt forbids it) but we defensively redirect just in case.
   const runAction = useCallback(async (action) => {
     if (action.action === 'add_source') {
       try {
-        // Resolve kid names → kid IDs. For names that don't match any
-        // existing kid, auto-create the kid inline so first-time users
-        // never need to "add a kid first" as a separate step — they
-        // just answer the agent's "whose schedule?" question and we
-        // take care of the rest. Default color is cycled from a small
-        // palette based on current kid count; user can change in
-        // Settings → Kid calendars later.
-        const wantedNames = (action.kid_names || [])
-          .map(n => String(n).trim())
-          .filter(Boolean);
-        const kidIds = [];
-        const liveKids = [...kids];
-        const palette = ['#ef4444','#3b82f6','#22c55e','#8b5cf6','#f97316','#06b6d4','#ec4899','#eab308'];
-        for (const wantedName of wantedNames) {
-          const existing = liveKids.find(k => k.name.toLowerCase() === wantedName.toLowerCase());
-          if (existing) {
-            kidIds.push(existing.id);
-            continue;
-          }
-          try {
-            const { kid: newKid } = await api.post('/api/kids', {
-              name:  wantedName,
-              color: palette[liveKids.length % palette.length],
-            });
-            kidIds.push(newKid.id);
-            liveKids.push(newKid);
-          } catch (createErr) {
-            setMessages(prev => [...prev, {
-              role: 'system',
-              content: `Couldn't add "${wantedName}": ${createErr.message || 'unknown error'}`,
-              error: true,
-            }]);
-            // Continue — at least save the source with whatever kids we
-            // did resolve, so the user doesn't lose their iCal URL.
-          }
-        }
-        // Refresh local kids state so future actions in this session
-        // see the newly-created kids without a page reload.
-        if (liveKids.length !== kids.length) setKids(liveKids);
+        // Names → ids; names we don't have yet become new kids, so nobody
+        // has to "add a kid first".
+        const { ids: kidIds } = await resolveKidIds(action.kid_names);
 
         const { source } = await api.post('/api/sources', {
           name: action.name,
@@ -621,14 +721,30 @@ export default function SetupAgentScreen() {
           kid_ids: kidIds,
         });
 
-        setMessages(prev => [...prev, {
+        lastSourceRef.current = source;
+        addedCountRef.current += 1;
+        track('calendar_added', { app: action.app, has_kid: kidIds.length > 0 });
+        const added = [{
           role: 'system',
-          content: `Added "${source?.name || action.name}"`,
-        }]);
+          content: `✅ Added "${source?.name || action.name}"`,
+        }];
+        // Added first, asked second: if we don't know whose it is yet,
+        // offer the family's names as buttons (typing a name works too).
+        if (kidIds.length === 0 && source?.id) {
+          added.push({
+            role: 'system',
+            content: kidsRef.current.length > 0
+              ? 'Whose schedule is it? Tap a name.'
+              : 'Whose schedule is it? Type their first name below, or tap Add a name.',
+            _kidPickerFor: source.id,
+          });
+        }
+        setMessages(prev => [...prev, ...added]);
       } catch (err) {
+        track('calendar_add_failed', { app: action.app, reason: String(err.message || '').slice(0, 80) });
         setMessages(prev => [...prev, {
           role: 'system',
-          content: `Could not add "${action.name}": ${err.message || 'unknown error'}`,
+          content: `That didn't get added. ${err.message || 'Please try again.'}`,
           error: true,
         }]);
       }
@@ -640,7 +756,7 @@ export default function SetupAgentScreen() {
       setMessages(prev => [...prev, { role: 'assistant', content: text, display: text }]);
       return;
     }
-  }, [kids, inboundAddress]);
+  }, [inboundAddress]);
 
   function confirmDone() {
     Alert.alert(
@@ -648,7 +764,10 @@ export default function SetupAgentScreen() {
       'You can come back to the helper anytime from Settings.',
       [
         { text: 'Keep going', style: 'cancel' },
-        { text: 'Done', style: 'default', onPress: () => router.back() },
+        { text: 'Done', style: 'default', onPress: () => {
+          track('setup_closed', { added: addedCountRef.current });
+          router.back();
+        } },
       ],
     );
   }
@@ -749,6 +868,9 @@ export default function SetupAgentScreen() {
                   : null}
                 approving={busyIngestion}
                 inboundAddress={inboundAddress}
+                kidChoices={m._kidPickerFor ? kids : null}
+                onChooseKid={m._kidPickerFor ? (name) => chooseKidForSource(m._kidPickerFor, name) : null}
+                onNewKid={m._kidPickerFor ? () => chooseNewKidForSource(m._kidPickerFor) : null}
               />
             ))
           )}
@@ -793,7 +915,7 @@ export default function SetupAgentScreen() {
 
 // ----- bubble ---------------------------------------------------------------
 
-function Bubble({ message, onApprove, approving, inboundAddress }) {
+function Bubble({ message, onApprove, approving, inboundAddress, kidChoices, onChooseKid, onNewKid }) {
   const t = useTheme();
   const s = useMemo(() => makeStyles(t), [t]);
   const { role, display, content, error, _typing, _eventCount } = message;
@@ -824,6 +946,31 @@ function Bubble({ message, onApprove, approving, inboundAddress }) {
               </Text>
             )}
           </TouchableOpacity>
+        ) : null}
+        {kidChoices ? (
+          <View style={s.kidChoiceRow}>
+            {kidChoices.map(k => (
+              <TouchableOpacity
+                key={k.id}
+                style={[s.kidChoice, { borderColor: k.color || t.accent }]}
+                onPress={() => onChooseKid(k.name)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`This is ${k.name}'s schedule`}
+              >
+                <View style={[s.kidDot, { backgroundColor: k.color || t.accent }]} />
+                <Text style={s.kidChoiceText}>{k.name}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={[s.kidChoice, s.kidChoiceNew]}
+              onPress={onNewKid}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <Text style={s.kidChoiceText}>{kidChoices.length > 0 ? 'Someone else' : 'Add a name'}</Text>
+            </TouchableOpacity>
+          </View>
         ) : null}
       </View>
     );
@@ -948,6 +1095,16 @@ function makeStyles(t) {
     paddingHorizontal: 14, paddingVertical: 8, marginTop: 2,
   },
   systemApproveText: { color: t.ctaText, fontSize: 14, fontWeight: '600' },
+  // Name buttons under "Whose schedule is it?"
+  kidChoiceRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
+  kidChoice: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    backgroundColor: t.surface, borderWidth: 1.5, borderRadius: 999,
+    paddingHorizontal: 14, minHeight: 40,
+  },
+  kidChoiceNew:  { borderColor: t.border, borderStyle: 'dashed' },
+  kidDot:        { width: 10, height: 10, borderRadius: 5 },
+  kidChoiceText: { fontSize: 15, fontWeight: '600', color: t.navy },
 
   composer: {
     flexDirection: 'row', alignItems: 'flex-end',

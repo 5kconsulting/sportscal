@@ -45,7 +45,7 @@ export default function Login() {
       >
         <View style={s.inner}>
           <Text style={s.logo}>SportsCal</Text>
-          <Text style={s.tagline}>One calendar for every game, practice, and meet.</Text>
+          <Text style={s.tagline}>Your kids' games, practices and meets in one calendar.</Text>
 
           <View style={s.card}>
             <Text style={s.h2}>Sign in</Text>

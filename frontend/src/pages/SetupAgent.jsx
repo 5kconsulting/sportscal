@@ -82,6 +82,10 @@ export default function SetupAgent({ onSourceAdded }) {
   const [loading, setLoading] = useState(false);
   const [kids, setKids] = useState([]);
   const [addedSources, setAddedSources] = useState([]);
+  // The kid list as a ref too, so a kid created mid-conversation is
+  // visible to the very next step.
+  const kidsRef = useRef([]);
+  useEffect(() => { kidsRef.current = kids; }, [kids]);
   const [started, setStarted] = useState(false);
   // Banner-style affordance: collapsed shows a one-line "Got a schedule
   // in your email? Forward it →" pitch with an email icon. Click expands
@@ -301,9 +305,10 @@ export default function SetupAgent({ onSourceAdded }) {
       .join('\n');
     const noteLine = info.note ? `\n\nTip: ${info.note}` : '';
     const assistantText =
-      `Perfect — here's how to find your ${info.label} iCal URL:\n\n` +
+      `Here's how to get your ${info.label} calendar link:\n\n` +
       `${numberedSteps}${noteLine}\n\n` +
-      `Paste the URL here when you've got it and I'll add it to your account.`;
+      `Paste the link here and I'll add it.\n\n` +
+      `Can't find it? Attach a screenshot or PDF of the schedule with the 📎 below instead.`;
 
     setStarted(true);
     setMessages([
@@ -340,6 +345,13 @@ export default function SetupAgent({ onSourceAdded }) {
       const displayContent = stripAction(rawContent);
 
       setMessages(prev => [...prev, { role: 'assistant', content: rawContent, display: displayContent }]);
+
+      // A pasted link is added first and "whose schedule is this?" comes
+      // after. The server carries out the typed answer (lib/assignKids.js,
+      // creating the kid if needed) and reports it; refresh our kid list.
+      if (data.assigned) {
+        api.kids.list().then(({ kids: fresh }) => { if (fresh) setKids(fresh); }).catch(() => {});
+      }
 
       if (action) {
         await handleAction(action);
@@ -403,43 +415,46 @@ export default function SetupAgent({ onSourceAdded }) {
     }
   }
 
+  // Kid names → kid IDs. A name that doesn't match an existing kid is
+  // created on the spot, so nobody is sent off to "add a kid first".
+  // Default color cycles through a small palette; change it in /kids.
+  async function resolveKidIds(names) {
+    const wantedNames = (names || [])
+      .map(n => String(n).trim())
+      .filter(Boolean);
+    const kidIds = [];
+    const liveKids = [...kidsRef.current];
+    for (const wantedName of wantedNames) {
+      const existing = liveKids.find(k => k.name.toLowerCase() === wantedName.toLowerCase());
+      if (existing) {
+        kidIds.push(existing.id);
+        continue;
+      }
+      try {
+        const { kid: newKid } = await api.kids.create({
+          name:  wantedName,
+          color: KID_PALETTE[liveKids.length % KID_PALETTE.length],
+        });
+        kidIds.push(newKid.id);
+        liveKids.push(newKid);
+      } catch (createErr) {
+        setMessages(prev => [...prev, {
+          role: 'system',
+          content: 'Couldn\'t add "' + wantedName + '": ' + (createErr.message || 'unknown error'),
+          error: true,
+        }]);
+      }
+    }
+    if (liveKids.length !== kidsRef.current.length) {
+      kidsRef.current = liveKids;
+      setKids(liveKids);
+    }
+    return kidIds;
+  }
+
   async function executeAddSource(action) {
     try {
-      // Resolve kid names → kid IDs. For names that don't match any
-      // existing kid, auto-create the kid inline. Lets the SetupAgent
-      // conversation handle "I have no kids yet" gracefully: the model
-      // asks "whose schedule?", the user types a name, and we create
-      // the kid + source together without forcing the user through a
-      // separate "add a kid first" flow. Default color cycles through
-      // a small palette; user can change in /kids later.
-      const wantedNames = (action.kid_names || [])
-        .map(n => String(n).trim())
-        .filter(Boolean);
-      const kidIds = [];
-      const liveKids = [...kids];
-      const palette = KID_PALETTE;
-      for (const wantedName of wantedNames) {
-        const existing = liveKids.find(k => k.name.toLowerCase() === wantedName.toLowerCase());
-        if (existing) {
-          kidIds.push(existing.id);
-          continue;
-        }
-        try {
-          const { kid: newKid } = await api.kids.create({
-            name:  wantedName,
-            color: palette[liveKids.length % palette.length],
-          });
-          kidIds.push(newKid.id);
-          liveKids.push(newKid);
-        } catch (createErr) {
-          setMessages(prev => [...prev, {
-            role: 'system',
-            content: 'Couldn\'t add "' + wantedName + '": ' + (createErr.message || 'unknown error'),
-            error: true,
-          }]);
-        }
-      }
-      if (liveKids.length !== kids.length) setKids(liveKids);
+      const kidIds = await resolveKidIds(action.kid_names);
 
       const { source } = await api.sources.create({
         name: action.name,
@@ -451,11 +466,11 @@ export default function SetupAgent({ onSourceAdded }) {
 
       setAddedSources(prev => [...prev, source]);
       if (onSourceAdded) onSourceAdded(source);
-      setMessages(prev => [...prev, { role: 'system', content: 'Added "' + action.name + '"' }]);
+      setMessages(prev => [...prev, { role: 'system', content: 'Added "' + (source?.name || action.name) + '"' }]);
     } catch (err) {
       setMessages(prev => [...prev, {
         role: 'system',
-        content: 'Could not add "' + action.name + '": ' + err.message,
+        content: 'That didn\'t get added. ' + (err.message || 'Please try again.'),
         error: true,
       }]);
     }
@@ -558,7 +573,7 @@ export default function SetupAgent({ onSourceAdded }) {
   async function handleReject() {
     setShowReviewModal(false);
     try { await reject(); } catch {}
-    const msg = 'No worries — I tossed that file. Want to try a different PDF, or would an iCal URL work instead?';
+    const msg = 'No worries — I tossed that file. Want to try a different PDF, or paste the team\'s calendar link instead?';
     setMessages(prev => [...prev, { role: 'assistant', content: msg, display: msg }]);
     setPendingKid(null);
     statusMsgIdxRef.current = null;
@@ -656,7 +671,7 @@ export default function SetupAgent({ onSourceAdded }) {
             Set up my calendars
           </h1>
           <p style={{ color: 'var(--slate)', fontSize: 15, lineHeight: 1.6 }}>
-            I'll walk you through finding your iCal URLs from each sports app — or read a PDF schedule from the coach — and add everything to your account automatically.
+            I'll show you where each team app keeps its calendar link — or read a PDF schedule from the coach — and add everything to your account.
           </p>
         </div>
 
@@ -1228,7 +1243,7 @@ export function MagicLinkPdfReview({ token }) {
     return (
       <CenteredCard title="Couldn't read that PDF">
         <p style={{ fontSize: 14, color: 'var(--slate)', lineHeight: 1.6 }}>
-          {ing.extraction_error || 'The schedule wasn\'t in a format we could parse. Try a clearer scan or paste the iCal URL into the setup helper.'}
+          {ing.extraction_error || 'The schedule wasn\'t in a format we could parse. Try a clearer scan, or paste the team\'s calendar link into the setup helper.'}
         </p>
       </CenteredCard>
     );

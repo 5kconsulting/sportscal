@@ -38,6 +38,7 @@ import joinTeamRoutes         from './routes/joinTeam.js';
 import setupAgentRoutes      from './routes/setupAgent.js';
 import inboundRoutes         from './routes/inbound.js';
 import pushTokensRoutes      from './routes/pushTokens.js';
+import trackRoutes           from './routes/track.js';
 import householdRoutes       from './routes/household.js';
 import emailRoutes           from './routes/email.js';
 
@@ -115,6 +116,7 @@ app.use('/api/ingestions',  ingestionsRoutes);
 app.use('/api/teams',       teamsRoutes);
 app.use('/api/setup-agent', setupAgentRoutes);
 app.use('/api/push-tokens', pushTokensRoutes);
+app.use('/api/track',       trackRoutes);     // onboarding step log
 app.use('/api/household',   householdRoutes);
 app.use('/api/email',       emailRoutes);    // public: link-signed unsubscribe for tips email
 app.use('/api/inbound',     inboundRoutes);  // public: Cloudflare Email Worker -> JSON envelope (shared-secret protected)

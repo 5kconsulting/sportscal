@@ -720,6 +720,27 @@ CREATE INDEX IF NOT EXISTS setup_agent_messages_user_idx
   ON setup_agent_messages(user_id, created_at DESC);
 
 -- ============================================================
+-- ONBOARDING_EVENTS — the steps between signing up and the first
+-- calendar (intro shown, team app tapped, link pasted, photo
+-- scanned, …). Written by POST /api/track from the apps and by the
+-- setup helper. Read with plain SQL; nothing in the product
+-- depends on it.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS onboarding_events (
+  id          BIGSERIAL PRIMARY KEY,
+  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  event       TEXT NOT NULL,
+  props       JSONB,
+  platform    TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS onboarding_events_user_idx
+  ON onboarding_events(user_id, created_at);
+CREATE INDEX IF NOT EXISTS onboarding_events_event_idx
+  ON onboarding_events(event, created_at);
+
+-- ============================================================
 -- PUSH_TOKENS — Expo push tokens registered by the mobile app.
 -- One row per (user, device) pair. The same user can have
 -- multiple tokens (iPhone + iPad, or after reinstalling the app

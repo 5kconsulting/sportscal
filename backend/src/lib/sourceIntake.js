@@ -24,6 +24,7 @@ const APP_HOST_PATTERNS = [
   // or they'll be shadowed by their parent domain.
   [/(^|\.)go\.teamsnap\.com$/i,     'teamsnapone'],
   [/(^|\.)teamsnap\.com$/i,         'teamsnap'],
+  [/(^|\.)snap\.app$/i,             'teamsnap'],     // manage.snap.app/ical/…
   [/(^|\.)gc\.com$/i,               'gamechanger'],
   [/(^|\.)gamechanger\.io$/i,       'gamechanger'],
   [/(^|\.)playmetrics\.com$/i,      'playmetrics'],
@@ -33,6 +34,7 @@ const APP_HOST_PATTERNS = [
   [/(^|\.)sportsengine\.com$/i,     'sportsengine'],
   [/(^|\.)ngin\.com$/i,             'sportsengine'], // SportsEngine legacy
   [/(^|\.)teamreach\.com$/i,        'teamreach'],
+  [/(^|\.)teamreach\.net$/i,        'teamreach'],    // api.teamreach.net/…/ical
   [/(^|\.)leagueapps\.com$/i,       'leagueapps'],
   [/(^|\.)demosphere\.com$/i,       'demosphere'],
   [/(^|\.)360player\.com$/i,        '360player'],
@@ -115,6 +117,7 @@ function cleanSegment(seg) {
 
 function looksLikeTeamName(seg) {
   if (!seg || seg.length > 60) return false;
+  if (/\.[a-z0-9]{2,5}$/i.test(seg)) return false;         // a file name (calendarical.php)
   if (!/^[a-zA-Z0-9 .'’&()]+$/.test(seg)) return false;
   if (/^[a-f0-9]{8,}$/i.test(seg)) return false; // hex token
   if (/^\d+$/.test(seg))             return false; // pure digits

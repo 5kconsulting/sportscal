@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../lib/theme';
 import { api } from '../lib/api';
 import { markTutorialSeen } from '../lib/tutorialSeen';
+import { track } from '../lib/analytics';
 
 // Same guard as app/tutorial/[key].jsx: dev clients built before
 // expo-video landed crash on import, so degrade to icon placeholders.
@@ -83,7 +84,15 @@ export default function Welcome() {
 
   // Mark seen on open, not on finish: someone who swipes away halfway
   // has still seen it, and re-showing it on every launch would be worse.
-  useEffect(() => { markTutorialSeen('welcome'); }, []);
+  useEffect(() => { markTutorialSeen('welcome'); track('intro_shown'); }, []);
+  // Furthest slide reached, so we can see how far people get.
+  const furthestRef = useRef(0);
+  useEffect(() => {
+    if (index > furthestRef.current) {
+      furthestRef.current = index;
+      track('intro_slide', { slide: index + 1, of: SLIDES.length });
+    }
+  }, [index]);
 
   // The last button depends on where the user is: new accounts go
   // straight to adding a calendar; existing users just get dismissed.
@@ -113,6 +122,7 @@ export default function Welcome() {
 
   function onPrimary() {
     if (!isLast) return goTo(index + 1);
+    track('intro_finished', { next: hasCalendars === false ? 'add_calendar' : 'home' });
     if (hasCalendars === false) router.replace('/setup');
     else close();
   }
@@ -125,7 +135,7 @@ export default function Welcome() {
     <SafeAreaView style={s.root} edges={['top', 'bottom']}>
       <View style={s.topBar}>
         {!isLast ? (
-          <Pressable onPress={close} hitSlop={12} accessibilityRole="button" accessibilityLabel="Skip intro">
+          <Pressable onPress={() => { track('intro_skipped', { slide: index + 1 }); close(); }} hitSlop={12} accessibilityRole="button" accessibilityLabel="Skip intro">
             <Text style={s.skip}>Skip</Text>
           </Pressable>
         ) : <View />}
@@ -172,7 +182,7 @@ export default function Welcome() {
           <Text style={s.primaryText}>{primaryLabel}</Text>
         </Pressable>
         {isLast && hasCalendars === false ? (
-          <Pressable onPress={close} hitSlop={8} style={s.later}>
+          <Pressable onPress={() => { track('intro_later'); close(); }} hitSlop={8} style={s.later}>
             <Text style={s.laterText}>Maybe later</Text>
           </Pressable>
         ) : <View style={s.laterSpacer} />}

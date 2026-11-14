@@ -134,7 +134,7 @@ export function welcomeEmail(user) {
         <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:0.08em;">Start here</p>
         <p style="margin:0 0 8px;font-size:17px;font-weight:600;color:#0F172A;letter-spacing:-0.01em;">Add your first calendar</p>
         <p style="margin:0 0 16px;font-size:14px;color:#64748B;line-height:1.55;">
-          Paste an iCal URL from TeamSnap, GameChanger, PlayMetrics, or a dozen more sports apps.
+          Paste the calendar link from TeamSnap, GameChanger, PlayMetrics, or a dozen more team apps.
           Events land on your dashboard in seconds.
         </p>
         <p style="margin:0;">

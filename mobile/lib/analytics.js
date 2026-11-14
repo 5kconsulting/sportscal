@@ -11,6 +11,10 @@
 //      a transient SDK error never breaks the actual auth flow.
 //   3. Defensive imports of the native SDK modules — wrapped so the JS
 //      boots even if a dev client wasn't built with the latest config.
+//   4. track() — onboarding steps, to our own log and Firebase.
+
+import { Platform } from 'react-native';
+import { api } from './api';
 
 let _attResult = null;
 let _meta = null;
@@ -75,5 +79,21 @@ export async function trackLogin(method = 'email') {
   if (_fbAnalytics) {
     try { await _fbAnalytics().logLogin({ method }); }
     catch (err) { console.warn('[analytics] firebase login:', err.message); }
+  }
+}
+
+// One step on the way to a first calendar ("intro_shown", "home_app_tapped",
+// "photo_scanned", …). Goes to our own log (POST /api/track → the
+// onboarding_events table, which is what we actually query to see where
+// people give up) and to Firebase. Fire-and-forget: tracking never blocks
+// or breaks a screen.
+export function track(event, props) {
+  try {
+    api.post('/api/track', { event, props: props || null, platform: Platform.OS }).catch(() => {});
+  } catch {}
+  loadModules();
+  if (_fbAnalytics) {
+    try { _fbAnalytics().logEvent(event, props || {}); }
+    catch (err) { console.warn('[analytics] firebase', event, err.message); }
   }
 }

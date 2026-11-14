@@ -82,7 +82,7 @@ export default function Signup() {
             <span style={{ color: 'var(--accent)' }}>sports apps.</span>
           </h1>
           <p style={{ fontSize: 16, color: 'var(--slate)', lineHeight: 1.6 }}>
-            Free to start. Add your kids, paste your iCal links, subscribe once in Apple or Google Calendar.
+            Free to start. Add your kids, paste the calendar links from their team apps, subscribe once in Apple or Google Calendar.
           </p>
         </div>
 

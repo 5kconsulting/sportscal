@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, RefreshControl,
   ActivityIndicator, TouchableOpacity,
@@ -8,6 +8,7 @@ import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
 import { EventCard } from '../../components/EventCard';
 import { useTheme, useSkin } from '../../lib/theme';
+import { track } from '../../lib/analytics';
 
 export default function Calendar() {
   const { user } = useAuth();
@@ -26,6 +27,7 @@ export default function Calendar() {
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError]         = useState('');
+  const emptyTrackedRef = useRef(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -63,6 +65,14 @@ export default function Calendar() {
   }, []);
 
   useEffect(() => { (async () => { await load(); setLoading(false); })(); }, [load]);
+
+  // Once per app session: this person is looking at the "which app?"
+  // screen with no calendar set up yet.
+  useEffect(() => {
+    if (loading || error || sources.length > 0 || emptyTrackedRef.current) return;
+    emptyTrackedRef.current = true;
+    track('home_empty_shown', { kids: kids.length });
+  }, [loading, error, sources.length, kids.length]);
 
   // Refetch when the screen regains focus (e.g. after closing the event modal)
   // so attendance toggles show up without a pull-to-refresh.
@@ -169,6 +179,7 @@ export default function Calendar() {
               accessibilityRole="button"
               accessibilityLabel={chip.label}
               onPress={() => {
+                track('home_app_tapped', { app: chip.key.replace(/^_+|_+$/g, '') });
                 // Route source chips through the tutorial player first;
                 // it plays the per-app screen-recording (if bundled) then
                 // auto-dismisses into /setup. Special-shape chips bypass

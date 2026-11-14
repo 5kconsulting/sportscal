@@ -64,7 +64,7 @@ const APP_OPTIONS = [
   { value: 'band',          label: 'BAND',           fetchType: 'ical' },
   { value: 'rankone',         label: 'RankOne',          fetchType: 'ical' },
   { value: 'google_classroom',label: 'Google Classroom', fetchType: 'ical' },
-  { value: 'custom',          label: 'Custom iCal',      fetchType: 'ical' },
+  { value: 'custom',          label: 'Another app or website', fetchType: 'ical' },
 ];
 
 // Per-app setup walkthroughs. One key per app — duplicates removed.
@@ -76,10 +76,10 @@ const APP_INSTRUCTIONS = {
       'Tap the team you want to add.',
       'Tap the Calendar icon at the bottom of the screen.',
       'Tap the share/export icon (top right) → "Export Calendar".',
-      'Tap "Copy Link" — this is your iCal URL.',
-      'Paste it in the iCal URL field below.',
+      'Tap "Copy Link". That is your calendar link.',
+      'Paste it in the Calendar link field below.',
     ],
-    note: 'You need to do this separately for each team. Each team has its own iCal URL.',
+    note: 'You need to do this separately for each team. Each team has its own calendar link.',
     webSteps: [
       'Go to teamsnap.com and sign in.',
       'Click on your team → Schedule tab.',
@@ -95,9 +95,9 @@ const APP_INSTRUCTIONS = {
       'Go to the Schedule tab.',
       'Click Settings → Sync Calendar / Export.',
       'Copy the calendar link provided.',
-      'Paste it in the iCal URL field below.',
+      'Paste it in the Calendar link field below.',
     ],
-    note: 'TeamSnap ONE is TeamSnap\'s club and league platform — the iCal export works the same way as standard TeamSnap.',
+    note: 'TeamSnap ONE is TeamSnap\'s club and league platform — exporting the calendar works the same way as standard TeamSnap.',
     webSteps: [
       'Go to go.teamsnap.com and sign in.',
       'Select your team → Schedule tab.',
@@ -108,14 +108,13 @@ const APP_INSTRUCTIONS = {
   gamechanger: {
     label: 'GameChanger',
     steps: [
-      'Open the GameChanger app on your phone.',
-      'Tap on your team.',
-      'Tap "Schedule" at the bottom.',
-      'Tap the share icon (top right) → "Subscribe to Calendar".',
-      'Tap "Copy Link" — this is your iCal URL.',
-      'Paste it in the iCal URL field below.',
+      'Open the GameChanger app on your phone and tap your team.',
+      'Tap the gear icon (top right).',
+      'Tap "Schedule Sync".',
+      'Tap "Sync Schedule to Your Calendar". You\'ll see "Calendar link copied."',
+      'Paste it in the Calendar link field below.',
     ],
-    note: 'If you manage multiple teams, repeat this for each team.',
+    note: 'Don\'t use the share button on the Schedule tab. That gives a team-sharing link, which has no schedule in it. If you have more than one team, repeat for each.',
     webSteps: [
       'Go to gc.com and sign in.',
       'Select your team → Schedule.',
@@ -129,10 +128,10 @@ const APP_INSTRUCTIONS = {
       'Tap "Calendar" in the navigation.',
       'Tap the settings/gear icon.',
       'Select "Subscribe" or "Export Calendar".',
-      'Copy the iCal link provided.',
-      'Paste it in the iCal URL field below.',
+      'Copy the link it shows.',
+      'Paste it in the Calendar link field below.',
     ],
-    note: 'PlayMetrics iCal links include all events for that team.',
+    note: 'PlayMetrics calendar links include all events for that team.',
   },
   teamsideline: {
     label: 'TeamSideline',
@@ -141,7 +140,7 @@ const APP_INSTRUCTIONS = {
       'Click on "Schedule" in the navigation.',
       'Look for a calendar icon or "Subscribe to Calendar" link — usually at the top or bottom of the schedule.',
       'Right-click the calendar icon → "Copy Link Address".',
-      'Paste it in the iCal URL field below.',
+      'Paste it in the Calendar link field below.',
     ],
     note: 'TeamSideline URLs sometimes contain special characters — paste them exactly as copied.',
   },
@@ -150,11 +149,11 @@ const APP_INSTRUCTIONS = {
     steps: [
       'Go to your BYGA league or club website.',
       'Navigate to the team schedule page.',
-      'Look for a calendar subscribe link or iCal export option — often shown as a calendar icon.',
-      'Copy the iCal (.ics) link.',
-      'Paste it in the iCal URL field below.',
+      'Look for a "Subscribe" or "Export calendar" link (it may say iCal), often shown as a calendar icon.',
+      'Copy that link (it usually ends in .ics).',
+      'Paste it in the Calendar link field below.',
     ],
-    note: 'BYGA iCal links look like: http://yourclub.byga.net/cal/XXXXX.ics',
+    note: 'BYGA calendar links look like: http://yourclub.byga.net/cal/XXXXX.ics',
   },
   sportsengine: {
     label: 'SportsEngine',
@@ -164,9 +163,9 @@ const APP_INSTRUCTIONS = {
       'Scroll down below the calendar or event list.',
       'Look for the iCal Feed icon (calendar with a chain link) — tap "Subscribe to iCal Feed".',
       'A popup will appear with the feed URL — copy it.',
-      'Paste it in the iCal URL field below.',
+      'Paste it in the Calendar link field below.',
     ],
-    note: '⚠️ Important: Use the iCal URL from your league\'s website — NOT from the SportsEngine mobile app\'s "Subscribe" button, which generates an authenticated URL that won\'t work. The correct URL will start with webcal://sportngin.com or webcal://[yourleague].com.',
+    note: '⚠️ Important: Use the calendar link from your league\'s website — NOT from the SportsEngine mobile app\'s "Subscribe" button, which generates an authenticated URL that won\'t work. The correct URL will start with webcal://sportngin.com or webcal://[yourleague].com.',
     webSteps: [
       'Log in to your SportsEngine account at ngin.com or your org\'s website.',
       'Go to your team page → Schedule or Calendar tab.',
@@ -182,8 +181,8 @@ const APP_INSTRUCTIONS = {
       'Tap the Calendar tab at the bottom.',
       'Scroll all the way to the bottom of the calendar.',
       'Tap the "Subscribe" button.',
-      'Copy the iCal link that appears.',
-      'Paste it in the iCal URL field below.',
+      'Copy the link that appears.',
+      'Paste it in the Calendar link field below.',
     ],
     note: 'The Subscribe button is at the very bottom of the calendar — you may need to scroll past all events to find it.',
   },
@@ -194,14 +193,14 @@ const APP_INSTRUCTIONS = {
       'Go to My Schedule or your program\'s Schedule page.',
       'Tap "Subscribe to Calendar" at the top of the schedule.',
       'Select "Copy Link" from the options that appear.',
-      'Paste the copied URL in the iCal URL field below.',
+      'Paste the copied URL in the Calendar link field below.',
     ],
     note: 'In the LeagueApps Play app: tap your profile icon → Members tab → tap your name → Subscribe to Calendar.',
     webSteps: [
       'Log in to your organization\'s LeagueApps website.',
       'Go to your Dashboard → My Schedule from the sidebar.',
       'Click "Subscribe to Calendar" at the top.',
-      'Click "Copy Link" to copy the iCal URL.',
+      'Click "Copy Link" to copy the calendar link.',
     ],
   },
   demosphere: {
@@ -211,8 +210,8 @@ const APP_INSTRUCTIONS = {
       'Tap on your team.',
       'Tap the Calendar or Schedule section.',
       'Look for a "Subscribe" or "Sync Calendar" option.',
-      'Tap it and copy the iCal link provided.',
-      'Paste it in the iCal URL field below.',
+      'Tap it and copy the link it shows.',
+      'Paste it in the Calendar link field below.',
     ],
     note: 'For org-wide feeds: your league\'s Demosphere site URL + /events.ics (e.g. yourleague.demosphere.net/events.ics) gives the full site calendar.',
     webSteps: [
@@ -229,8 +228,8 @@ const APP_INSTRUCTIONS = {
       'Tap the Calendar section at the bottom.',
       'Tap the three lines (menu icon) in the top right corner.',
       'Scroll down to find the calendar you want to share.',
-      'Tap the subscribe link for that calendar — this is your iCal URL.',
-      'Copy it and paste it in the iCal URL field below.',
+      'Tap the subscribe link for that calendar. That is your calendar link.',
+      'Copy it and paste it in the Calendar link field below.',
     ],
     note: '360Player is popular for soccer, basketball, volleyball, and other club sports across Europe and the US.',
   },
@@ -241,7 +240,7 @@ const APP_INSTRUCTIONS = {
       'Tap Calendar in the bottom tray.',
       'Tap the subscribe icon in the top right corner.',
       'Tap the green "Copy Link" button.',
-      'Paste the copied URL in the iCal URL field below.',
+      'Paste the copied URL in the Calendar link field below.',
     ],
     note: 'SportsYou is a free team communication platform popular with school and rec league coaches.',
     webSteps: [
@@ -258,7 +257,7 @@ const APP_INSTRUCTIONS = {
       'Click the Settings icon (gear) in the top right of the Band.',
       'Scroll down and click "Export Band Events".',
       'Copy the calendar URL provided.',
-      'Paste it in the iCal URL field below.',
+      'Paste it in the Calendar link field below.',
     ],
     note: 'The BAND calendar URL is unique to your group. Any events added or updated in BAND will automatically sync to your SportsCal feed.',
   },
@@ -269,9 +268,9 @@ const APP_INSTRUCTIONS = {
       'Navigate to your team or activity\'s schedule/calendar page.',
       'Look for a "Subscribe" or "iCal" or "Export Calendar" link below the schedule.',
       'Click it to get the calendar URL, or right-click and copy the link.',
-      'Paste it in the iCal URL field below.',
+      'Paste it in the Calendar link field below.',
     ],
-    note: 'RankOne is used by many school athletic programs. The iCal URL is usually found on the team schedule page. If you can\'t find it, ask your athletic director.',
+    note: 'RankOne is used by many school athletic programs. The calendar link is usually on the team schedule page. If you can\'t find it, ask your athletic director.',
   },
   google_classroom: {
     label: 'Google Classroom',
@@ -281,17 +280,17 @@ const APP_INSTRUCTIONS = {
       'Hover over the class name and click the three dots → "Settings and sharing".',
       'Scroll down to "Integrate calendar".',
       'Copy the "Secret address in iCal format" — the long URL ending in .ics.',
-      'Paste it in the iCal URL field below.',
+      'Paste it in the Calendar link field below.',
     ],
     note: 'Each class has its own calendar — repeat for each class your kid is in. Use the SECRET address (the public address only shows free/busy times, not assignment titles or due dates).',
   },
   custom: {
-    label: 'Custom iCal',
+    label: 'Another app or website',
     steps: [
-      'Any app that supports iCal export will have a "Subscribe to Calendar", "Export to iCal", or "iCal Feed" option.',
+      'Most team apps and league websites have a "Subscribe to Calendar", "Sync calendar" or "Export calendar" option (some say iCal).',
       'Find that option in your app\'s schedule or calendar section.',
       'Copy the URL — it usually starts with https:// or webcal://',
-      'Paste it in the iCal URL field below.',
+      'Paste it in the Calendar link field below.',
     ],
     note: 'Both https:// and webcal:// URLs work — SportsCal handles both formats automatically.',
   },
@@ -308,7 +307,7 @@ function SourceHelpModal({ app, onClose }) {
     { img: '/gc-step3.png', caption: 'Tap Schedule Sync' },
     { img: '/gc-step4.png', caption: 'Tap "Sync Schedule to Your Calendar"' },
     { img: '/gc-step5.png', caption: '"Calendar link copied" — link is in your clipboard!' },
-    { img: '/gc-step6.png', caption: 'Paste the link into SportsCal\'s iCal URL field' },
+    { img: '/gc-step6.png', caption: 'Paste the link into SportsCal\'s Calendar link field' },
   ];
 
   return (
@@ -330,7 +329,7 @@ function SourceHelpModal({ app, onClose }) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
             <h3 style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}>
-              How to find your {info.label} iCal URL
+              How to find your {info.label} calendar link
             </h3>
             <button onClick={onClose} style={{ fontSize: 22, color: 'var(--slate)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}>×</button>
           </div>
@@ -1131,7 +1130,7 @@ function SourceForm({ kids, initial, onSave, onCancel }) {
         </div>
 
         <div className="field">
-          <label>iCal URL</label>
+          <label>Calendar link</label>
           <input className="input" type="text"
             placeholder="https:// or webcal://..."
             value={icalUrl} onChange={e => setIcalUrl(e.target.value)} />

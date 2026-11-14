@@ -18,6 +18,9 @@ import Anthropic from '@anthropic-ai/sdk';
 import { requireAuth } from '../middleware/auth.js';
 import { getKidsByUser, query, ensureInboundToken } from '../db/index.js';
 import { buildSystemPrompt, APP_INSTRUCTIONS } from '../lib/setupAgentPrompt.js';
+import { linkFastPath } from '../lib/calendarLink.js';
+import { recordOnboardingEvent } from './track.js';
+import { assignKidsToNewestCalendar } from '../lib/assignKids.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -99,6 +102,36 @@ router.post('/message', setupAgentLimiter, async (req, res) => {
       if (token) inboundAddress = `add+${token}@${process.env.INBOUND_DOMAIN || 'inbox.sportscalapp.com'}`;
     }
 
+    // A message that is only a link skips the model: we check the link
+    // ourselves and either add it straight away or say exactly what it is
+    // (lib/calendarLink.js). Faster, and it never interrogates someone who
+    // already did the hard part.
+    const lastMsg = apiMessages[apiMessages.length - 1];
+    if (lastMsg.role === 'user') {
+      const fast = await linkFastPath({
+        text: lastMsg.content,
+        priorUserTexts: apiMessages.slice(0, -1).filter(m => m.role === 'user').map(m => m.content),
+        kids,
+        platform: platform === 'mobile' ? 'mobile' : 'web',
+        inboundAddress,
+      }).catch((err) => {
+        console.error('[setup-agent] link fast path failed (falling back to model):', err.message);
+        return null;
+      });
+      if (fast) {
+        const platformTag = platform === 'mobile' ? 'mobile' : 'web';
+        await query(
+          `INSERT INTO setup_agent_messages (user_id, role, content, platform)
+           VALUES ($1, 'user', $2, $3),
+                  ($1, 'assistant', $4, $3)`,
+          [req.user.id, lastMsg.content, platformTag, fast.content],
+        ).catch((err) => console.error('[setup-agent] persist failed (non-fatal):', err.message));
+        console.log(`[setup-agent] user=${req.user.id} platform=${platformTag} link-fast-path=${fast.kind}`);
+        recordOnboardingEvent(req.user.id, 'link_pasted', { result: fast.kind }, platformTag).catch(() => {});
+        return res.json({ content: fast.content, link: fast.kind });
+      }
+    }
+
     const systemPrompt = buildSystemPrompt(kids, {
       platform: platform === 'mobile' ? 'mobile' : 'web',
       inboundAddress,
@@ -113,8 +146,33 @@ router.post('/message', setupAgentLimiter, async (req, res) => {
     });
     const elapsed = Date.now() - t0;
 
-    const content = resp.content?.[0]?.text || '';
+    let content = resp.content?.[0]?.text || '';
     const usage   = resp.usage || {};
+
+    // "Whose schedule is this?" → the model answers with assign_kids. We
+    // carry that out here and take the action out of the reply, so it works
+    // the same on every client (including app versions that predate it)
+    // and no client can apply it twice.
+    let assigned = null;
+    const assignMatch = content.match(/ACTION:(\{[^{}]*"assign_kids"[^{}]*\})/s);
+    if (assignMatch) {
+      let names = [];
+      try { names = JSON.parse(assignMatch[1]).kid_names || []; } catch { /* treated as no names */ }
+      const result = await assignKidsToNewestCalendar(req.user.id, names).catch((err) => {
+        console.error('[setup-agent] assign_kids failed:', err.message);
+        return { ok: false, reason: 'error', message: 'I couldn\'t save whose calendar that is. Please try again.' };
+      });
+      if (result.ok) {
+        assigned = { source_id: result.source.id, kids: result.kids };
+        content = content.replace(assignMatch[0], '').trim()
+          || `Done. That's ${result.kids.map(k => k.name).join(' and ')}'s schedule.`;
+        recordOnboardingEvent(req.user.id, 'kid_assigned', { via: 'typed', kids: result.kids.length },
+          platform === 'mobile' ? 'mobile' : 'web').catch(() => {});
+      } else {
+        // Don't let "all set!" stand when nothing was saved.
+        content = result.message;
+      }
+    }
 
     // Persist this turn (the user's new message + the assistant's reply)
     // for debugging, training data, and future "resume conversation" UX.
@@ -152,7 +210,7 @@ router.post('/message', setupAgentLimiter, async (req, res) => {
       `t=${elapsed}ms turns=${apiMessages.length}`,
     );
 
-    res.json({ content });
+    res.json(assigned ? { content, assigned } : { content });
   } catch (err) {
     console.error('[setup-agent] error:', err.message);
     // Don't leak Anthropic-specific error shapes to the client.
