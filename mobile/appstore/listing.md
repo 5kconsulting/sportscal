@@ -88,24 +88,26 @@ Getting your first team in is much easier:
 ```
 
 ## Screenshots
-Five of the current seven are text on a blue background; only two show the app.
-Search results show the first three, so those three should be the app itself.
+Ready to upload, in this order, from `mobile/appstore/store-1.0.3/` (1284 × 2778, the 6.5-inch size):
 
-Suggested order:
-1. The family calendar with two kids in two colors. Caption: "Every kid's games in one place."
-2. The "Which app does your team use?" screen. Caption: "Pick your team app. We show you the link."
-3. A pasted link being added in the chat ("That's a working TeamSnap calendar with 24 events").
-   Caption: "Paste the link. The season appears."
-4. The conflict banner. Caption: "Two kids, two places? You'll know."
-5. Ride request. Caption: "Sort the rides in seconds."
-6. The 8 PM notification. Caption: "Know tomorrow, tonight."
+1. `1-every-kids-games.png` — "Every kid's games, one calendar."
+2. `2-a-color-for-every-kid.png` — "A color for every kid."
+3. `3-works-with-your-team-apps.png` — "Works with your team apps."
+4. `4-know-where-to-be.png` — "Know exactly where to be."
+5. `5-sort-the-rides.png` — "Sort the rides in seconds."
 
-Fix or drop on the current set:
-- "Never miss a game — A reminder before every event": there is no per-event reminder
-  yet (only the 8 PM heads-up). Reword to "An 8 PM heads-up for tomorrow" or remove.
-- "Six team apps, one feed" shows four apps, and "feed" is jargon.
-  "Every team app, one calendar" works.
-- The 1.0.2 release notes end with a stray quote mark.
+All five are the real app. Search results show the first three, and two of those say "kid".
+Remove the five text-only posters that are in the store now (two of them made claims that
+no longer hold: "A reminder before every event" and "Six team apps, one feed").
+
+Screenshots 1 and 3 are the existing images with the caption redone; 2, 4 and 5 are unchanged.
+Screenshot 3 shows one calendar badge reading "CUSTOM ICAL"; the app now says "OTHER CALENDAR".
+Worth retaking that screen from a phone at some point, but it isn't misleading.
+
+Still missing, for a later round: a screenshot of the setup chat adding a pasted link, and one
+of the 8 PM notification. Both need a capture from a real phone.
+
+The 1.0.2 release notes end with a stray quote mark; the 1.0.3 notes above replace them.
 
 ## Also worth doing on the website
 - Add an App Store button to sportscalapp.com (there is none).
