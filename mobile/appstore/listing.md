@@ -77,14 +77,26 @@ Built by a dad of four with kids in two sports apiece, because juggling a dozen 
 Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 ```
 
-## What's New (next version)
+## What's New (1.0.3)
+Written against 1.0.2 (the live version, Aug 4), so it covers everything since then. Some of
+it already reached people through over-the-air updates; it's still new to anyone updating from
+the store. Biggest changes first, because the store shows only the first few lines before "more".
+The new-install "opens on Create account" change is left out, since people who are updating
+never see it.
+
 ```
+• See the whole season, not just the next 30 days
+• Add events that repeat every week
+• Games that overlap are flagged in red, so double-bookings stand out
+• Weather on game cards
+• A nightly heads-up at 8 PM with tomorrow's schedule (turn it on or off in Settings)
+
 Getting your first team in is much easier:
 • Paste your team's calendar link and it's added right away. We check the link first and tell you how many events it found
 • Corrected GameChanger steps (gear icon → Schedule Sync)
-• No team app? Send a photo of the schedule without setting anything up first
-• Add events that repeat every week
-• Plainer wording throughout
+• No team app? Send a photo of the schedule, or email the PDF to your SportsCal address
+
+Plus plainer wording throughout and bug fixes.
 ```
 
 ## Screenshots
