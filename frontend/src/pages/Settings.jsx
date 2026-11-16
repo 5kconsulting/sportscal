@@ -388,6 +388,7 @@ export default function Settings() {
         <Section title="Plan">
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexWrap: 'wrap', gap: 12,
             padding: '16px', background: 'var(--navy)', borderRadius: 'var(--radius)',
           }}>
             <div>
@@ -404,6 +405,7 @@ export default function Settings() {
             {user?.plan === 'free' ? (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-ghost btn-sm"
+                  style={{ color: 'var(--white)', borderColor: 'rgba(255,255,255,0.35)' }}
                   onClick={() => handleUpgrade('month')} disabled={billing}>
                   {billing ? '…' : '$4.99 / mo'}
                 </button>
@@ -414,6 +416,7 @@ export default function Settings() {
               </div>
             ) : (
               <button type="button" className="btn btn-ghost btn-sm"
+                style={{ color: 'var(--white)', borderColor: 'rgba(255,255,255,0.35)' }}
                 onClick={handlePortal} disabled={billing}>
                 {billing ? '…' : 'Manage billing'}
               </button>

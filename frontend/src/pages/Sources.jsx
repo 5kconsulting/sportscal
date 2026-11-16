@@ -41,9 +41,10 @@ function UpgradeBanner() {
           Get 8 family members and 24 calendars for $4.99/month or $49.99/year.
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button type="button" onClick={() => handleUpgrade('month')} disabled={loading}
-          className="btn btn-ghost btn-sm">
+          className="btn btn-ghost btn-sm"
+          style={{ color: 'var(--white)', borderColor: 'rgba(255,255,255,0.35)' }}>
           {loading ? '…' : '$4.99 / mo'}
         </button>
         <button type="button" onClick={() => handleUpgrade('year')} disabled={loading}
