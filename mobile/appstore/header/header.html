@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<!--
+  App Store product page header (iOS 27+ creative asset).
+  Apple spec: 3840 x 1646 (21:9), art safe area 1646 x 661 at x 1097, y 493.
+  Everything critical (the headline) sits inside the safe area; the phones and
+  calendar texture are "auxiliary art" that may be cropped on some devices.
+
+  Render:  see render.sh next to this file.
+  Guides:  open with #guides to outline the safe area and the phone-sized crop.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --blue-top: #3B82F6; --blue-mid: #2563EB; --blue-deep: #1C47C4;
+    --amber: #F8BC24;
+    /* phone crop inside the 1284 x 2778 store screenshots */
+    --src-w: 1284; --bez-x: 121; --bez-y: 609; --bez-w: 1042; --bez-h: 2169; --bez-r: 100;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 3840px; height: 1646px; overflow: hidden; background: var(--blue-mid); }
+  .canvas {
+    position: relative; width: 3840px; height: 1646px; overflow: hidden;
+    background:
+      radial-gradient(ellipse 1500px 900px at 50% 46%, rgba(120,175,255,0.40), rgba(120,175,255,0) 70%),
+      linear-gradient(180deg, var(--blue-top) 0%, var(--blue-mid) 48%, var(--blue-deep) 100%);
+    font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+  }
+  /* faint month-view grid: reads as "calendar" in any crop */
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.075) 2px, transparent 2px),
+      linear-gradient(to bottom, rgba(255,255,255,0.075) 2px, transparent 2px);
+    background-size: 240px 206px;
+    background-position: 0 4px;
+  }
+  .chip { position: absolute; height: 34px; border-radius: 17px; }
+  .fade {  /* keeps the grid and chips quiet behind the headline */
+    position: absolute; left: 50%; top: 50%; width: 2300px; height: 1000px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(ellipse at center, rgba(37,99,235,0.92) 0%, rgba(37,99,235,0.75) 40%, rgba(37,99,235,0) 72%);
+  }
+  .phone {
+    position: absolute; overflow: hidden;
+    border-radius: calc(var(--bez-r) * var(--s) * 1px) calc(var(--bez-r) * var(--s) * 1px) 0 0;
+    width: calc(var(--bez-w) * var(--s) * 1px);
+    height: calc(var(--bez-h) * var(--s) * 1px);
+    background-repeat: no-repeat;
+    background-size: calc(var(--src-w) * var(--s) * 1px) auto;
+    background-position: calc(var(--bez-x) * var(--s) * -1px) calc(var(--bez-y) * var(--s) * -1px);
+    filter: drop-shadow(0 40px 70px rgba(6, 18, 70, 0.45));
+    transform-origin: 50% 100%;
+  }
+  .headline {
+    position: absolute; left: 1097px; top: 493px; width: 1646px; height: 661px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; color: #fff;
+  }
+  .headline h1 {
+    font-weight: 700; letter-spacing: -0.025em; line-height: 1.04;
+    text-shadow: 0 6px 30px rgba(8, 28, 100, 0.30);
+    white-space: nowrap;
+  }
+  .headline h1 em { font-style: normal; color: var(--amber); }
+  .headline p {
+    margin-top: 34px; font-weight: 600; letter-spacing: -0.01em;
+    color: rgba(255,255,255,0.88); white-space: nowrap;
+  }
+  /* guides (only with #guides) */
+  .guide { position: absolute; pointer-events: none; display: none; }
+  body.guides .guide { display: block; }
+  .safe { left: 1097px; top: 493px; width: 1646px; height: 661px; outline: 6px dashed #ff2d55; }
+  .square { left: 1097px; top: 0; width: 1646px; height: 1646px; outline: 6px dashed #34c759; }
+</style>
+</head>
+<body>
+<div class="canvas" id="canvas">
+  <div class="grid"></div>
+  <div id="chips"></div>
+  <div class="fade"></div>
+
+  <!-- left: the family calendar; right: a color for every kid -->
+  <div class="phone" style="--s:0.70; left:250px; top:270px; transform:rotate(-4deg);
+       background-image:url('../store-1.0.3/1-every-kids-games.png')"></div>
+  <div class="phone" style="--s:0.70; right:250px; top:270px; transform:rotate(4deg);
+       background-image:url('../store-1.0.3/2-a-color-for-every-kid.png')"></div>
+
+  <div class="headline">
+    <h1 id="h1">Every kid's games,<br><em>one calendar.</em></h1>
+    <p id="sub">SportsCal pulls in every team's schedule for you.</p>
+  </div>
+
+  <div class="guide safe"></div>
+  <div class="guide square"></div>
+</div>
+<script>
+  if (location.hash === '#guides') document.body.classList.add('guides');
+
+  // Event chips in the kid colors, scattered through the month grid.
+  // Seeded so every render is identical.
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const colors = ['#A855F7', '#14B8A6', '#F97316', '#06B6D4', '#22C55E', '#EC4899'];
+  const chips = document.getElementById('chips');
+  for (let col = 0; col < 16; col++) {
+    for (let row = 0; row < 8; row++) {
+      if (rnd() > 0.34) continue;
+      const n = rnd() > 0.7 ? 2 : 1;
+      for (let i = 0; i < n; i++) {
+        const c = document.createElement('div');
+        c.className = 'chip';
+        c.style.left = (col * 240 + 18) + 'px';
+        c.style.top = (row * 206 + 4 + 22 + i * 48) + 'px';
+        c.style.width = (120 + Math.round(rnd() * 84)) + 'px';
+        c.style.background = colors[Math.floor(rnd() * colors.length)];
+        c.style.opacity = (0.24 + rnd() * 0.22).toFixed(2);
+        chips.appendChild(c);
+      }
+    }
+  }
+
+  // Fit the headline inside the safe area with some breathing room.
+  const h1 = document.getElementById('h1'), sub = document.getElementById('sub');
+  let size = 200;
+  const fit = () => {
+    h1.style.fontSize = size + 'px';
+    sub.style.fontSize = Math.round(size * 0.34) + 'px';
+    const box = document.querySelector('.headline');
+    const w = Math.max(h1.scrollWidth, sub.scrollWidth);
+    const h = h1.offsetHeight + sub.offsetHeight + 34;
+    return w <= 1420 && h <= 580;
+  };
+  while (!fit() && size > 80) size -= 2;
+  document.title = 'fit ' + size;
+</script>
+</body>
+</html>
