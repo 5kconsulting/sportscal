@@ -7,7 +7,7 @@ import { ReplacePdfButton } from '../components/ReplacePdfButton.jsx';
 function UpgradeBanner() {
   const [loading, setLoading] = useState(false);
 
-  async function handleUpgrade() {
+  async function handleUpgrade(interval) {
     setLoading(true);
     try {
       const res = await fetch('/api/billing/checkout', {
@@ -16,6 +16,7 @@ function UpgradeBanner() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('sc_token')}`,
         },
+        body: JSON.stringify({ interval: interval === 'month' ? 'month' : 'year' }),
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
@@ -37,13 +38,19 @@ function UpgradeBanner() {
           ⚡ Upgrade to Premium
         </div>
         <div style={{ fontSize: 13, color: 'var(--slate)' }}>
-          Get 8 family members and 24 calendars for $5/month.
+          Get 8 family members and 24 calendars for $4.99/month or $49.99/year.
         </div>
       </div>
-      <button onClick={handleUpgrade} disabled={loading}
-        className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}>
-        {loading ? '…' : 'Upgrade — $5/mo'}
-      </button>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
+        <button type="button" onClick={() => handleUpgrade('month')} disabled={loading}
+          className="btn btn-ghost btn-sm">
+          {loading ? '…' : '$4.99 / mo'}
+        </button>
+        <button type="button" onClick={() => handleUpgrade('year')} disabled={loading}
+          className="btn btn-primary btn-sm">
+          {loading ? '…' : '$49.99 / yr · 2 months free'}
+        </button>
+      </div>
     </div>
   );
 }

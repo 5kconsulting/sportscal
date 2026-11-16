@@ -405,11 +405,11 @@ export default function Settings() {
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-ghost btn-sm"
                   onClick={() => handleUpgrade('month')} disabled={billing}>
-                  {billing ? '…' : '$10 / mo'}
+                  {billing ? '…' : '$4.99 / mo'}
                 </button>
                 <button type="button" className="btn btn-primary btn-sm"
                   onClick={() => handleUpgrade('year')} disabled={billing}>
-                  {billing ? '…' : '$100 / yr · 2 months free'}
+                  {billing ? '…' : '$49.99 / yr · 2 months free'}
                 </button>
               </div>
             ) : (
