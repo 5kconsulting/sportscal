@@ -99,6 +99,15 @@ Getting your first team in is much easier:
 Plus plainer wording throughout and bug fixes.
 ```
 
+## What's New (1.0.4)
+Nothing in the app has changed since 1.0.3 (build 23, commit 8b42349, Nov 14). So far the only
+change is the App Store description, which updaters never see. If 1.0.4 ships as the same
+code, use the text below. If app changes land before the 1.0.4 build, replace it with those.
+
+```
+No changes you'll notice in this one. Thanks for using SportsCal! If something isn't working the way you expect, write to hello@sportscalapp.com and I'll take a look.
+```
+
 ## Screenshots
 Ready to upload, in this order, from `mobile/appstore/store-1.0.3/` (1284 × 2778, the 6.5-inch size):
 
