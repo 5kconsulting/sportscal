@@ -784,6 +784,10 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS push_opted_out BOOLEAN NOT NULL DEFAU
 -- the series shipped. createUser() enrolls new accounts with '{}'.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS welcome_series         TEXT[];
 ALTER TABLE users ADD COLUMN IF NOT EXISTS welcome_series_sent_at TIMESTAMPTZ;
+-- Set when an older account is enrolled after the fact: the series starts
+-- the day after this instead of the day after signup, and the email copy
+-- doesn't call it their "first week". NULL = enrolled at signup.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS welcome_series_enrolled_at TIMESTAMPTZ;
 -- One-click "stop sending me tips" from the series' footer link. Covers
 -- onboarding/feature emails only; the weekly digest and replies to
 -- forwarded mail are separate.

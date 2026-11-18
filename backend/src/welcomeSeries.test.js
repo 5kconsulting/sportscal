@@ -136,6 +136,40 @@ test('calendars: copy adapts to how many are connected', () => {
   assert.ok(two.html.includes(ADDRESS));
 });
 
+console.log('\nOlder accounts enrolled later');
+
+// Signed up in August; enrolled Wed Nov 18, 2026 at 12:30 AM Pacific.
+const lateUser = (over = {}) => user({
+  created_at: at('2026-08-02T18:00:00Z'),
+  welcome_series_enrolled_at: at('2026-11-18T08:30:00Z'),
+  ...over,
+});
+
+test('not on the enrollment day, though signup was months ago', () => {
+  assert.ok(!isWelcomeDue(lateUser(), at('2026-11-18T17:05:00Z')));   // 9:05 AM PST Nov 18
+});
+test('9 AM local the morning after enrollment', () => {
+  assert.ok(isWelcomeDue(lateUser(), at('2026-11-19T17:05:00Z')));
+});
+test('a future enrollment date holds the series until the day after it', () => {
+  const later = lateUser({ welcome_series_enrolled_at: at('2026-11-20T08:00:00Z') });  // Nov 20, 12 AM PST
+  assert.ok(!isWelcomeDue(later, at('2026-11-19T17:05:00Z')));
+  assert.ok(!isWelcomeDue(later, at('2026-11-20T17:05:00Z')));
+  assert.ok(isWelcomeDue(later, at('2026-11-21T17:05:00Z')));
+});
+test('first email says why it is arriving now', () => {
+  const e = render('forward', ctx(), lateUser());
+  assert.ok(e.html.includes('you signed up for SportsCal a while back'));
+  assert.ok(e.text.includes('You signed up for SportsCal a while back'));
+  assert.ok(e.html.includes('This is the feature I use most'));
+  assert.ok(!render('forward', ctx()).html.includes('a while back'));
+});
+test('footer says "the next week", not "your first week"', () => {
+  const late = render('coparent', ctx(), lateUser()).html;
+  assert.ok(late.includes('for the next week') && !late.includes('your first week'));
+  assert.ok(render('coparent', ctx()).html.includes('your first week'));
+});
+
 console.log('\nUnsubscribe links');
 
 const id = '3f6b2c1a-1111-4222-8333-944455556666';

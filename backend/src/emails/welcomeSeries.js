@@ -27,6 +27,11 @@
 // Enrollment: users.welcome_series = '{}' at signup (createUser), NULL
 // for accounts that predate the series. Progress is the array of keys
 // sent or skipped. Footer + List-Unsubscribe headers turn off tips only.
+//
+// Older accounts can be enrolled later by setting welcome_series = '{}'
+// and welcome_series_enrolled_at. The series then starts the morning
+// after that date (a future date staggers a batch), the first email says
+// why it's arriving now, and the footer drops "your first week".
 // ============================================================
 
 import { layout, styles, escapeHtml, mailingAddress } from './templates.js';
@@ -53,13 +58,18 @@ function localParts(date, timeZone) {
   return { day: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour) };
 }
 
-// Due at 9 AM local, starting the day after signup, at most one a day.
+// Enrolled after signup (an older account added to the series later).
+const enrolledLate = (user) => !!user.welcome_series_enrolled_at;
+
+// Due at 9 AM local, starting the day after signup (or late enrollment),
+// at most one a day.
 export function isWelcomeDue(user, now = new Date()) {
   if (!Array.isArray(user.welcome_series)) return false;
   if (WELCOME_STEPS.every(k => user.welcome_series.includes(k))) return false;
   const today = localParts(now, user.timezone);
   if (today.hour !== SEND_HOUR) return false;
-  if (localParts(new Date(user.created_at), user.timezone).day >= today.day) return false;
+  const start = user.welcome_series_enrolled_at || user.created_at;
+  if (localParts(new Date(start), user.timezone).day >= today.day) return false;
   if (user.welcome_series_sent_at &&
       localParts(new Date(user.welcome_series_sent_at), user.timezone).day >= today.day) return false;
   return true;
@@ -157,9 +167,11 @@ function featureRow(emoji, title, body) {
     </tr>`;
 }
 
-function footer(unsubscribeUrl) {
+function footer(unsubscribeUrl, late = false) {
   return `<p style="${styles.muted}">
-    You're getting this because you joined SportsCal. One short email a day for your first week.
+    ${late
+      ? "You're getting this because you have a SportsCal account. One short email a day for the next week."
+      : "You're getting this because you joined SportsCal. One short email a day for your first week."}
     <a href="${unsubscribeUrl}" style="color:#64748B;">Stop these tips</a>
     (account emails and replies to things you forward still come).
   </p>`;
@@ -199,12 +211,25 @@ function forwardEmail({ user, ctx, inboundAddress }) {
     kidText = `With ${joinNames(ctx.kidNames)} on SportsCal, our reply tells you how to put each forward on the right kid.`;
   }
 
-  const body = `
-    <h2 style="${styles.h2}">Forward schedules straight to your SportsCal</h2>
+  // Late enrollees never got the signup email that announces the series.
+  const late = enrolledLate(user);
+  const opener = late
+    ? `<p style="${styles.p}">
+      Hi ${first}, you signed up for SportsCal a while back. For the next week I'll send one short email
+      a morning with the easiest ways to get your kids' schedules in. Here's the first.
+    </p>
     <p style="${styles.p}">
+      This is the feature I use most. Your SportsCal has its own private email address.
+      Forward a schedule to it and it lands on your family calendar.
+    </p>`
+    : `<p style="${styles.p}">
       Hi ${first}, this is the feature I use most. Your SportsCal has its own private email address.
       Forward a schedule to it and it lands on your family calendar.
-    </p>
+    </p>`;
+
+  const body = `
+    <h2 style="${styles.h2}">Forward schedules straight to your SportsCal</h2>
+    ${opener}
     ${addressCard(inboundAddress)}
     ${kidNote}
     <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#0F172A;text-transform:uppercase;letter-spacing:0.06em;">What you can send it</p>
@@ -228,6 +253,9 @@ function forwardEmail({ user, ctx, inboundAddress }) {
     text: [
       `Hi ${(user.name || 'there').split(' ')[0]},`,
       '',
+      ...(late
+        ? ["You signed up for SportsCal a while back. For the next week I'll send one short email a morning with the easiest ways to get your kids' schedules in. Here's the first.", '']
+        : []),
       'Your SportsCal has its own private email address. Forward a schedule to it and it lands on your family calendar:',
       '',
       `  ${inboundAddress}`,
@@ -409,7 +437,7 @@ export function renderWelcomeEmail(key, { user, ctx, inboundAddress, unsubscribe
   const { subject, preheader, body, text } = BUILDERS[key]({ user, ctx, inboundAddress });
   return {
     subject,
-    html: layout(body, preheader, { footer: footer(unsubscribeUrl) }),
+    html: layout(body, preheader, { footer: footer(unsubscribeUrl, enrolledLate(user)) }),
     text: `${text}\n\n--\nStop these tips: ${unsubscribeUrl}` +
       (mailingAddress() ? `\n${mailingAddress()}` : ''),
   };

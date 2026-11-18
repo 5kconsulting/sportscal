@@ -112,7 +112,13 @@ const worker = new Worker('email-send', async (job) => {
       throw err;
     }
   }
-}, { connection, concurrency: 5 });
+}, {
+  connection,
+  concurrency: 5,
+  // Resend allows 10 API calls a second. A 9 AM welcome-series batch can
+  // queue a couple hundred sends at once, so stay well under that.
+  limiter: { max: 5, duration: 1000 },
+});
 
 worker.on('completed', (job, result) => console.log(`[email-worker] job ${job.id} completed`, result));
 worker.on('failed',    (job, err)    => console.error(`[email-worker] job ${job.id} failed:`, err.message));

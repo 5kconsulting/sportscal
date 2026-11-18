@@ -1299,15 +1299,16 @@ export async function removeHouseholdMember(actorUserId, targetUserId) {
 // ============================================================
 
 // Enrolled accounts that haven't finished the series. The 30-day bound
-// keeps the scan small; the series itself takes about a week.
+// keeps the scan small; the series itself takes about a week. It counts
+// from enrollment, so older accounts enrolled later still qualify.
 export async function getWelcomeSeriesCandidates(stepCount) {
   return query(
-    `SELECT id, timezone, created_at, welcome_series, welcome_series_sent_at
+    `SELECT id, timezone, created_at, welcome_series, welcome_series_sent_at, welcome_series_enrolled_at
        FROM users
       WHERE welcome_series IS NOT NULL
         AND cardinality(welcome_series) < $1
         AND NOT tips_opted_out
-        AND created_at > NOW() - INTERVAL '30 days'`,
+        AND COALESCE(welcome_series_enrolled_at, created_at) > NOW() - INTERVAL '30 days'`,
     [stepCount],
   );
 }
